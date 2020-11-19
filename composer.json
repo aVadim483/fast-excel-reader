@@ -1,0 +1,37 @@
+{
+    "name": "avadim/fast-excel-reader",
+    "description": "Lightwight and very fast XLSX Excel Spreadsheet Reader in PHP",
+    "keywords": [
+        "php",
+        "library",
+        "xls",
+        "xlsx",
+        "excel",
+        "parser",
+        "reader",
+		"spreadsheet",
+		"ms office",
+		"office 2007"
+    ],
+    "type": "library",
+    "homepage": "https://github.com/aVadim483/fast-excel-reader",
+    "license": "MIT",
+    "autoload": {
+        "psr-4": {
+            "avadim\\FastExcelWriter\\": "./src/FastExcelReader"
+        }
+    },
+    "require": {
+        "php": ">=7.2",
+        "ext-zip": "*",
+        "ext-json": "*",
+        "ext-mbstring": "*",
+        "ext-ctype": "*"
+    },
+    "funding": [
+        {
+            "type": "other",
+            "url": "https://www.paypal.me/VShemarov"
+        }
+    ]
+}
