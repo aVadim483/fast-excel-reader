@@ -1,6 +1,6 @@
 {
     "name": "avadim/fast-excel-reader",
-    "description": "Lightwight and very fast XLSX Excel Spreadsheet Reader in PHP",
+    "description": "Lightweight and very fast XLSX Excel Spreadsheet Reader in PHP",
     "keywords": [
         "php",
         "library",
@@ -18,7 +18,7 @@
     "license": "MIT",
     "autoload": {
         "psr-4": {
-            "avadim\\FastExcelWriter\\": "./src/FastExcelReader"
+            "avadim\\FastExcelReader\\": "./src/FastExcelReader"
         }
     },
     "require": {
