@@ -47,7 +47,7 @@ class Excel
         $this->xmlReader = new Reader($file);
 
         $innerFile = 'xl/_rels/workbook.xml.rels';
-        $this->xmlReader->open($innerFile);
+        $this->xmlReader->openZip($innerFile);
         while ($this->xmlReader->read()) {
             if ($this->xmlReader->nodeType === \XMLReader::ELEMENT && $this->xmlReader->name === 'Relationship') {
                 $type = basename($this->xmlReader->getAttribute('Type'));
@@ -91,7 +91,7 @@ class Excel
         if (!$innerFile) {
             $innerFile = 'xl/workbook.xml';
         }
-        $this->xmlReader->open($innerFile);
+        $this->xmlReader->openZip($innerFile);
         $sheetCnt = count($this->relations['worksheet']);
         while ($this->xmlReader->read()) {
             if ($this->xmlReader->nodeType === \XMLReader::ELEMENT && $this->xmlReader->name === 'sheet') {
@@ -121,7 +121,7 @@ class Excel
         if (!$innerFile) {
             $innerFile = 'xl/sharedStrings.xml';
         }
-        $this->xmlReader->open($innerFile);
+        $this->xmlReader->openZip($innerFile);
         while ($this->xmlReader->read()) {
             if ($this->xmlReader->nodeType === \XMLReader::ELEMENT && $this->xmlReader->name === 'si' && $node = $this->xmlReader->expand()) {
                 $this->sharedStrings[] = $node->textContent;
@@ -138,7 +138,7 @@ class Excel
         if (!$innerFile) {
             $innerFile = 'xl/styles.xml';
         }
-        $this->xmlReader->open($innerFile);
+        $this->xmlReader->openZip($innerFile);
         $styleType = '';
         while ($this->xmlReader->read()) {
             if ($this->xmlReader->nodeType === \XMLReader::ELEMENT) {
@@ -448,7 +448,7 @@ class Excel
             throw new Exception('Sheet ID "' . $sheetId . '" not found');
         }
 
-        $this->xmlReader->open($this->sheets[$sheetId]['path']);
+        $this->xmlReader->openZip($this->sheets[$sheetId]['path']);
         $readArea = $this->sheets[$sheetId]['area'];
 
         $data = [];

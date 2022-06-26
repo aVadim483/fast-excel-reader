@@ -1,6 +1,5 @@
 <?php
 
-
 namespace avadim\FastExcelReader;
 
 /**
@@ -26,13 +25,15 @@ class Reader extends \XMLReader
     /**
      * @param string $innerFile
      * @param string|null $encoding
-     * @param int $options
+     * @param int|null $options
+     *
      * @return bool
      */
-    public function open($innerFile, $encoding = null, $options = 0)
+    public function openZip($innerFile, $encoding = null, $options = 0)
     {
         $this->innerFile = $innerFile;
-        return parent::open('zip://' . $this->zipFile . '#' . $innerFile, $encoding, $options);
+
+        return $this->open('zip://' . $this->zipFile . '#' . $innerFile, $encoding, $options);
     }
 
     /**
@@ -48,7 +49,7 @@ class Reader extends \XMLReader
     }
 
     /**
-     * @param $tagName
+     * @param string $tagName
      *
      * @return bool
      */
