@@ -12,6 +12,17 @@ class Excel
     public const EXCEL_2007_MAX_ROW = 1048576;
     public const EXCEL_2007_MAX_COL = 16384;
 
+    public const KEYS_ORIGINAL = 0;
+    public const KEYS_FIRST_ROW = 1;
+    public const KEYS_ROW_ZERO_BASED = 2;
+    public const KEYS_COL_ZERO_BASED = 4;
+    public const KEYS_ZERO_BASED = 6;
+    public const KEYS_ROW_ONE_BASED = 8;
+    public const KEYS_COL_ONE_BASED = 16;
+    public const KEYS_ONE_BASED = 24;
+    public const KEYS_RELATIVE = 32;
+    public const KEYS_SWAP = 64;
+
     /** @var Reader */
     protected $xmlReader;
 
@@ -32,7 +43,7 @@ class Excel
      *
      * @param string|null $file
      */
-    public function __construct($file = null)
+    public function __construct(string $file = null)
     {
         if ($file) {
             $this->_prepare($file);
@@ -42,7 +53,7 @@ class Excel
     /**
      * @param string $file
      */
-    protected function _prepare($file)
+    protected function _prepare(string $file)
     {
         $this->xmlReader = new Reader($file);
 
@@ -86,7 +97,7 @@ class Excel
     /**
      * @param string|null $innerFile
      */
-    protected function _loadSheets($innerFile = null)
+    protected function _loadSheets(string $innerFile = null)
     {
         if (!$innerFile) {
             $innerFile = 'xl/workbook.xml';
@@ -116,7 +127,7 @@ class Excel
     /**
      * @param string|null $innerFile
      */
-    protected function _loadSharedStrings($innerFile = null)
+    protected function _loadSharedStrings(string $innerFile = null)
     {
         if (!$innerFile) {
             $innerFile = 'xl/sharedStrings.xml';
@@ -133,7 +144,7 @@ class Excel
     /**
      * @param string|null $innerFile
      */
-    protected function _loadStyles($innerFile = null)
+    protected function _loadStyles(string $innerFile = null)
     {
         if (!$innerFile) {
             $innerFile = 'xl/styles.xml';
@@ -175,7 +186,7 @@ class Excel
      *
      * @return int
      */
-    protected function _timestamp($excelDateTime)
+    protected function _timestamp($excelDateTime): int
     {
         $d = floor($excelDateTime);
         $t = $excelDateTime - $d;
@@ -270,11 +281,11 @@ class Excel
     }
 
     /**
-     * @param $colLetter
+     * @param string $colLetter
      *
      * @return int
      */
-    public static function colIndex($colLetter)
+    public static function colNum(string $colLetter): int
     {
         static $colIndex = [];
 
@@ -302,7 +313,7 @@ class Excel
      *
      * @return array
      */
-    public function getSheetNames()
+    public function getSheetNames(): array
     {
         return array_column($this->sheets, 'name', 'sheet_id');
     }
@@ -312,7 +323,7 @@ class Excel
      *
      * @return $this
      */
-    public function setDateFormat($dateFormat)
+    public function setDateFormat($dateFormat): Excel
     {
         $this->dateFormat = $dateFormat;
 
@@ -328,7 +339,7 @@ class Excel
      *
      * @return $this
      */
-    public function selectSheet($name, $areaRange = null, $firstRowKeys = false)
+    public function selectSheet(string $name, string $areaRange = null, ?bool $firstRowKeys = false)
     {
         foreach ($this->sheets as $sheetId => $sheet) {
             if (strcasecmp($sheet['name'], $name) === 0) {
@@ -352,7 +363,7 @@ class Excel
      *
      * @return $this
      */
-    public function selectSheetById($sheetId, $areaRange = null)
+    public function selectSheetById(int $sheetId, string $areaRange = null)
     {
         if (!isset($this->sheets[$sheetId])) {
             throw new Exception('Sheet ID "' . $sheetId . '" not found');
@@ -384,20 +395,20 @@ class Excel
      * setReadArea('C3') - set top left only
      *
      * @param string $areaRange
-     * @param bool $firstRowKeys
+     * @param bool|null $firstRowKeys
      *
      * @return $this
      */
-    public function setReadArea($areaRange, $firstRowKeys = false)
+    public function setReadArea(string $areaRange, ?bool $firstRowKeys = false)
     {
         if (preg_match('/^([A-Z]+)(\d+)(:([A-Z]+)(\d+))?$/', $areaRange, $matches)) {
-            $this->sheets[$this->defaultSheet]['area']['col_min'] = self::colIndex($matches[1]);
+            $this->sheets[$this->defaultSheet]['area']['col_min'] = self::colNum($matches[1]);
             $this->sheets[$this->defaultSheet]['area']['row_min'] = (int)$matches[2];
             if (empty($matches[3])) {
                 $this->sheets[$this->defaultSheet]['area']['col_max'] = self::EXCEL_2007_MAX_COL;
                 $this->sheets[$this->defaultSheet]['area']['row_max'] = self::EXCEL_2007_MAX_ROW;
             } else {
-                $this->sheets[$this->defaultSheet]['area']['col_max'] = self::colIndex($matches[4]);
+                $this->sheets[$this->defaultSheet]['area']['col_max'] = self::colNum($matches[4]);
                 $this->sheets[$this->defaultSheet]['area']['row_max'] = (int)$matches[5];
             }
             $this->sheets[$this->defaultSheet]['area']['first_row'] = $firstRowKeys;
@@ -412,18 +423,18 @@ class Excel
      * setReadArea('C') - set left column only
      *
      * @param string $columnsRange
-     * @param bool $firstRowKeys
+     * @param bool|null $firstRowKeys
      *
      * @return $this
      */
-    public function setReadAreaColumns($columnsRange, $firstRowKeys = false)
+    public function setReadAreaColumns(string $columnsRange, ?bool $firstRowKeys = false)
     {
         if (preg_match('/^([A-Z]+)(:([A-Z]+))?$/', $columnsRange, $matches)) {
-            $this->sheets[$this->defaultSheet]['area']['col_min'] = self::colIndex($matches[1]);
+            $this->sheets[$this->defaultSheet]['area']['col_min'] = self::colNum($matches[1]);
             if (empty($matches[2])) {
                 $this->sheets[$this->defaultSheet]['area']['col_max'] = self::EXCEL_2007_MAX_COL;
             } else {
-                $this->sheets[$this->defaultSheet]['area']['col_max'] = self::colIndex($matches[3]);
+                $this->sheets[$this->defaultSheet]['area']['col_max'] = self::colNum($matches[3]);
             }
             $this->sheets[$this->defaultSheet]['area']['first_row'] = $firstRowKeys;
 
@@ -435,12 +446,13 @@ class Excel
     /**
      * Reads cell values and passes them to a callback function
      *
-     * @param $callback
-     * @param $sheetId
+     * @param callback $callback
+     * @param string|int $sheetId
+     * @param int|null $indexStyle
      *
      * @return array
      */
-    public function readSheetCallback($callback, $sheetId = null)
+    public function readSheetCallback(callable $callback, $sheetId = null, int $indexStyle = null): array
     {
         if (null === $sheetId) {
             $sheetId = $this->defaultSheet;
@@ -452,7 +464,8 @@ class Excel
         $readArea = $this->sheets[$sheetId]['area'];
 
         $data = [];
-        $row = 0;
+        $rowNum = 0;
+        $rowOffset = $colOffset = -1;
         if ($this->xmlReader->seekOpenTag('sheetData')) {
             while ($this->xmlReader->read()) {
                 if ($this->xmlReader->nodeType === \XMLReader::END_ELEMENT && $this->xmlReader->name === 'sheetData') {
@@ -460,15 +473,43 @@ class Excel
                 }
                 if ($this->xmlReader->nodeType === \XMLReader::ELEMENT) {
                     if ($this->xmlReader->name === 'row') {
-                        $row = (int)$this->xmlReader->getAttribute('r');
+                        $rowNum = (int)$this->xmlReader->getAttribute('r');
+                        if ($rowOffset === -1) {
+                            $rowOffset = $rowNum - 1;
+                        }
                     } elseif ($this->xmlReader->name === 'c') {
                         $addr = $this->xmlReader->getAttribute('r');
                         if ($addr && preg_match('/^([A-Z]+)(\d+)$/', $addr, $m)) {
                             $col = $m[1];
-                            $colIndex = self::colIndex($col);
-                            if ($colIndex >= $readArea['col_min'] && $colIndex <= $readArea['col_max']
-                                && $row >= $readArea['row_min'] && $row <= $readArea['row_max']) {
+                            $colNum = self::colNum($col);
+                            if ($colNum >= $readArea['col_min'] && $colNum <= $readArea['col_max']
+                                && $rowNum >= $readArea['row_min'] && $rowNum <= $readArea['row_max']) {
+                                if ($colOffset === -1) {
+                                    $colOffset = $colNum - 1;
+                                }
                                 $cell = $this->xmlReader->expand();
+                                if ($indexStyle & self::KEYS_ROW_ZERO_BASED) {
+                                    $row = $rowNum - (($indexStyle & self::KEYS_FIRST_ROW) ? 2 : 1);
+                                }
+                                elseif ($indexStyle & self::KEYS_ROW_ONE_BASED) {
+                                    $row = $rowNum - (($indexStyle & self::KEYS_FIRST_ROW) ? 0 : 1);
+                                }
+                                else {
+                                    $row = (string)$rowNum;
+                                }
+                                if ($indexStyle & self::KEYS_COL_ZERO_BASED) {
+                                    $col = $colNum - 1;
+                                }
+                                elseif ($indexStyle & self::KEYS_COL_ONE_BASED) {
+                                    $col = $colNum;
+                                }
+                                if (($indexStyle & self::KEYS_RELATIVE)
+                                    && (($indexStyle & self::KEYS_ROW_ZERO_BASED) || ($indexStyle & self::KEYS_ROW_ONE_BASED))
+                                    && (($indexStyle & self::KEYS_COL_ZERO_BASED) || ($indexStyle & self::KEYS_COL_ONE_BASED))
+                                ) {
+                                    $row -= $rowOffset;
+                                    $col -= $colOffset;
+                                }
                                 $needBreak = $callback($row, $col, $this->_cellValue($cell));
                                 if ($needBreak) {
                                     break;
@@ -490,25 +531,35 @@ class Excel
      * @param int|null $sheetId
      * @param array $columnKeys
      * @param bool|null $firstRowKeys
+     * @param int|null $indexStyle
      *
      * @return array
      */
-    public function readSheetRows($sheetId = null, $columnKeys = [], $firstRowKeys = null)
+    public function readSheetRows(int $sheetId = null, array $columnKeys = [], bool $firstRowKeys = null, int $indexStyle = null): array
     {
         $data = [];
         if ($firstRowKeys === null) {
             $firstRowKeys = !empty($this->sheets[$sheetId]['area']['first_row']);
         }
+        if ($columnKeys) {
+            $columnKeys = array_combine(array_map('strtoupper', array_keys($columnKeys)), array_values($columnKeys));
+        }
+        if ($firstRowKeys) {
+            $indexStyle = (int)$indexStyle | self::KEYS_FIRST_ROW;
+        }
         $this->readSheetCallback(static function($row, $col, $val) use (&$firstRowKeys, &$columnKeys, &$data) {
-            static $firstRowNum = -1;
+            static $firstRowNum = null;
+
             if ($firstRowKeys) {
-                if ($firstRowNum === -1) {
+                if ($firstRowNum === null) {
                     // the first call
                     $firstRowNum = $row;
-                } elseif ($firstRowNum < $row) {
+                }
+                elseif ($firstRowNum < $row) {
                     if ($columnKeys) {
                         $columnKeys = array_merge($data[$firstRowNum], $columnKeys);
-                    } else {
+                    }
+                    else {
                         $columnKeys = $data[$firstRowNum];
                     }
                     unset($data[$firstRowNum]);
@@ -518,10 +569,20 @@ class Excel
             }
             if (isset($columnKeys[$col])) {
                 $data[$row][$columnKeys[$col]] = $val;
-            } else {
+            }
+            else {
                 $data[$row][$col] = $val;
             }
-        }, $sheetId);
+        }, $sheetId, $indexStyle);
+
+        if ($data && ($indexStyle & self::KEYS_SWAP)) {
+            $newData = [];
+            $rowKeys = array_keys($data);
+            foreach (array_keys(reset($data)) as $colKey) {
+                $newData[$colKey] = array_combine($rowKeys, array_column($data, $colKey));
+            }
+            return $newData;
+        }
 
         return $data;
     }
@@ -544,31 +605,65 @@ class Excel
     }
 
     /**
-     * Returns cell values as a two-dimensional array from default sheet
+     * Returns cell values as a two-dimensional array from default sheet [row][col]
+     *  readRows()
+     *  readRows(true)
+     *  readRows(false, Excel::INDEX_ZERO_BASED)
+     *  readRows(Excel::INDEX_ZERO_BASED | Excel::INDEX_RELATIVE)
      *
-     * @param array|bool|null $columnKeys
+     * @param array|bool|int|null $columnKeys
+     * @param int|null $indexStyle
      *
      * @return array
      */
-    public function readRows($columnKeys = null)
+    public function readRows($columnKeys = null, int $indexStyle = null): array
     {
         if (!is_array($columnKeys)) {
-            $firstRowKeys = (bool)$columnKeys;
+            if (is_int($columnKeys) && $columnKeys > 1 && $indexStyle === null) {
+                $firstRowKeys = $columnKeys & self::KEYS_FIRST_ROW;
+                $indexStyle = $columnKeys;
+            }
+            else {
+                $firstRowKeys = (bool)$columnKeys;
+            }
             $columnKeys = [];
-        } else {
+        }
+        elseif (is_int($indexStyle) && $indexStyle & self::KEYS_FIRST_ROW) {
+            $firstRowKeys = true;
+        }
+        else {
             $firstRowKeys = null;
         }
-        return $this->readSheetRows($this->defaultSheet, $columnKeys, $firstRowKeys);
+        return $this->readSheetRows($this->defaultSheet, $columnKeys, $firstRowKeys, $indexStyle);
+    }
+
+    /**
+     * Returns cell values as a two-dimensional array from default sheet [col][row]
+     *
+     * @param array|bool|int|null $columnKeys
+     * @param int|null $indexStyle
+     *
+     * @return array
+     */
+    public function readColumns($columnKeys = null, int $indexStyle = null): array
+    {
+        if (is_int($columnKeys) && $columnKeys > 1 && $indexStyle === null) {
+            $indexStyle = $columnKeys | Excel::KEYS_RELATIVE;
+            $columnKeys = $columnKeys & self::KEYS_FIRST_ROW;
+        }
+        else {
+            $indexStyle = $indexStyle | Excel::KEYS_RELATIVE;
+        }
+
+        return $this->readRows($columnKeys, $indexStyle);
     }
 
     /**
      * Returns the values of all cells as array from default sheet
      *
-     * @param $sheetId
-     *
      * @return array
      */
-    public function readCells()
+    public function readCells(): array
     {
         return $this->readSheetCells($this->defaultSheet);
     }

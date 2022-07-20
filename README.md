@@ -29,7 +29,7 @@ You can find more examples in */demo* folder
 ```php
 use \avadim\FastExcelReader\Excel;
 
-$file = __DIR__ . '/files/demo-01-base.xlsx';
+$file = __DIR__ . '/files/demo-00-simple.xlsx';
 
 // Open XLSX-file
 $excel = Excel::open($file);
@@ -80,7 +80,76 @@ Array
         )
 )
 ```
-Also you can read a one dimensional array
+The optional second argument specifies the result array keys
+```php
+
+// Read rows and use the first row as column keys
+$result = $excel->readRows(false, Excel::KEYS_ZERO_BASED);
+```
+You will get this result:
+```text
+Array
+(
+    [0] => Array
+        (
+            [0] => 'col1'
+            [1] => 'col2'
+        )
+    [1] => Array
+        (
+            [0] => 111
+            [1] => 'aaa'
+        )
+    [2] => Array
+        (
+            [0] => 222
+            [1] => 'bbb'
+        )
+)
+```
+Allowed values of index style
+
+| style options       | descriptions                                                                      |
+|---------------------|-----------------------------------------------------------------------------------|
+| KEYS_ORIGINAL       | rows from '1', columns from 'A' (default)                                         |
+| KEYS_ROW_ZERO_BASED | rows from 0                                                                       |
+| KEYS_COL_ZERO_BASED | columns from 0                                                                    |
+| KEYS_ZERO_BASED     | rows from 0, columns from 0 (same as KEYS_ROW_ZERO_BASED and KEYS_COL_ZERO_BASED) |
+| KEYS_ROW_ONE_BASED  | rows from 1                                                                       |
+| KEYS_COL_ONE_BASED  | columns from 1                                                                    |
+| KEYS_ONE_BASED      | rows from 0, columns from 0 (same as KEYS_ROW_ZERO_BASED and KEYS_COL_ZERO_BASED) |
+
+Additional options that can be combined with index styles
+
+| options         | descriptions                                 |
+|-----------------|----------------------------------------------|
+| KEYS_FIRST_ROW  | the same as _true_ in the first argument     |
+| KEYS_RELATIVE   | index from top left cell of area (not sheet) |
+| KEYS_SWAP       | swap rows and columns                        |
+
+For example
+```php
+
+$result = $excel->readRows(['A' => 'bee', 'B' => 'honey'], Excel::KEYS_FIRST_ROW | Excel::KEYS_ROW_ZERO_BASED | Excel::KEYS_SWAP);
+```
+You will get this result:
+```text
+Array
+(
+    ['bee'] => Array
+        (
+            [0] => 111
+            [1] => 222
+        )
+    ['honey'] => Array
+        (
+            [0] => 'aaa'
+            [1] => 'bbb'
+        )
+)
+```
+
+Also, you can read a one dimensional array
 ```ppp
 $result = $excel->readCells();
 ```
