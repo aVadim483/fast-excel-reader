@@ -293,9 +293,9 @@ class Excel
             return $colIndex[$colLetter];
         }
         // Strip cell reference down to just letters
-        $letters = preg_replace('/[^A-Z]/', '', $colLetter);
+        $letters = preg_replace('/[^A-Z]/', '', strtoupper($colLetter));
 
-        if ($letters > 'XFD') {
+        if (strlen($letters) >= 3 && $letters > 'XFD') {
             return self::EXCEL_2007_MAX_COL;
         }
         // Iterate through each letter, starting at the back to increment the value
