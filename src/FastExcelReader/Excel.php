@@ -407,7 +407,8 @@ class Excel
             if (empty($matches[3])) {
                 $this->sheets[$this->defaultSheet]['area']['col_max'] = self::EXCEL_2007_MAX_COL;
                 $this->sheets[$this->defaultSheet]['area']['row_max'] = self::EXCEL_2007_MAX_ROW;
-            } else {
+            }
+            else {
                 $this->sheets[$this->defaultSheet]['area']['col_max'] = self::colNum($matches[4]);
                 $this->sheets[$this->defaultSheet]['area']['row_max'] = (int)$matches[5];
             }
@@ -433,7 +434,8 @@ class Excel
             $this->sheets[$this->defaultSheet]['area']['col_min'] = self::colNum($matches[1]);
             if (empty($matches[2])) {
                 $this->sheets[$this->defaultSheet]['area']['col_max'] = self::EXCEL_2007_MAX_COL;
-            } else {
+            }
+            else {
                 $this->sheets[$this->defaultSheet]['area']['col_max'] = self::colNum($matches[3]);
             }
             $this->sheets[$this->defaultSheet]['area']['first_row'] = $firstRowKeys;
@@ -456,7 +458,8 @@ class Excel
     {
         if (null === $sheetId) {
             $sheetId = $this->defaultSheet;
-        } elseif (!isset($this->sheets[$sheetId])) {
+        }
+        elseif (!isset($this->sheets[$sheetId])) {
             throw new Exception('Sheet ID "' . $sheetId . '" not found');
         }
 
@@ -477,7 +480,8 @@ class Excel
                         if ($rowOffset === -1) {
                             $rowOffset = $rowNum - 1;
                         }
-                    } elseif ($this->xmlReader->name === 'c') {
+                    }
+                    elseif ($this->xmlReader->name === 'c') {
                         $addr = $this->xmlReader->getAttribute('r');
                         if ($addr && preg_match('/^([A-Z]+)(\d+)$/', $addr, $m)) {
                             $col = $m[1];
@@ -655,7 +659,7 @@ class Excel
             $indexStyle = $indexStyle | Excel::KEYS_RELATIVE;
         }
 
-        return $this->readRows($columnKeys, $indexStyle);
+        return $this->readRows($columnKeys, $indexStyle | Excel::KEYS_SWAP);
     }
 
     /**
@@ -671,11 +675,11 @@ class Excel
     /**
      * Open XLSX file
      *
-     * @param $file
+     * @param string $file
      *
      * @return Excel
      */
-    public static function open($file)
+    public static function open(string $file)
     {
         return new self($file);
     }

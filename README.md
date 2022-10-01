@@ -26,6 +26,7 @@ require 'path/to/fast-excel-writer/src/autoload.php';
 You can find more examples in */demo* folder
 
 ### Simple example
+![demo file](demo/files/demo.jpg)
 ```php
 use \avadim\FastExcelReader\Excel;
 
@@ -33,8 +34,25 @@ $file = __DIR__ . '/files/demo-00-simple.xlsx';
 
 // Open XLSX-file
 $excel = Excel::open($file);
+// Read all values as a flat array
+$result = $excel->readCells();
+// You will get this array:
+```
+You will get this array:
+```text
+Array
+(
+    [A1] => 'col1'
+    [B1] => 'col2'
+    [A2] => 111
+    [B2] => 'aaa'
+    [A3] => 222
+    [B3] => 'bbb'
+)
+```
 
-// Read all rows
+```php
+// Read all rows in two-dimensional array 
 $result = $excel->readRows();
 ```
 You will get this array:
@@ -60,7 +78,32 @@ Array
 ```
 
 ```php
+// Read all columns in two-dimensional array 
+$result = $excel->readColumns();
+```
+You will get this array:
+```text
+Array
+(
+    [A] => Array
+        (
+            [1] => 'col1'
+            [2] => 111
+            [3] => 222
+        )
 
+    [B] => Array
+        (
+            [1] => 'col2'
+            [2] => 'aaa'
+            [3] => 'bbb'
+        )
+
+)
+```
+
+### Keys in resulting arrays
+```php
 // Read rows and use the first row as column keys
 $result = $excel->readRows(true);
 ```
@@ -109,15 +152,15 @@ Array
 ```
 Allowed values of index style
 
-| style options       | descriptions                                                                      |
-|---------------------|-----------------------------------------------------------------------------------|
-| KEYS_ORIGINAL       | rows from '1', columns from 'A' (default)                                         |
-| KEYS_ROW_ZERO_BASED | rows from 0                                                                       |
-| KEYS_COL_ZERO_BASED | columns from 0                                                                    |
-| KEYS_ZERO_BASED     | rows from 0, columns from 0 (same as KEYS_ROW_ZERO_BASED and KEYS_COL_ZERO_BASED) |
-| KEYS_ROW_ONE_BASED  | rows from 1                                                                       |
-| KEYS_COL_ONE_BASED  | columns from 1                                                                    |
-| KEYS_ONE_BASED      | rows from 0, columns from 0 (same as KEYS_ROW_ZERO_BASED and KEYS_COL_ZERO_BASED) |
+| style options       | descriptions                                                                    |
+|---------------------|---------------------------------------------------------------------------------|
+| KEYS_ORIGINAL       | rows from '1', columns from 'A' (default)                                       |
+| KEYS_ROW_ZERO_BASED | rows from 0                                                                     |
+| KEYS_COL_ZERO_BASED | columns from 0                                                                  |
+| KEYS_ZERO_BASED     | rows from 0, columns from 0 (same as KEYS_ROW_ZERO_BASED + KEYS_COL_ZERO_BASED) |
+| KEYS_ROW_ONE_BASED  | rows from 1                                                                     |
+| KEYS_COL_ONE_BASED  | columns from 1                                                                  |
+| KEYS_ONE_BASED      | rows from 1, columns from 1 (same as KEYS_ROW_ONE_BASED + KEYS_COL_ONE_BASED)   |
 
 Additional options that can be combined with index styles
 
@@ -130,39 +173,24 @@ Additional options that can be combined with index styles
 For example
 ```php
 
-$result = $excel->readRows(['A' => 'bee', 'B' => 'honey'], Excel::KEYS_FIRST_ROW | Excel::KEYS_ROW_ZERO_BASED | Excel::KEYS_SWAP);
+$result = $excel->readRows(['A' => 'bee', 'B' => 'honey'], Excel::KEYS_FIRST_ROW | Excel::KEYS_ROW_ZERO_BASED);
 ```
 You will get this result:
 ```text
 Array
 (
-    ['bee'] => Array
+    [0] => Array
         (
-            [0] => 111
-            [1] => 222
+            [bee] => 111
+            [honey] => 'aaa'
         )
-    ['honey'] => Array
-        (
-            [0] => 'aaa'
-            [1] => 'bbb'
-        )
-)
-```
 
-Also, you can read a one dimensional array
-```ppp
-$result = $excel->readCells();
-```
-Result here:
-```txt
-Array
-(
-    ['A1'] => 'col1'
-    ['B1'] => 'col2'
-    ['A2'] => 111
-    ['B2'] => 'aaa'
-    ['A3'] => 222
-    ['B3'] => 'bbb'
+    [1] => Array
+        (
+            [bee] => 222
+            [honey] => 'bbb'
+        )
+
 )
 ```
 
@@ -224,7 +252,7 @@ function readCellCallback($row, $col, $val)
 $excel->readSheetCallback('readCellCallback');
 ```
 
-## Want to support FastExcelWriter?
+## Want to support FastExcelReader?
 
 if you find this package useful you can support and donate to me https://www.paypal.me/VShemarov
-Or just give me star on Github :)
+Or just give me star on GitHub :)
