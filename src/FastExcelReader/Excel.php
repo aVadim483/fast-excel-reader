@@ -23,20 +23,23 @@ class Excel
     public const KEYS_RELATIVE = 32;
     public const KEYS_SWAP = 64;
 
+    protected string $file;
+
     /** @var Reader */
     protected $xmlReader;
 
-    protected $relations = [];
+    protected array $relations = [];
 
-    protected $sharedStrings = [];
+    protected array $sharedStrings = [];
 
-    protected $styles = [];
+    protected array $styles = [];
 
-    protected $sheets = [];
+    /** @var Sheet[] */
+    protected array $sheets = [];
 
-    protected $defaultSheet;
+    protected int $defaultSheetId;
 
-    protected $dateFormat;
+    protected string $dateFormat;
 
     /**
      * Excel constructor
@@ -46,6 +49,7 @@ class Excel
     public function __construct(string $file = null)
     {
         if ($file) {
+            $this->file = $file;
             $this->_prepare($file);
         }
     }
@@ -81,16 +85,7 @@ class Excel
 
         if ($this->sheets) {
             // set current sheet
-            $this->defaultSheet = key($this->sheets);
-            foreach ($this->sheets as $sheetId => $sheet) {
-                $this->sheets[$sheetId]['area'] = [
-                    'row_min' => 1,
-                    'col_min' => 1,
-                    'row_max' => self::EXCEL_2007_MAX_ROW,
-                    'col_max' => self::EXCEL_2007_MAX_COL,
-                    'first_row' => false,
-                ];
-            }
+            $this->selectFirstSheet();
         }
     }
 
@@ -110,11 +105,9 @@ class Excel
                 $sheetId = $this->xmlReader->getAttribute('sheetId');
                 $path = $this->relations['worksheet'][$rId];
                 if ($path) {
-                    $this->sheets[$sheetId] = [
-                        'name' => $this->xmlReader->getAttribute('name'),
-                        'path' => $this->relations['worksheet'][$rId],
-                        'sheet_id' => $sheetId,
-                    ];
+                    $sheetName = $this->xmlReader->getAttribute('name');
+                    $this->sheets[$sheetId] = new Sheet($this->file, $sheetId, $sheetName, $this->relations['worksheet'][$rId]);
+                    $this->sheets[$sheetId]->excel = $this;
                 }
                 if (--$sheetCnt < 1) {
                     break;
@@ -161,18 +154,22 @@ class Excel
                     $numFmtId = (int)$this->xmlReader->getAttribute('numFmtId');
                     $formatCode = $this->xmlReader->getAttribute('formatCode');
                     $numFmts[$numFmtId] = $formatCode;
-                } elseif ($this->xmlReader->name === 'xf') {
+                }
+                elseif ($this->xmlReader->name === 'xf') {
                     $numFmtId = (int)$this->xmlReader->getAttribute('numFmtId');
                     if (isset($numFmts[$numFmtId])) {
                         $format = $numFmts[$numFmtId];
                         if (strpos($format, 'M') !== false || strpos($format, 'm') !== false) {
                             $this->styles[$styleType][] = ['format' => $numFmts[$numFmtId], 'formatType' => 'd'];
-                        } else {
+                        }
+                        else {
                             $this->styles[$styleType][] = ['format' => $numFmts[$numFmtId]];
                         }
-                    } elseif (($numFmtId >= 14 && $numFmtId <= 22) || ($numFmtId >= 45 && $numFmtId <= 47)) {
+                    }
+                    elseif (($numFmtId >= 14 && $numFmtId <= 22) || ($numFmtId >= 45 && $numFmtId <= 47)) {
                             $this->styles[$styleType][] = ['formatType' => 'd'];
-                    } else {
+                    }
+                    else {
                         $this->styles[$styleType][] = null;
                     }
                 }
@@ -182,11 +179,44 @@ class Excel
     }
 
     /**
+     * Returns style array by style Idx
+     *
+     * @param $styleIdx
+     *
+     * @return array
+     */
+    public function styleByIdx($styleIdx)
+    {
+        return $this->styles['cellXfs'][$styleIdx] ?? [];
+    }
+
+    /**
+     * Returns string array by index
+     *
+     * @param $stringId
+     *
+     * @return string|null
+     */
+    public function sharedString($stringId): ?string
+    {
+        return $this->sharedStrings[$stringId] ?? null;
+    }
+
+    public function dateFormat($value)
+    {
+        if ($this->dateFormat) {
+            return gmdate($this->dateFormat, $value);
+        }
+
+        return $value;
+    }
+
+    /**
      * @param $excelDateTime
      *
      * @return int
      */
-    protected function _timestamp($excelDateTime): int
+    public static function timestamp($excelDateTime): int
     {
         $d = floor($excelDateTime);
         $t = $excelDateTime - $d;
@@ -195,89 +225,6 @@ class Excel
         $t = (abs($d) > 0) ? ($d - 25569) * 86400 + round($t * 86400) : round($t * 86400);
 
         return (int)$t;
-    }
-
-    /**
-     * @param $cell
-     *
-     * @return mixed
-     */
-    protected function _cellValue($cell)
-    {
-        // Determine data type
-        $dataType = (string)$cell->getAttribute('t');
-        $cellValue = null;
-        foreach($cell->childNodes as $node) {
-            if ($node->nodeName === 'v') {
-                $cellValue = $node->nodeValue;
-                break;
-            }
-        }
-
-        $format = null;
-        if ( $dataType === '' || $dataType === 'n' ) { // number
-            $styleIdx = (int)$cell->getAttribute('s');
-            if ($styleIdx > 0) {
-                $format = $this->styles['cellXfs'][$styleIdx]['format'] ?? null;
-                if (isset($this->styles['cellXfs'][$styleIdx]['formatType'])) {
-                    $dataType = $this->styles['cellXfs'][$styleIdx]['formatType'];
-                }
-            }
-        }
-
-        $value = '';
-
-        switch ( $dataType ) {
-            case 's':
-                // Value is a shared string
-                if (is_numeric($cellValue) && isset($this->sharedStrings[(int)$cellValue])) {
-                    $value = $this->sharedStrings[(int)$cellValue];
-                }
-                break;
-
-            case 'b':
-                // Value is boolean
-                $value = (bool)$cellValue;
-                break;
-
-            case 'inlineStr':
-                // Value is rich text inline
-                $value = $cell->textContent;
-                break;
-
-            case 'e':
-                // Value is an error message
-                $value = (string)$cellValue;
-                break;
-
-            case 'd':
-                // Value is a date and non-empty
-                if (!empty($cellValue)) {
-                    $value = $this->_timestamp($cellValue);
-                    if ($this->dateFormat) {
-                        $value = gmdate($this->dateFormat, $value);
-                    }
-                }
-                break;
-
-            default:
-                // Value is a string
-                $value = (string) $cellValue;
-
-                // Check for numeric values
-                if (is_numeric($value) && $dataType !== 's') {
-                    /** @noinspection TypeUnsafeComparisonInspection */
-                    if ($value == (int)$value) {
-                        $value = (int)$value;
-                    }
-                    /** @noinspection TypeUnsafeComparisonInspection */
-                    elseif ($value == (float)$value) {
-                        $value = (float)$value;
-                    }
-                }
-        }
-
-        return $value;
     }
 
     /**
@@ -309,13 +256,17 @@ class Excel
     }
 
     /**
-     * Returns names of all sheets
+     * Returns names array of all sheets
      *
      * @return array
      */
     public function getSheetNames(): array
     {
-        return array_column($this->sheets, 'name', 'sheet_id');
+        $result = [];
+        foreach ($this->sheets as $sheetId => $sheet) {
+            $result[$sheetId] = $sheet->name();
+        }
+        return $result;
     }
 
     /**
@@ -337,19 +288,18 @@ class Excel
      * @param string|null $areaRange
      * @param bool|null $firstRowKeys
      *
-     * @return $this
+     * @return Sheet
      */
-    public function selectSheet(string $name, string $areaRange = null, ?bool $firstRowKeys = false)
+    public function selectSheet(string $name, string $areaRange = null, ?bool $firstRowKeys = false): Sheet
     {
         foreach ($this->sheets as $sheetId => $sheet) {
-            if (strcasecmp($sheet['name'], $name) === 0) {
-                $this->defaultSheet = $sheetId;
-
+            if ($sheet->isName($name)) {
+                $this->defaultSheetId = $sheetId;
                 if ($areaRange) {
-                    $this->setReadArea($areaRange, $firstRowKeys);
+                    $sheet->setReadArea($areaRange, $firstRowKeys);
                 }
 
-                return $this;
+                return $sheet;
             }
         }
         throw new Exception('Sheet name "' . $name . '" not found');
@@ -361,251 +311,49 @@ class Excel
      * @param int $sheetId
      * @param string|null $areaRange
      *
-     * @return $this
+     * @return Sheet
      */
-    public function selectSheetById(int $sheetId, string $areaRange = null)
+    public function selectSheetById(int $sheetId, string $areaRange = null): Sheet
     {
         if (!isset($this->sheets[$sheetId])) {
             throw new Exception('Sheet ID "' . $sheetId . '" not found');
         }
-        $this->defaultSheet = $sheetId;
-
+        $this->defaultSheetId = $sheetId;
         if ($areaRange) {
-            $this->setReadArea($areaRange);
+            $this->sheets[$sheetId]->setReadArea($areaRange);
         }
 
-        return $this;
+        return $this->sheets[$sheetId];
     }
 
     /**
      * Select the first sheet as default
      *
-     * @return $this
-     */
-    public function selectFirstSheet()
-    {
-        reset($this->sheets);
-        $this->defaultSheet = key($this->sheets);
-
-        return $this;
-    }
-
-    /**
-     * setReadArea('C3:AZ28') - set top left and right bottom of read area
-     * setReadArea('C3') - set top left only
+     * @param string|null $areaRange
      *
-     * @param string $areaRange
-     * @param bool|null $firstRowKeys
-     *
-     * @return $this
+     * @return Sheet
      */
-    public function setReadArea(string $areaRange, ?bool $firstRowKeys = false)
+    public function selectFirstSheet(string $areaRange = null): Sheet
     {
-        if (preg_match('/^([A-Z]+)(\d+)(:([A-Z]+)(\d+))?$/', $areaRange, $matches)) {
-            $this->sheets[$this->defaultSheet]['area']['col_min'] = self::colNum($matches[1]);
-            $this->sheets[$this->defaultSheet]['area']['row_min'] = (int)$matches[2];
-            if (empty($matches[3])) {
-                $this->sheets[$this->defaultSheet]['area']['col_max'] = self::EXCEL_2007_MAX_COL;
-                $this->sheets[$this->defaultSheet]['area']['row_max'] = self::EXCEL_2007_MAX_ROW;
-            }
-            else {
-                $this->sheets[$this->defaultSheet]['area']['col_max'] = self::colNum($matches[4]);
-                $this->sheets[$this->defaultSheet]['area']['row_max'] = (int)$matches[5];
-            }
-            $this->sheets[$this->defaultSheet]['area']['first_row'] = $firstRowKeys;
-
-            return $this;
+        $this->defaultSheetId = array_key_first($this->sheets);
+        if ($areaRange) {
+            $this->sheets[$this->defaultSheetId]->setReadArea($areaRange);
         }
-        throw new Exception('Wrong address or range "' . $areaRange . '"');
-    }
 
-    /**
-     * setReadArea('C:AZ') - set left and right columns of read area
-     * setReadArea('C') - set left column only
-     *
-     * @param string $columnsRange
-     * @param bool|null $firstRowKeys
-     *
-     * @return $this
-     */
-    public function setReadAreaColumns(string $columnsRange, ?bool $firstRowKeys = false)
-    {
-        if (preg_match('/^([A-Z]+)(:([A-Z]+))?$/', $columnsRange, $matches)) {
-            $this->sheets[$this->defaultSheet]['area']['col_min'] = self::colNum($matches[1]);
-            if (empty($matches[2])) {
-                $this->sheets[$this->defaultSheet]['area']['col_max'] = self::EXCEL_2007_MAX_COL;
-            }
-            else {
-                $this->sheets[$this->defaultSheet]['area']['col_max'] = self::colNum($matches[3]);
-            }
-            $this->sheets[$this->defaultSheet]['area']['first_row'] = $firstRowKeys;
-
-            return $this;
-        }
-        throw new Exception('Wrong address or range "' . $columnsRange . '"');
+        return $this->sheets[$this->defaultSheetId];
     }
 
     /**
      * Reads cell values and passes them to a callback function
      *
      * @param callback $callback
-     * @param string|int $sheetId
      * @param int|null $indexStyle
      *
      * @return array
      */
-    public function readSheetCallback(callable $callback, $sheetId = null, int $indexStyle = null): array
+    public function readCallback(callable $callback, int $indexStyle = null): array
     {
-        if (null === $sheetId) {
-            $sheetId = $this->defaultSheet;
-        }
-        elseif (!isset($this->sheets[$sheetId])) {
-            throw new Exception('Sheet ID "' . $sheetId . '" not found');
-        }
-
-        $this->xmlReader->openZip($this->sheets[$sheetId]['path']);
-        $readArea = $this->sheets[$sheetId]['area'];
-
-        $data = [];
-        $rowNum = 0;
-        $rowOffset = $colOffset = -1;
-        if ($this->xmlReader->seekOpenTag('sheetData')) {
-            while ($this->xmlReader->read()) {
-                if ($this->xmlReader->nodeType === \XMLReader::END_ELEMENT && $this->xmlReader->name === 'sheetData') {
-                    break;
-                }
-                if ($this->xmlReader->nodeType === \XMLReader::ELEMENT) {
-                    if ($this->xmlReader->name === 'row') {
-                        $rowNum = (int)$this->xmlReader->getAttribute('r');
-                        if ($rowOffset === -1) {
-                            $rowOffset = $rowNum - 1;
-                        }
-                    }
-                    elseif ($this->xmlReader->name === 'c') {
-                        $addr = $this->xmlReader->getAttribute('r');
-                        if ($addr && preg_match('/^([A-Z]+)(\d+)$/', $addr, $m)) {
-                            $col = $m[1];
-                            $colNum = self::colNum($col);
-                            if ($colNum >= $readArea['col_min'] && $colNum <= $readArea['col_max']
-                                && $rowNum >= $readArea['row_min'] && $rowNum <= $readArea['row_max']) {
-                                if ($colOffset === -1) {
-                                    $colOffset = $colNum - 1;
-                                }
-                                $cell = $this->xmlReader->expand();
-                                if ($indexStyle & self::KEYS_ROW_ZERO_BASED) {
-                                    $row = $rowNum - (($indexStyle & self::KEYS_FIRST_ROW) ? 2 : 1);
-                                }
-                                elseif ($indexStyle & self::KEYS_ROW_ONE_BASED) {
-                                    $row = $rowNum - (($indexStyle & self::KEYS_FIRST_ROW) ? 0 : 1);
-                                }
-                                else {
-                                    $row = (string)$rowNum;
-                                }
-                                if ($indexStyle & self::KEYS_COL_ZERO_BASED) {
-                                    $col = $colNum - 1;
-                                }
-                                elseif ($indexStyle & self::KEYS_COL_ONE_BASED) {
-                                    $col = $colNum;
-                                }
-                                if (($indexStyle & self::KEYS_RELATIVE)
-                                    && (($indexStyle & self::KEYS_ROW_ZERO_BASED) || ($indexStyle & self::KEYS_ROW_ONE_BASED))
-                                    && (($indexStyle & self::KEYS_COL_ZERO_BASED) || ($indexStyle & self::KEYS_COL_ONE_BASED))
-                                ) {
-                                    $row -= $rowOffset;
-                                    $col -= $colOffset;
-                                }
-                                $needBreak = $callback($row, $col, $this->_cellValue($cell));
-                                if ($needBreak) {
-                                    break;
-                                }
-                            }
-                        }
-                    }
-                }
-            }
-        }
-        $this->xmlReader->close();
-
-        return $data;
-    }
-
-    /**
-     * Returns cell values as a two-dimensional array
-     *
-     * @param int|null $sheetId
-     * @param array $columnKeys
-     * @param bool|null $firstRowKeys
-     * @param int|null $indexStyle
-     *
-     * @return array
-     */
-    public function readSheetRows(int $sheetId = null, array $columnKeys = [], bool $firstRowKeys = null, int $indexStyle = null): array
-    {
-        $data = [];
-        if ($firstRowKeys === null) {
-            $firstRowKeys = !empty($this->sheets[$sheetId]['area']['first_row']);
-        }
-        if ($columnKeys) {
-            $columnKeys = array_combine(array_map('strtoupper', array_keys($columnKeys)), array_values($columnKeys));
-        }
-        if ($firstRowKeys) {
-            $indexStyle = (int)$indexStyle | self::KEYS_FIRST_ROW;
-        }
-        $this->readSheetCallback(static function($row, $col, $val) use (&$firstRowKeys, &$columnKeys, &$data) {
-            static $firstRowNum = null;
-
-            if ($firstRowKeys) {
-                if ($firstRowNum === null) {
-                    // the first call
-                    $firstRowNum = $row;
-                }
-                elseif ($firstRowNum < $row) {
-                    if ($columnKeys) {
-                        $columnKeys = array_merge($data[$firstRowNum], $columnKeys);
-                    }
-                    else {
-                        $columnKeys = $data[$firstRowNum];
-                    }
-                    unset($data[$firstRowNum]);
-                    $firstRowKeys = false;
-                }
-
-            }
-            if (isset($columnKeys[$col])) {
-                $data[$row][$columnKeys[$col]] = $val;
-            }
-            else {
-                $data[$row][$col] = $val;
-            }
-        }, $sheetId, $indexStyle);
-
-        if ($data && ($indexStyle & self::KEYS_SWAP)) {
-            $newData = [];
-            $rowKeys = array_keys($data);
-            foreach (array_keys(reset($data)) as $colKey) {
-                $newData[$colKey] = array_combine($rowKeys, array_column($data, $colKey));
-            }
-            return $newData;
-        }
-
-        return $data;
-    }
-
-    /**
-     * Returns the values of all cells as array
-     *
-     * @param $sheetId
-     *
-     * @return array
-     */
-    public function readSheetCells($sheetId = null)
-    {
-        $data = [];
-        $this->readSheetCallback(static function($row, $col, $val) use (&$data) {
-            $data[$col . $row] = $val;
-        }, $sheetId);
-
-        return $data;
+        return $this->sheets[$this->defaultSheetId]->readCallback($callback, $indexStyle);
     }
 
     /**
@@ -620,25 +368,19 @@ class Excel
      *
      * @return array
      */
-    public function readRows($columnKeys = null, int $indexStyle = null): array
+    public function readRows($columnKeys = [], int $indexStyle = null): array
     {
-        if (!is_array($columnKeys)) {
-            if (is_int($columnKeys) && $columnKeys > 1 && $indexStyle === null) {
-                $firstRowKeys = $columnKeys & self::KEYS_FIRST_ROW;
-                $indexStyle = $columnKeys;
-            }
-            else {
-                $firstRowKeys = (bool)$columnKeys;
-            }
-            $columnKeys = [];
-        }
-        elseif (is_int($indexStyle) && $indexStyle & self::KEYS_FIRST_ROW) {
-            $firstRowKeys = true;
-        }
-        else {
-            $firstRowKeys = null;
-        }
-        return $this->readSheetRows($this->defaultSheet, $columnKeys, $firstRowKeys, $indexStyle);
+        return $this->sheets[$this->defaultSheetId]->readRows($columnKeys, $indexStyle);
+    }
+
+    /**
+     * Returns the values of all cells as array
+     *
+     * @return array
+     */
+    public function readCells(): array
+    {
+        return $this->sheets[$this->defaultSheetId]->readCells();
     }
 
     /**
@@ -651,25 +393,7 @@ class Excel
      */
     public function readColumns($columnKeys = null, int $indexStyle = null): array
     {
-        if (is_int($columnKeys) && $columnKeys > 1 && $indexStyle === null) {
-            $indexStyle = $columnKeys | Excel::KEYS_RELATIVE;
-            $columnKeys = $columnKeys & self::KEYS_FIRST_ROW;
-        }
-        else {
-            $indexStyle = $indexStyle | Excel::KEYS_RELATIVE;
-        }
-
-        return $this->readRows($columnKeys, $indexStyle | Excel::KEYS_SWAP);
-    }
-
-    /**
-     * Returns the values of all cells as array from default sheet
-     *
-     * @return array
-     */
-    public function readCells(): array
-    {
-        return $this->readSheetCells($this->defaultSheet);
+        return $this->sheets[$this->defaultSheetId]->readColumns($columnKeys, $indexStyle);
     }
 
     /**
@@ -679,7 +403,7 @@ class Excel
      *
      * @return Excel
      */
-    public static function open(string $file)
+    public static function open(string $file): Excel
     {
         return new self($file);
     }

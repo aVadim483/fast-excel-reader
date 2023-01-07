@@ -36,7 +36,6 @@ $file = __DIR__ . '/files/demo-00-simple.xlsx';
 $excel = Excel::open($file);
 // Read all values as a flat array
 $result = $excel->readCells();
-// You will get this array:
 ```
 You will get this array:
 ```text
