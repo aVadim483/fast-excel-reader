@@ -26,7 +26,9 @@ class Excel
     protected string $file;
 
     /** @var Reader */
-    protected $xmlReader;
+    protected Reader $xmlReader;
+
+    protected array $fileList = [];
 
     protected array $relations = [];
 
@@ -60,6 +62,18 @@ class Excel
     protected function _prepare(string $file)
     {
         $this->xmlReader = new Reader($file);
+        $this->fileList = $this->xmlReader->fileList();
+        foreach ($this->fileList as $fileName) {
+            if (strpos($fileName, 'xl/drawings/drawing') === 0) {
+                $this->relations['drawings'][] = $fileName;
+            }
+            elseif (strpos($fileName, 'xl/media/') === 0) {
+                $this->relations['media'][] = $fileName;
+            }
+            elseif (strpos($fileName, 'xl/theme/') === 0) {
+                $this->relations['theme'][] = $fileName;
+            }
+        }
 
         $innerFile = 'xl/_rels/workbook.xml.rels';
         $this->xmlReader->openZip($innerFile);
@@ -179,13 +193,84 @@ class Excel
     }
 
     /**
+     * Open XLSX file
+     *
+     * @param string $file
+     *
+     * @return Excel
+     */
+    public static function open(string $file): Excel
+    {
+        return new self($file);
+    }
+
+    /**
+     * @param string $colLetter
+     *
+     * @return int
+     */
+    public static function colNum(string $colLetter): int
+    {
+        static $colNumbers = [];
+
+        if (isset($colNumbers[$colLetter])) {
+            return $colNumbers[$colLetter];
+        }
+        // Strip cell reference down to just letters
+        $letters = preg_replace('/[^A-Z]/', '', strtoupper($colLetter));
+
+        if (strlen($letters) >= 3 && $letters > 'XFD') {
+            return self::EXCEL_2007_MAX_COL;
+        }
+        // Iterate through each letter, starting at the back to increment the value
+        for ($index = 0, $i = 0; $letters !== ''; $letters = substr($letters, 0, -1), $i++) {
+            $index += (ord(substr($letters, -1)) - 64) * (26 ** $i);
+        }
+
+        $colNumbers[$colLetter] = ($index <= self::EXCEL_2007_MAX_COL) ? (int)$index: self::EXCEL_2007_MAX_COL;
+
+        return $colNumbers[$colLetter];
+    }
+
+    /**
+     * Convert column number to letter
+     *
+     * @param int $colNumber ONE based
+     *
+     * @return string
+     */
+    public static function colLetter(int $colNumber): string
+    {
+        static $colLetters = ['',
+            'A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'J', 'K', 'L', 'M', 'N', 'O', 'P', 'Q', 'R', 'S', 'T', 'U', 'V', 'W', 'X', 'Y', 'Z',
+            'AA', 'AB', 'AC', 'AD', 'AE', 'AF', 'AG', 'AH', 'AI', 'AJ', 'AK', 'AL', 'AM', 'AN', 'AO', 'AP', 'AQ', 'AR', 'AS', 'AT', 'AU', 'AV', 'AW', 'AX', 'AY', 'AZ',
+        ];
+
+        if (isset($colLetters[$colNumber])) {
+            return $colLetters[$colNumber];
+        }
+
+        if ($colNumber > 0 && $colNumber <= self::EXCEL_2007_MAX_COL) {
+            $num = $colNumber - 1;
+            for ($letter = ''; $num >= 0; $num = (int)($num / 26) - 1) {
+                $letter = chr($num % 26 + 0x41) . $letter;
+            }
+            $colLetters[$colNumber] = $letter;
+
+            return $letter;
+        }
+
+        return '';
+    }
+
+    /**
      * Returns style array by style Idx
      *
      * @param $styleIdx
      *
      * @return array
      */
-    public function styleByIdx($styleIdx)
+    public function styleByIdx($styleIdx): array
     {
         return $this->styles['cellXfs'][$styleIdx] ?? [];
     }
@@ -202,7 +287,7 @@ class Excel
         return $this->sharedStrings[$stringId] ?? null;
     }
 
-    public function dateFormat($value)
+    public function formatDate($value)
     {
         if ($this->dateFormat) {
             return gmdate($this->dateFormat, $value);
@@ -225,34 +310,6 @@ class Excel
         $t = (abs($d) > 0) ? ($d - 25569) * 86400 + round($t * 86400) : round($t * 86400);
 
         return (int)$t;
-    }
-
-    /**
-     * @param string $colLetter
-     *
-     * @return int
-     */
-    public static function colNum(string $colLetter): int
-    {
-        static $colIndex = [];
-
-        if (isset($colIndex[$colLetter])) {
-            return $colIndex[$colLetter];
-        }
-        // Strip cell reference down to just letters
-        $letters = preg_replace('/[^A-Z]/', '', strtoupper($colLetter));
-
-        if (strlen($letters) >= 3 && $letters > 'XFD') {
-            return self::EXCEL_2007_MAX_COL;
-        }
-        // Iterate through each letter, starting at the back to increment the value
-        for ($index = 0, $i = 0; $letters !== ''; $letters = substr($letters, 0, -1), $i++) {
-            $index += (ord(substr($letters, -1)) - 64) * (26 ** $i);
-        }
-
-        $colIndex[$colLetter] = ($index <= self::EXCEL_2007_MAX_COL) ? (int)$index: self::EXCEL_2007_MAX_COL;
-
-        return $colIndex[$colLetter];
     }
 
     /**
@@ -279,6 +336,33 @@ class Excel
         $this->dateFormat = $dateFormat;
 
         return $this;
+    }
+
+    /**
+     * Returns current sheet
+     *
+     * @param string|null $name
+     *
+     * @return Sheet|null
+     */
+    public function sheet(?string $name = null): ?Sheet
+    {
+        $sheetId = null;
+        if (!$name) {
+            $sheetId = $this->defaultSheetId;
+        }
+        else {
+            foreach ($this->sheets as $sheetId => $sheet) {
+                if ($sheet->isName($name)) {
+                    break;
+                }
+            }
+        }
+        if ($sheetId && isset($this->sheets[$sheetId])) {
+            return $this->sheets[$sheetId];
+        }
+
+        return null;
     }
 
     /**
@@ -396,18 +480,39 @@ class Excel
         return $this->sheets[$this->defaultSheetId]->readColumns($columnKeys, $indexStyle);
     }
 
-    /**
-     * Open XLSX file
-     *
-     * @param string $file
-     *
-     * @return Excel
-     */
-    public static function open(string $file): Excel
+    public function innerFileList(): array
     {
-        return new self($file);
+        return $this->fileList;
     }
 
+    public function hasDrawings(): bool
+    {
+        return !empty($this->relations['drawings']);
+    }
+
+    public function countImages(): int
+    {
+        $result = 0;
+        if ($this->hasDrawings()) {
+            foreach ($this->sheets as $sheet) {
+                $result += $sheet->countImages();
+            }
+        }
+
+        return $result;
+    }
+
+    public function getImageList(): array
+    {
+        $result = [];
+        if ($this->hasDrawings()) {
+            foreach ($this->sheets as $sheet) {
+                $result[$sheet->name()] = $sheet->getImageList();
+            }
+        }
+
+        return $result;
+    }
 }
 
 // EOF

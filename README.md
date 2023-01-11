@@ -34,7 +34,7 @@ $file = __DIR__ . '/files/demo-00-simple.xlsx';
 
 // Open XLSX-file
 $excel = Excel::open($file);
-// Read all values as a flat array
+// Read all values as a flat array from current sheet
 $result = $excel->readCells();
 ```
 You will get this array:
@@ -125,7 +125,7 @@ Array
 The optional second argument specifies the result array keys
 ```php
 
-// Read rows and use the first row as column keys
+// Rows and cols start from zero
 $result = $excel->readRows(false, Excel::KEYS_ZERO_BASED);
 ```
 You will get this result:

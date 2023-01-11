@@ -29,10 +29,7 @@
         "ext-ctype": "*",
         "ext-xmlreader": "*"
     },
-    "funding": [
-        {
-            "type": "other",
-            "url": "https://www.paypal.me/VShemarov"
-        }
-    ]
+    "require-dev": {
+        "phpunit/phpunit": "^9.0"
+    }
 }
