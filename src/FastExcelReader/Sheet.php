@@ -206,6 +206,7 @@ class Sheet
      */
     public function readRows($columnKeys = [], int $indexStyle = null): array
     {
+/*
         if (!is_array($columnKeys)) {
             if (is_int($columnKeys) && $columnKeys > 1 && $indexStyle === null) {
                 $firstRowKeys = $columnKeys & Excel::KEYS_FIRST_ROW;
@@ -223,7 +224,6 @@ class Sheet
             $firstRowKeys = null;
         }
 
-        $data = [];
         if ($firstRowKeys === null) {
             $firstRowKeys = !empty($this->area['first_row']);
         }
@@ -233,34 +233,16 @@ class Sheet
         if ($firstRowKeys) {
             $indexStyle = (int)$indexStyle | Excel::KEYS_FIRST_ROW;
         }
-        //$firstRowKeys = false;
-        $this->readCallback(static function($row, $col, $val) use (&$firstRowKeys, &$columnKeys, &$data) {
-            static $firstRowNum = null;
-
-            if ($firstRowKeys) {
-                if ($firstRowNum === null) {
-                    // the first call
-                    $firstRowNum = $row;
-                }
-                elseif ($firstRowNum < $row) {
-                    if ($columnKeys) {
-                        $columnKeys = array_merge($data[$firstRowNum], $columnKeys);
-                    }
-                    else {
-                        $columnKeys = $data[$firstRowNum];
-                    }
-                    unset($data[$firstRowNum]);
-                    $firstRowKeys = false;
-                }
-
-            }
+*/
+        $data = [];
+        $this->readCallback(static function($row, $col, $val) use (&$columnKeys, &$data) {
             if (isset($columnKeys[$col])) {
                 $data[$row][$columnKeys[$col]] = $val;
             }
             else {
                 $data[$row][$col] = $val;
             }
-        }, $indexStyle);
+        }, $columnKeys, $indexStyle);
 
         if ($data && ($indexStyle & Excel::KEYS_SWAP)) {
             $newData = [];
@@ -310,42 +292,16 @@ class Sheet
         return $data;
     }
 
-    protected function defineRowCol($rowNum, $colNum, $colOffset, $rowOffset, $indexStyle): array
-    {
-        $row = $rowNum;
-        $col = $colNum;
-        if ($colOffset === -1) {
-            $colOffset = $colNum - 1;
-        }
-        if ($indexStyle & Excel::KEYS_ROW_ZERO_BASED) {
-            $row = $rowNum - (($indexStyle & Excel::KEYS_FIRST_ROW) ? 2 : 1);
-        }
-        elseif ($indexStyle & Excel::KEYS_ROW_ONE_BASED) {
-            $row = $rowNum - (($indexStyle & Excel::KEYS_FIRST_ROW) ? 1 : 0);
-        }
-        if ($indexStyle & Excel::KEYS_COL_ZERO_BASED) {
-            $col = $colNum - 1;
-        }
-
-        if (($indexStyle & Excel::KEYS_RELATIVE)
-            && (($indexStyle & Excel::KEYS_ROW_ZERO_BASED) || ($indexStyle & Excel::KEYS_ROW_ONE_BASED))
-            && (($indexStyle & Excel::KEYS_COL_ZERO_BASED) || ($indexStyle & Excel::KEYS_COL_ONE_BASED))
-        ) {
-            $row -= $rowOffset;
-            $col -= $colOffset;
-        }
-        return [$row, $col];
-    }
-
     /**
      * Reads cell values and passes them to a callback function
      *
      * @param callback $callback Callback function($row, $col, $value)
+     * @param array|bool|int|null $columnKeys
      * @param int|null $indexStyle
      */
-    public function readCallback(callable $callback, int $indexStyle = null)
+    public function readCallback(callable $callback, $columnKeys = [], int $indexStyle = null)
     {
-        foreach ($this->nextRow($indexStyle) as $row => $rowData) {
+        foreach ($this->nextRow($columnKeys, $indexStyle) as $row => $rowData) {
             foreach ($rowData as $col => $val) {
                 $needBreak = $callback($row, $col, $val);
                 if ($needBreak) {
@@ -356,20 +312,34 @@ class Sheet
     }
 
     /**
+     * @param array|bool|int|null $columnKeys
      * @param int|null $indexStyle
      *
      * @return \Generator|null
      */
-    public function nextRow(int $indexStyle = null): ?\Generator
+    public function nextRow($columnKeys = [], int $indexStyle = null): ?\Generator
     {
         $xmlReader = $this->getReader();
         $xmlReader->openZip($this->path);
         $readArea = $this->area;
 
+        if (is_array($columnKeys)) {
+            $firstRowKeys = is_int($indexStyle) && ($indexStyle & Excel::KEYS_FIRST_ROW);
+            $columnKeys = array_combine(array_map('strtoupper', array_keys($columnKeys)), array_values($columnKeys));
+        }
+        elseif ($columnKeys) {
+            $firstRowKeys = true;
+            $columnKeys = [];
+        }
+        else {
+            $firstRowKeys = false;
+        }
+
         $rowData = [];
         $rowNum = 0;
-        $rowOffset = $colOffset = -1;
+        $rowOffset = $colOffset = null;
         $row = -1;
+        $rowCnt = -1;
         if ($xmlReader->seekOpenTag('sheetData')) {
             while ($xmlReader->read()) {
                 if ($xmlReader->nodeType === \XMLReader::END_ELEMENT && $xmlReader->name === 'sheetData') {
@@ -377,14 +347,22 @@ class Sheet
                 }
                 if ($xmlReader->nodeType === \XMLReader::ELEMENT) {
                     if ($xmlReader->name === 'row') {
+                        $rowCnt += 1;
                         $rowNum = (int)$xmlReader->getAttribute('r');
-                        if ($rowOffset === -1) {
-                            $rowOffset = $rowNum - 1;
+                        if ($rowOffset === null) {
+                            $rowOffset = $rowNum - ($firstRowKeys ? 2 : 1);
+                            if (is_int($indexStyle) && ($indexStyle & Excel::KEYS_ROW_ZERO_BASED)) {
+                                $rowOffset -= 1;
+                            }
                         }
-                        if ($row === -1) {
-                            $rowData = [];
-                        }
-                        elseif ($row > -1) {
+                        if ($rowCnt > 0) {
+                            if ($rowCnt === 1 && $firstRowKeys) {
+                                if (!$columnKeys) {
+                                    $columnKeys = $rowData;
+                                }
+                                $rowData = [];
+                                continue;
+                            }
                             yield $row => $rowData;
                             $rowData = [];
                         }
@@ -397,13 +375,19 @@ class Sheet
 
                             if ($colNum >= $readArea['col_min'] && $colNum <= $readArea['col_max']
                                 && $rowNum >= $readArea['row_min'] && $rowNum <= $readArea['row_max']) {
-                                if ($colOffset === -1) {
+                                if ($colOffset === null) {
                                     $colOffset = $colNum - 1;
+                                    if (is_int($indexStyle) && ($indexStyle & Excel::KEYS_COL_ZERO_BASED)) {
+                                        $colOffset -= 1;
+                                    }
                                 }
                                 if ($indexStyle) {
-                                    [$row, $col] = $this->defineRowCol($rowNum, $colNum, $colOffset, $rowOffset, $indexStyle);
-                                    if (!($indexStyle & (Excel::KEYS_COL_ZERO_BASED | Excel::KEYS_COL_ONE_BASED | Excel::KEYS_ZERO_BASED | Excel::KEYS_ONE_BASED))) {
+                                    $row = $rowNum + $rowOffset;
+                                    if (!($indexStyle & (Excel::KEYS_COL_ZERO_BASED | Excel::KEYS_COL_ONE_BASED))) {
                                         $col = $colLetter;
+                                    }
+                                    else {
+                                        $col = $colNum + $colOffset;
                                     }
                                 }
                                 else {
@@ -411,6 +395,9 @@ class Sheet
                                     $col = $colLetter;
                                 }
                                 $cell = $xmlReader->expand();
+                                if (is_array($columnKeys) && isset($columnKeys[$colLetter])) {
+                                    $col = $columnKeys[$colLetter];
+                                }
                                 $rowData[$col] = $this->_cellValue($cell);
                             }
                         }
