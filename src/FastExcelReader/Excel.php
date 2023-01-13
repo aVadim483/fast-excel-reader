@@ -41,7 +41,7 @@ class Excel
 
     protected int $defaultSheetId;
 
-    protected string $dateFormat;
+    protected ?string $dateFormat = null;
 
     /**
      * Excel constructor
@@ -205,6 +205,8 @@ class Excel
     }
 
     /**
+     * Converts an alphabetic column index to a numeric
+     *
      * @param string $colLetter
      *
      * @return int
@@ -264,6 +266,51 @@ class Excel
     }
 
     /**
+     * @param $excelDateTime
+     *
+     * @return int
+     */
+    public static function timestamp($excelDateTime): int
+    {
+        $d = floor($excelDateTime);
+        $t = $excelDateTime - $d;
+        // $d += 1462; // days since 1904
+
+        $t = (abs($d) > 0) ? ($d - 25569) * 86400 + round($t * 86400) : round($t * 86400);
+
+        return (int)$t;
+    }
+
+    /**
+     * @param $dateFormat
+     *
+     * @return $this
+     */
+    public function setDateFormat($dateFormat): Excel
+    {
+        $this->dateFormat = $dateFormat;
+
+        return $this;
+    }
+
+    /**
+     * @return string|null
+     */
+    public function getDateFormat(): ?string
+    {
+        return $this->dateFormat;
+    }
+
+    public function formatDate($value)
+    {
+        if ($this->dateFormat) {
+            return gmdate($this->dateFormat, $value);
+        }
+
+        return $value;
+    }
+
+    /**
      * Returns style array by style Idx
      *
      * @param $styleIdx
@@ -287,31 +334,6 @@ class Excel
         return $this->sharedStrings[$stringId] ?? null;
     }
 
-    public function formatDate($value)
-    {
-        if ($this->dateFormat) {
-            return gmdate($this->dateFormat, $value);
-        }
-
-        return $value;
-    }
-
-    /**
-     * @param $excelDateTime
-     *
-     * @return int
-     */
-    public static function timestamp($excelDateTime): int
-    {
-        $d = floor($excelDateTime);
-        $t = $excelDateTime - $d;
-        // $d += 1462; // days since 1904
-
-        $t = (abs($d) > 0) ? ($d - 25569) * 86400 + round($t * 86400) : round($t * 86400);
-
-        return (int)$t;
-    }
-
     /**
      * Returns names array of all sheets
      *
@@ -324,18 +346,6 @@ class Excel
             $result[$sheetId] = $sheet->name();
         }
         return $result;
-    }
-
-    /**
-     * @param $dateFormat
-     *
-     * @return $this
-     */
-    public function setDateFormat($dateFormat): Excel
-    {
-        $this->dateFormat = $dateFormat;
-
-        return $this;
     }
 
     /**
@@ -432,16 +442,15 @@ class Excel
      *
      * @param callback $callback
      * @param int|null $indexStyle
-     *
-     * @return array
      */
-    public function readCallback(callable $callback, int $indexStyle = null): array
+    public function readCallback(callable $callback, int $indexStyle = null)
     {
-        return $this->sheets[$this->defaultSheetId]->readCallback($callback, $indexStyle);
+        $this->sheets[$this->defaultSheetId]->readCallback($callback, $indexStyle);
     }
 
     /**
      * Returns cell values as a two-dimensional array from default sheet [row][col]
+     *
      *  readRows()
      *  readRows(true)
      *  readRows(false, Excel::INDEX_ZERO_BASED)

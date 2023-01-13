@@ -51,7 +51,7 @@ Array
 ```
 
 ```php
-// Read all rows in two-dimensional array 
+// Read all rows in two-dimensional array (ROW x COL)
 $result = $excel->readRows();
 ```
 You will get this array:
@@ -77,7 +77,7 @@ Array
 ```
 
 ```php
-// Read all columns in two-dimensional array 
+// Read all columns in two-dimensional array (COL x ROW)
 $result = $excel->readColumns();
 ```
 You will get this array:
@@ -100,6 +100,59 @@ Array
 
 )
 ```
+
+### Read values row by row in loop
+```php
+$sheet = $excel->sheet();
+foreach ($sheet->nextRow() as $rowNum => $rowData) {
+    // $rowData is array ['A' => ..., 'B' => ...]
+    $addr = 'C' . $rowNum;
+    if ($sheet->hasImage($addr)) {
+        $sheet->saveImageTo($addr, $fullDirectoryPath);
+    }
+    // handling of $rowData here
+    // ...
+}
+
+foreach ($sheet->nextRow(['A' => 'One', 'B' => 'Two'], Excel::KEYS_FIRST_ROW) as $rowNum => $rowData) {
+    // $rowData is array ['One' => ..., 'Two' => ...]
+    // ...
+}
+```
+
+### Images functions
+```php
+// Returns count images on all sheets
+$excel->countImages()
+
+// Returns count images on sheet
+$sheet->countImages()
+
+// Returns image list of sheet
+$sheet->getImageList()
+
+// Returns image list of specified row
+$sheet->getImageListByRow($rowNumber)
+
+// Returns TRUE if the specified cell has an image
+$sheet->hasImage($cellAddress)
+
+// Returns mime type of image in the specified cell (or NULL)
+$sheet->getImageMimeType($cellAddress)
+
+// Returns inner name of image in the specified cell (or NULL)
+$sheet->getImageName($cellAddress)
+
+// Returns an image from the cell as a blob (if exists) or NULL
+$sheet->getImageBlob($cellAddress)
+
+// Writes an image from the cell to the specified filename
+$sheet->saveImage($cellAddress, $fullFilenamePath)
+
+// Writes an image from the cell to the specified directory
+$sheet->saveImageTo($cellAddress, $fullDirectoryPath)
+```
+
 
 ### Keys in resulting arrays
 ```php

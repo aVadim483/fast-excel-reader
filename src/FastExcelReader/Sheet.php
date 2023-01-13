@@ -247,8 +247,13 @@ class Sheet
         if ($data && ($indexStyle & Excel::KEYS_SWAP)) {
             $newData = [];
             $rowKeys = array_keys($data);
+            $len = count($rowKeys);
             foreach (array_keys(reset($data)) as $colKey) {
-                $newData[$colKey] = array_combine($rowKeys, array_column($data, $colKey));
+                $rowValues = array_column($data, $colKey);
+                if ($len - count($rowValues)) {
+                    $rowValues = array_pad($rowValues, $len, null);
+                }
+                $newData[$colKey] = array_combine($rowKeys, $rowValues);
             }
             return $newData;
         }
@@ -312,6 +317,8 @@ class Sheet
     }
 
     /**
+     * Read cell values row by row
+     *
      * @param array|bool|int|null $columnKeys
      * @param int|null $indexStyle
      *
