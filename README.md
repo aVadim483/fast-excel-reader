@@ -6,6 +6,8 @@ It only reads data, but it does it very quickly and with minimal memory usage.
 If you want to read colors, formats and other properties you need use **PhpSpreadsheet**. 
 But if you only want data then your choice is **FastExcelReader**.
 
+From version 2.0 you can extract images from XLSX files.
+
 By the way, **FastExcelWriter** also exists - https://github.com/aVadim483/fast-excel-writer
 
 ## Installation
