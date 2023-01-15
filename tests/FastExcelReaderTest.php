@@ -42,6 +42,23 @@ final class FastExcelReaderTest extends TestCase
         $result = $excel->readRows(['A' => 'bee', 'B' => 'honey'], Excel::KEYS_FIRST_ROW | Excel::KEYS_ROW_ZERO_BASED);
         $this->assertTrue(isset($result[0]['bee']) && $result[0]['bee'] === 111);
         $this->assertTrue(isset($result[1]['honey']) && $result[1]['honey'] === 'Word');
+
+        $file = __DIR__ . '/../demo/files/demo-02-advanced.xlsx';
+        $excel = Excel::open($file);
+
+        $result = $excel
+            ->selectSheet('Demo2', 'B5:D13')
+            ->readRows();
+        $this->assertTrue(isset($result[5]['B']) && $result[5]['B'] === 2000);
+        $this->assertTrue(isset($result[13]['D']) && round($result[13]['D']) === 104.0);
+
+        $columnKeys = ['B' => 'year', 'C' => 'value1', 'D' => 'value2'];
+        $result = $excel
+            ->selectSheet('Demo2', 'B5:D13')
+            ->readRows($columnKeys, Excel::KEYS_ONE_BASED);
+        $this->assertTrue(isset($result[5]['year']) && $result[5]['year'] === 2004);
+        $this->assertTrue(isset($result[9]['value1']) && $result[9]['value1'] === 674);
+
     }
 }
 

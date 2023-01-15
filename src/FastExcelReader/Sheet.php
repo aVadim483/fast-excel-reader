@@ -142,6 +142,19 @@ class Sheet
     }
 
     /**
+     * @param $dateFormat
+     *
+     * @return $this
+     */
+    public function setDateFormat($dateFormat): Sheet
+    {
+        $this->excel->setDateFormat($dateFormat);
+
+        return $this;
+    }
+
+
+    /**
      * setReadArea('C3:AZ28') - set top left and right bottom of read area
      * setReadArea('C3') - set top left only
      *
@@ -206,34 +219,6 @@ class Sheet
      */
     public function readRows($columnKeys = [], int $indexStyle = null): array
     {
-/*
-        if (!is_array($columnKeys)) {
-            if (is_int($columnKeys) && $columnKeys > 1 && $indexStyle === null) {
-                $firstRowKeys = $columnKeys & Excel::KEYS_FIRST_ROW;
-                $indexStyle = $columnKeys;
-            }
-            else {
-                $firstRowKeys = (bool)$columnKeys;
-            }
-            $columnKeys = [];
-        }
-        elseif (is_int($indexStyle) && $indexStyle & Excel::KEYS_FIRST_ROW) {
-            $firstRowKeys = true;
-        }
-        else {
-            $firstRowKeys = null;
-        }
-
-        if ($firstRowKeys === null) {
-            $firstRowKeys = !empty($this->area['first_row']);
-        }
-        if ($columnKeys) {
-            $columnKeys = array_combine(array_map('strtoupper', array_keys($columnKeys)), array_values($columnKeys));
-        }
-        if ($firstRowKeys) {
-            $indexStyle = (int)$indexStyle | Excel::KEYS_FIRST_ROW;
-        }
-*/
         $data = [];
         $this->readCallback(static function($row, $col, $val) use (&$columnKeys, &$data) {
             if (isset($columnKeys[$col])) {
@@ -354,13 +339,23 @@ class Sheet
                 }
                 if ($xmlReader->nodeType === \XMLReader::ELEMENT) {
                     if ($xmlReader->name === 'row') {
-                        $rowCnt += 1;
                         $rowNum = (int)$xmlReader->getAttribute('r');
+
+                        if ($rowNum > $readArea['row_max']) {
+                            break;
+                        }
+                        if ($rowNum < $readArea['row_min']) {
+                            continue;
+                        }
+
+                        $rowCnt += 1;
                         if ($rowOffset === null) {
-                            $rowOffset = $rowNum - ($firstRowKeys ? 2 : 1);
+                            $rowOffset = $rowNum - 1 + ($firstRowKeys ? 1 : 0);
+                            //var_dump(['$rowNum' => $rowNum, '$rowOffset' => $rowOffset]);
                             if (is_int($indexStyle) && ($indexStyle & Excel::KEYS_ROW_ZERO_BASED)) {
-                                $rowOffset -= 1;
+                                $rowOffset += 1;
                             }
+                            //var_dump(['$rowNum' => $rowNum, '$rowOffset' => $rowOffset]);
                         }
                         if ($rowCnt > 0) {
                             if ($rowCnt === 1 && $firstRowKeys) {
@@ -380,21 +375,20 @@ class Sheet
                             $colLetter = $m[1];
                             $colNum = Excel::colNum($colLetter);
 
-                            if ($colNum >= $readArea['col_min'] && $colNum <= $readArea['col_max']
-                                && $rowNum >= $readArea['row_min'] && $rowNum <= $readArea['row_max']) {
+                            if ($colNum >= $readArea['col_min'] && $colNum <= $readArea['col_max']) {
                                 if ($colOffset === null) {
                                     $colOffset = $colNum - 1;
                                     if (is_int($indexStyle) && ($indexStyle & Excel::KEYS_COL_ZERO_BASED)) {
-                                        $colOffset -= 1;
+                                        $colOffset += 1;
                                     }
                                 }
                                 if ($indexStyle) {
-                                    $row = $rowNum + $rowOffset;
+                                    $row = $rowNum - $rowOffset;
                                     if (!($indexStyle & (Excel::KEYS_COL_ZERO_BASED | Excel::KEYS_COL_ONE_BASED))) {
                                         $col = $colLetter;
                                     }
                                     else {
-                                        $col = $colNum + $colOffset;
+                                        $col = $colNum - $colOffset;
                                     }
                                 }
                                 else {

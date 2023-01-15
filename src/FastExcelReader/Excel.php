@@ -301,10 +301,10 @@ class Excel
         return $this->dateFormat;
     }
 
-    public function formatDate($value)
+    public function formatDate($value, $format = null)
     {
-        if ($this->dateFormat) {
-            return gmdate($this->dateFormat, $value);
+        if ($format || $this->dateFormat) {
+            return gmdate($format ?: $this->dateFormat, $value);
         }
 
         return $value;
@@ -435,6 +435,11 @@ class Excel
         }
 
         return $this->sheets[$this->defaultSheetId];
+    }
+
+    public function setReadArea(string $areaRange, ?bool $firstRowKeys = false): Sheet
+    {
+        return $this->sheets[$this->defaultSheetId]->setReadArea($areaRange, $firstRowKeys);
     }
 
     /**
