@@ -8,11 +8,11 @@ $timer = microtime(true);
 $excel = \avadim\FastExcelReader\Excel::open($file);
 
 $cnt = 0;
-$excel->readSheetCallback(static function ($row, $col, $val) use(&$cnt) {
-    $cnt = $row;
-});
+foreach ($excel->sheet()->nextRow() as $rowNum => $rowData) {
+    $cnt++;
+}
 
 echo 'Read: ', $cnt, ' rows<br>';
-echo 'elapsed time: ', round(microtime(true) - $timer, 3), ' sec';
+echo 'Elapsed time: ', round(microtime(true) - $timer, 3), ' sec<br>';
 
 // EOF
