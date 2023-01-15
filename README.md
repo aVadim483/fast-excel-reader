@@ -116,6 +116,18 @@ foreach ($sheet->nextRow() as $rowNum => $rowData) {
     // ...
 }
 
+// OR
+foreach ($sheet->nextRow() as $rowNum => $rowData) {
+    // handling of $rowData here
+    // ...
+    // get image list from current row
+    $imageList = $sheet->getImageListByRow();
+    foreach ($imageList as $imageInfo) {
+        $imageBlob = $sheet->getImageBlob($imageInfo['address']);
+    }
+}
+
+// OR
 foreach ($sheet->nextRow(['A' => 'One', 'B' => 'Two'], Excel::KEYS_FIRST_ROW) as $rowNum => $rowData) {
     // $rowData is array ['One' => ..., 'Two' => ...]
     // ...

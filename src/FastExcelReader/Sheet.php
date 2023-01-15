@@ -21,6 +21,9 @@ class Sheet
     /** @var Reader */
     protected Reader $xmlReader;
 
+    protected ?int $loopRowNum = null;
+    protected array $loopColKeys = [];
+
     public function __construct($file, $sheetId, $name, $path)
     {
         $this->zipFilename = $file;
@@ -348,14 +351,14 @@ class Sheet
                             continue;
                         }
 
+                        $this->loopRowNum = $rowNum;
+                        $this->loopColKeys = $columnKeys;
                         $rowCnt += 1;
                         if ($rowOffset === null) {
                             $rowOffset = $rowNum - 1 + ($firstRowKeys ? 1 : 0);
-                            //var_dump(['$rowNum' => $rowNum, '$rowOffset' => $rowOffset]);
                             if (is_int($indexStyle) && ($indexStyle & Excel::KEYS_ROW_ZERO_BASED)) {
                                 $rowOffset += 1;
                             }
-                            //var_dump(['$rowNum' => $rowNum, '$rowOffset' => $rowOffset]);
                         }
                         if ($rowCnt > 0) {
                             if ($rowCnt === 1 && $firstRowKeys) {
@@ -409,6 +412,7 @@ class Sheet
         if ($row > -1) {
             yield $row => $rowData;
         }
+        $this->loopRowNum = null;
 
         $xmlReader->close();
 
@@ -549,15 +553,25 @@ class Sheet
     }
 
     /**
+     * @param int|null $row
+     *
      * @return array
      */
-    public function getImageListByRow($row): array
+    public function getImageListByRow(?int $row = null): array
     {
         $result = [];
         if ($this->countImages()) {
+            if (!$row) {
+                $row = $this->loopRowNum;
+            }
             if (isset($this->props['drawings']['rows'][$row])) {
                 foreach ($this->props['drawings']['rows'][$row] as $addr) {
-                    $result[$addr] = [
+                    $col = $this->props['drawings']['images'][$addr]['col'];
+                    if (!empty($this->loopColKeys[$col])) {
+                        $col = $this->loopColKeys[$col];
+                    }
+                    $result[$col] = [
+                        'address' => $addr,
                         'image_name' => $this->props['drawings']['images'][$addr]['name'],
                         'file_name' => basename($this->props['drawings']['images'][$addr]['target']),
                     ];
