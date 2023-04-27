@@ -282,11 +282,11 @@ class Excel
     }
 
     /**
-     * @param $dateFormat
+     * @param string $dateFormat
      *
      * @return $this
      */
-    public function setDateFormat($dateFormat): Excel
+    public function setDateFormat(string $dateFormat): Excel
     {
         $this->dateFormat = $dateFormat;
 
@@ -349,7 +349,7 @@ class Excel
     }
 
     /**
-     * Returns current sheet
+     * Returns current or specified sheet
      *
      * @param string|null $name
      *
@@ -404,17 +404,18 @@ class Excel
      *
      * @param int $sheetId
      * @param string|null $areaRange
+     * @param bool|null $firstRowKeys
      *
      * @return Sheet
      */
-    public function selectSheetById(int $sheetId, string $areaRange = null): Sheet
+    public function selectSheetById(int $sheetId, string $areaRange = null, ?bool $firstRowKeys = false): Sheet
     {
         if (!isset($this->sheets[$sheetId])) {
             throw new Exception('Sheet ID "' . $sheetId . '" not found');
         }
         $this->defaultSheetId = $sheetId;
         if ($areaRange) {
-            $this->sheets[$sheetId]->setReadArea($areaRange);
+            $this->sheets[$sheetId]->setReadArea($areaRange, $firstRowKeys);
         }
 
         return $this->sheets[$sheetId];
@@ -424,14 +425,15 @@ class Excel
      * Select the first sheet as default
      *
      * @param string|null $areaRange
+     * @param bool|null $firstRowKeys
      *
      * @return Sheet
      */
-    public function selectFirstSheet(string $areaRange = null): Sheet
+    public function selectFirstSheet(string $areaRange = null, ?bool $firstRowKeys = false): Sheet
     {
         $this->defaultSheetId = array_key_first($this->sheets);
         if ($areaRange) {
-            $this->sheets[$this->defaultSheetId]->setReadArea($areaRange);
+            $this->sheets[$this->defaultSheetId]->setReadArea($areaRange, $firstRowKeys);
         }
 
         return $this->sheets[$this->defaultSheetId];

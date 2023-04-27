@@ -14,6 +14,8 @@ class Sheet
 
     protected string $path;
 
+    protected ?string $dimension = null;
+
     protected array $area = [];
 
     protected array $props = [];
@@ -21,8 +23,6 @@ class Sheet
     /** @var Reader */
     protected Reader $xmlReader;
 
-    protected ?int $loopRowNum = null;
-    protected array $loopColKeys = [];
 
     public function __construct($file, $sheetId, $name, $path)
     {
@@ -120,19 +120,30 @@ class Sheet
         return $value;
     }
 
-
+    /**
+     * @return string
+     */
     public function name(): string
     {
         return $this->name;
     }
-    
-    
-    public function isName($name): bool
+
+    /**
+     * @param string $name
+     *
+     * @return bool
+     */
+    public function isName(string $name): bool
     {
         return strcasecmp($this->name, $name) === 0;
     }
-    
-    protected function getReader($file = null): Reader
+
+    /**
+     * @param string|null $file
+     *
+     * @return Reader
+     */
+    protected function getReader(string $file = null): Reader
     {
         if (empty($this->xmlReader)) {
             if (!$file) {
@@ -142,6 +153,59 @@ class Sheet
         }
 
         return $this->xmlReader;
+    }
+
+    public function dimension(): ?string
+    {
+        if ($this->dimension === null) {
+            $xmlReader = $this->getReader();
+            $xmlReader->openZip($this->path);
+            if ($xmlReader->seekOpenTag('dimension')) {
+                $this->dimension = (string)$xmlReader->getAttribute('ref');
+            }
+
+        }
+        return $this->dimension;
+    }
+
+    /**
+     * Count rows by dimension value
+     *
+     * @return int
+     */
+    public function countRows(): int
+    {
+        $areaRange = $this->dimension();
+        if ($areaRange && preg_match('/^([A-Z]+)(\d+)(:([A-Z]+)(\d+))?$/', $areaRange, $matches)) {
+            return (int)$matches[5] - (int)$matches[2] + 1;
+        }
+
+        return 0;
+    }
+
+    /**
+     * Count columns by dimension value
+     *
+     * @return int
+     */
+    public function countColumns(): int
+    {
+        $areaRange = $this->dimension();
+        if ($areaRange && preg_match('/^([A-Z]+)(\d+)(:([A-Z]+)(\d+))?$/', $areaRange, $matches)) {
+            return Excel::colNum($matches[4]) - Excel::colNum($matches[1]) + 1;
+        }
+
+        return 0;
+    }
+
+    /**
+     * Count columns by dimension value, alias of countColumns()
+     *
+     * @return int
+     */
+    public function countCols(): int
+    {
+        return $this->countColumns();
     }
 
     /**
@@ -329,6 +393,10 @@ class Sheet
         else {
             $firstRowKeys = false;
         }
+        // <dimension ref="A1:C1"/>
+        if ($this->dimension === null && $xmlReader->seekOpenTag('dimension')) {
+            $this->dimension = (string)$xmlReader->getAttribute('ref');
+        }
 
         $rowData = [];
         $rowNum = 0;
@@ -351,14 +419,14 @@ class Sheet
                             continue;
                         }
 
-                        $this->loopRowNum = $rowNum;
-                        $this->loopColKeys = $columnKeys;
                         $rowCnt += 1;
                         if ($rowOffset === null) {
                             $rowOffset = $rowNum - 1 + ($firstRowKeys ? 1 : 0);
+                            //var_dump(['$rowNum' => $rowNum, '$rowOffset' => $rowOffset]);
                             if (is_int($indexStyle) && ($indexStyle & Excel::KEYS_ROW_ZERO_BASED)) {
                                 $rowOffset += 1;
                             }
+                            //var_dump(['$rowNum' => $rowNum, '$rowOffset' => $rowOffset]);
                         }
                         if ($rowCnt > 0) {
                             if ($rowCnt === 1 && $firstRowKeys) {
@@ -412,7 +480,6 @@ class Sheet
         if ($row > -1) {
             yield $row => $rowData;
         }
-        $this->loopRowNum = null;
 
         $xmlReader->close();
 
@@ -553,25 +620,15 @@ class Sheet
     }
 
     /**
-     * @param int|null $row
-     *
      * @return array
      */
-    public function getImageListByRow(?int $row = null): array
+    public function getImageListByRow($row): array
     {
         $result = [];
         if ($this->countImages()) {
-            if (!$row) {
-                $row = $this->loopRowNum;
-            }
             if (isset($this->props['drawings']['rows'][$row])) {
                 foreach ($this->props['drawings']['rows'][$row] as $addr) {
-                    $col = $this->props['drawings']['images'][$addr]['col'];
-                    if (!empty($this->loopColKeys[$col])) {
-                        $col = $this->loopColKeys[$col];
-                    }
-                    $result[$col] = [
-                        'address' => $addr,
+                    $result[$addr] = [
                         'image_name' => $this->props['drawings']['images'][$addr]['name'],
                         'file_name' => basename($this->props['drawings']['images'][$addr]['target']),
                     ];

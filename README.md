@@ -1,3 +1,8 @@
+[![Latest Stable Version](http://poser.pugx.org/avadim/fast-excel-reader/v)](https://packagist.org/packages/avadim/fast-excel-reader)
+[![Total Downloads](http://poser.pugx.org/avadim/fast-excel-reader/downloads)](https://packagist.org/packages/avadim/fast-excel-reader)
+[![License](http://poser.pugx.org/avadim/fast-excel-reader/license)](https://packagist.org/packages/avadim/fast-excel-reader)
+[![PHP Version Require](http://poser.pugx.org/avadim/fast-excel-reader/require/php)](https://packagist.org/packages/avadim/fast-excel-reader)
+
 # FastExcelReader
 
 This php-class can read Excel compatible spreadsheets in XLSX format (Office 2007+). 
@@ -317,6 +322,20 @@ function readCellCallback($row, $col, $val)
 
 $excel->readSheetCallback('readCellCallback');
 ```
+
+## Some useful methods
+### Excel object
+* getSheetNames() -- Returns names array of all sheets
+* sheet(?string $name = null) -- Returns default or specified sheet
+* selectSheet(string $name, string $areaRange = null, ?bool $firstRowKeys = false) -- Select default sheet by name
+* selectSheetById(int $sheetId, string $areaRange = null)-- Select default sheet by id
+* selectFirstSheet(string $areaRange = null) -- Select the first sheet as default
+
+### Sheet object
+* name() -- Returns name of string
+* dimension() -- Returns dimension of default work area from sheet properties
+* countRows() -- Count rows from dimension
+* countColumns() -- Count columns from dimension
 
 ## Want to support FastExcelReader?
 
