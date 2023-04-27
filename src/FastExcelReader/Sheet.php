@@ -14,12 +14,15 @@ class Sheet
 
     protected string $path;
 
+    protected ?string $dimension = null;
+
     protected array $area = [];
 
     protected array $props = [];
 
     /** @var Reader */
     protected Reader $xmlReader;
+
 
     public function __construct($file, $sheetId, $name, $path)
     {
@@ -117,19 +120,30 @@ class Sheet
         return $value;
     }
 
-
+    /**
+     * @return string
+     */
     public function name(): string
     {
         return $this->name;
     }
-    
-    
-    public function isName($name): bool
+
+    /**
+     * @param string $name
+     *
+     * @return bool
+     */
+    public function isName(string $name): bool
     {
         return strcasecmp($this->name, $name) === 0;
     }
-    
-    protected function getReader($file = null): Reader
+
+    /**
+     * @param string|null $file
+     *
+     * @return Reader
+     */
+    protected function getReader(string $file = null): Reader
     {
         if (empty($this->xmlReader)) {
             if (!$file) {
@@ -139,6 +153,59 @@ class Sheet
         }
 
         return $this->xmlReader;
+    }
+
+    public function dimension(): ?string
+    {
+        if ($this->dimension === null) {
+            $xmlReader = $this->getReader();
+            $xmlReader->openZip($this->path);
+            if ($xmlReader->seekOpenTag('dimension')) {
+                $this->dimension = (string)$xmlReader->getAttribute('ref');
+            }
+
+        }
+        return $this->dimension;
+    }
+
+    /**
+     * Count rows by dimension value
+     *
+     * @return int
+     */
+    public function countRows(): int
+    {
+        $areaRange = $this->dimension();
+        if ($areaRange && preg_match('/^([A-Z]+)(\d+)(:([A-Z]+)(\d+))?$/', $areaRange, $matches)) {
+            return (int)$matches[5] - (int)$matches[2] + 1;
+        }
+
+        return 0;
+    }
+
+    /**
+     * Count columns by dimension value
+     *
+     * @return int
+     */
+    public function countColumns(): int
+    {
+        $areaRange = $this->dimension();
+        if ($areaRange && preg_match('/^([A-Z]+)(\d+)(:([A-Z]+)(\d+))?$/', $areaRange, $matches)) {
+            return Excel::colNum($matches[4]) - Excel::colNum($matches[1]) + 1;
+        }
+
+        return 0;
+    }
+
+    /**
+     * Count columns by dimension value, alias of countColumns()
+     *
+     * @return int
+     */
+    public function countCols(): int
+    {
+        return $this->countColumns();
     }
 
     /**
@@ -325,6 +392,10 @@ class Sheet
         }
         else {
             $firstRowKeys = false;
+        }
+        // <dimension ref="A1:C1"/>
+        if ($this->dimension === null && $xmlReader->seekOpenTag('dimension')) {
+            $this->dimension = (string)$xmlReader->getAttribute('ref');
         }
 
         $rowData = [];

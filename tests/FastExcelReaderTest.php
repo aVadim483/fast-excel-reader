@@ -14,15 +14,19 @@ final class FastExcelReaderTest extends TestCase
 
         $excel = Excel::open($file);
 
+        $this->assertEquals('A1:C3', $excel->sheet()->dimension());
+
         $result = $excel->readCells();
         $this->assertTrue(isset($result['A1']) && $result['A1'] === 'number');
         $this->assertTrue(isset($result['B3']) && $result['B3'] === 'Word');
 
         $result = $excel->readRows();
+        $this->assertEquals(count($result), $excel->sheet()->countRows());
         $this->assertTrue(isset($result['1']['A']) && $result['1']['A'] === 'number');
         $this->assertTrue(isset($result['3']['B']) && $result['3']['B'] === 'Word');
 
         $result = $excel->readColumns();
+        $this->assertEquals(count($result), $excel->sheet()->countCols());
         $this->assertTrue(isset($result['A']['1']) && $result['A']['1'] === 'number');
         $this->assertTrue(isset($result['B']['3']) && $result['B']['3'] === 'Word');
 
