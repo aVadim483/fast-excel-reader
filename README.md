@@ -339,5 +339,7 @@ $excel->readSheetCallback('readCellCallback');
 
 ## Want to support FastExcelReader?
 
-if you find this package useful you can support and donate to me https://www.paypal.me/VShemarov
-Or just give me star on GitHub :)
+if you find this package useful you can give me star on GitHub.
+Or can donate me :)
+* TetherUSD (TRC20): TSsUFvJehQBJCKeYgNNR1cpswY6JZnbZK7
+* TetherUSD (ERC20): 0x5244519D65035aF868a010C2f68a086F473FC82b
