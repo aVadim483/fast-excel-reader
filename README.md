@@ -325,21 +325,21 @@ $excel->readSheetCallback('readCellCallback');
 
 ## Some useful methods
 ### Excel object
-* getSheetNames() -- Returns names array of all sheets
-* sheet(?string $name = null) -- Returns default or specified sheet
-* selectSheet(string $name, string $areaRange = null, ?bool $firstRowKeys = false) -- Select default sheet by name
-* selectSheetById(int $sheetId, string $areaRange = null)-- Select default sheet by id
-* selectFirstSheet(string $areaRange = null) -- Select the first sheet as default
+* ```getSheetNames()``` -- Returns names array of all sheets
+* ```sheet(?string $name = null)``` -- Returns default or specified sheet
+* ```selectSheet(string $name, string $areaRange = null, ?bool $firstRowKeys = false)``` -- Select default sheet by name
+* ```selectSheetById(int $sheetId, string $areaRange = null)``` -- Select default sheet by id
+* ```selectFirstSheet(string $areaRange = null)``` -- Select the first sheet as default
 
 ### Sheet object
-* name() -- Returns name of string
-* dimension() -- Returns dimension of default work area from sheet properties
-* countRows() -- Count rows from dimension
-* countColumns() -- Count columns from dimension
+* ```name()``` -- Returns name of string
+* ```dimension()``` -- Returns dimension of default work area from sheet properties
+* ```countRows()``` -- Count rows from dimension
+* ```countColumns()``` -- Count columns from dimension
 
 ## Want to support FastExcelReader?
 
 if you find this package useful you can give me star on GitHub.
-Or can donate me :)
+Or you can donate me :)
 * TetherUSD (TRC20): TSsUFvJehQBJCKeYgNNR1cpswY6JZnbZK7
 * TetherUSD (ERC20): 0x5244519D65035aF868a010C2f68a086F473FC82b
