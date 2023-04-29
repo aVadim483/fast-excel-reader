@@ -439,6 +439,12 @@ class Excel
         return $this->sheets[$this->defaultSheetId];
     }
 
+    /**
+     * @param string $areaRange
+     * @param bool|null $firstRowKeys
+     *
+     * @return Sheet
+     */
     public function setReadArea(string $areaRange, ?bool $firstRowKeys = false): Sheet
     {
         return $this->sheets[$this->defaultSheetId]->setReadArea($areaRange, $firstRowKeys);
@@ -501,11 +507,37 @@ class Excel
         return $this->fileList;
     }
 
+    /**
+     * Returns TRUE if the workbook contains an any draw objects (not images only)
+     *
+     * @return bool
+     */
     public function hasDrawings(): bool
     {
         return !empty($this->relations['drawings']);
     }
 
+    /**
+     * Returns TRUE if any sheet contains an image object
+     *
+     * @return bool
+     */
+    public function hasImages(): bool
+    {
+        if ($this->hasDrawings()) {
+            foreach ($this->sheets as $sheet) {
+                if ($sheet->countImages()) {
+                    return true;
+                }
+            }
+        }
+
+        return false;
+    }
+
+    /**
+     * @return int
+     */
     public function countImages(): int
     {
         $result = 0;
@@ -518,6 +550,9 @@ class Excel
         return $result;
     }
 
+    /**
+     * @return array
+     */
     public function getImageList(): array
     {
         $result = [];
