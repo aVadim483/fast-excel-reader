@@ -378,6 +378,12 @@ class Sheet
      */
     public function nextRow($columnKeys = [], int $indexStyle = null): ?\Generator
     {
+        // <dimension ref="A1:C1"/>
+        // sometimes sheets doesn't contain this tag
+        if ($this->dimension === null) {
+            $this->dimension();
+        }
+
         $xmlReader = $this->getReader();
         $xmlReader->openZip($this->path);
         $readArea = $this->area;
@@ -392,10 +398,6 @@ class Sheet
         }
         else {
             $firstRowKeys = false;
-        }
-        // <dimension ref="A1:C1"/>
-        if ($this->dimension === null && $xmlReader->seekOpenTag('dimension')) {
-            $this->dimension = (string)$xmlReader->getAttribute('ref');
         }
 
         $rowData = [];

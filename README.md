@@ -337,7 +337,7 @@ $excel->readSheetCallback('readCellCallback');
 * ```countRows()``` -- Count rows from dimension
 * ```countColumns()``` -- Count columns from dimension
 
-## Want to support FastExcelReader?
+## Do you want to support FastExcelReader?
 
 if you find this package useful you can give me star on GitHub.
 Or you can donate me :)
