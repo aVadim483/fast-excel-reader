@@ -11,7 +11,7 @@ class Reader extends \XMLReader
 {
     protected string $zipFile;
 
-    protected ?string $innerFile;
+    protected ?string $innerFile = null;
 
     public function __construct($file)
     {
@@ -28,11 +28,49 @@ class Reader extends \XMLReader
         $result = [];
 
         $zip = new \ZipArchive();
-        if ($zip->open($this->zipFile)) {
+        if (defined('\ZipArchive::RDONLY')) {
+            $res = $zip->open($this->zipFile, \ZipArchive::RDONLY);
+        }
+        else {
+            $res = $zip->open($this->zipFile);
+        }
+        if ($res === true) {
             for ($i = 0; $i < $zip->numFiles; $i++) {
                 $result[] = $zip->getNameIndex($i);
             }
             $zip->close();
+        }
+        else {
+            switch ($res) {
+                case \ZipArchive::ER_NOENT:
+                    $error = 'No such file';
+                    $code = $res;
+                    break;
+                case \ZipArchive::ER_OPEN:
+                    $error = 'Can\'t open file';
+                    $code = $res;
+                    break;
+                case \ZipArchive::ER_READ:
+                    $error = '';
+                    $code = $res;
+                    break;
+                case \ZipArchive::ER_NOZIP:
+                    $error = 'Not a zip archive';
+                    $code = $res;
+                    break;
+                case \ZipArchive::ER_INCONS:
+                    $error = 'Zip archive inconsistent';
+                    $code = $res;
+                    break;
+                case \ZipArchive::ER_MEMORY:
+                    $error = 'Malloc failure';
+                    $code = $res;
+                    break;
+                default:
+                    $error = 'Unknown error';
+                    $code = -1;
+            }
+            throw new Exception($error, $code);
         }
 
         return $result;
