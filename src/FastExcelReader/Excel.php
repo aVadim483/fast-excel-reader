@@ -768,11 +768,21 @@ class Excel
         return $this->styles['_'];
     }
 
-    public function getCompleteStyleByIdx($styleIdx, ?bool $flat = false)
+    /**
+     * @param int $styleIdx
+     * @param bool|null $flat
+     *
+     * @return array
+     */
+    public function getCompleteStyleByIdx(int $styleIdx, ?bool $flat = false): array
     {
         static $completedStyles = [];
 
-        if (!isset($completedStyles[$styleIdx])) {
+        if (![$this->file]) {
+            return [];
+        }
+
+        if (!isset($completedStyles[$this->file][$styleIdx])) {
             if ($styleIdx !== 0) {
                 $result = $this->getCompleteStyleByIdx(0);
             }
@@ -831,10 +841,10 @@ class Excel
                 unset($result['borderId']);
             }
 
-            $completedStyles[$styleIdx] = $result;
+            $completedStyles[$this->file][$styleIdx] = $result;
         }
         else {
-            $result = $completedStyles[$styleIdx];
+            $result = $completedStyles[$this->file][$styleIdx];
         }
 
         if ($flat && $result) {

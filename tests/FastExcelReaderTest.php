@@ -11,7 +11,6 @@ final class FastExcelReaderTest extends TestCase
     public function testExcelReader()
     {
         $file = __DIR__ . '/../demo/files/demo-00-test.xlsx';
-
         $excel = Excel::open($file);
 
         $this->assertEquals('A1:C3', $excel->sheet()->dimension());
