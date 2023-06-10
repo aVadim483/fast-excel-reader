@@ -35,6 +35,10 @@ final class FastExcelReaderTest extends TestCase
         $this->assertTrue(isset($result['2']['number']) && $result['2']['number'] === 111);
         $this->assertTrue(isset($result['3']['name']) && $result['3']['name'] === 'Word');
 
+        $result = $excel->readRows(true, Excel::KEYS_SWAP);
+        $this->assertTrue(isset($result['number']['2']) && $result['number']['2'] === 111);
+        $this->assertTrue(isset($result['name']['3']) && $result['name']['3'] === 'Word');
+
         $result = $excel->readRows(false, Excel::KEYS_ZERO_BASED);
         $this->assertTrue(isset($result[0][0]) && $result[0][0] === 'number');
         $this->assertTrue(isset($result[2][1]) && $result[2][1] === 'Word');
@@ -63,6 +67,11 @@ final class FastExcelReaderTest extends TestCase
         $this->assertTrue(isset($result[5]['year']) && $result[5]['year'] === 2004);
         $this->assertTrue(isset($result[9]['value1']) && $result[9]['value1'] === 674);
 
+        $sheet = $excel->sheet('Demo2')->setReadArea('b4:d13');
+        $result = $sheet->readCellsWithStyles();
+
+        $this->assertEquals('Lorem', $result['C4']['v']);
+        $this->assertEquals('thin', $result['C4']['s']['border']['border-left-style']);
     }
 }
 

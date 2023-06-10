@@ -192,6 +192,162 @@ class Excel
         $this->xmlReader->close();
     }
 
+    protected function _loadStyleNumFmts($root, $tagName)
+    {
+        foreach ($root->childNodes as $child) {
+            $numFmtId = $child->getAttribute('numFmtId');
+            $formatCode = $child->getAttribute('formatCode');
+            if ($numFmtId !== '' && $formatCode !== '') {
+                $node = [
+                    'format-num-id' => (int)$numFmtId,
+                    'format-pattern' => $formatCode,
+                ];
+                $this->styles['_'][$tagName][$node['format-num-id']] = $node;
+            }
+        }
+    }
+
+    protected function _loadStyleFonts($root, $tagName)
+    {
+        foreach ($root->childNodes as $font) {
+            $node = [];
+            foreach ($font->childNodes as $fontStyle) {
+                if ($fontStyle->nodeName === 'b') {
+                    $node['font-style-bold'] = 1;
+                }
+                elseif ($fontStyle->nodeName === 'u') {
+                    $node['font-style-underline'] = ($fontStyle->getAttribute('formatCode') === 'double' ? 2 : 1);
+                }
+                elseif ($fontStyle->nodeName === 'i') {
+                    $node['font-style-italic'] = 1;
+                }
+                elseif ($fontStyle->nodeName === 'strike') {
+                    $node['font-style-strike'] = 1;
+                }
+                elseif (($v = $fontStyle->getAttribute('val')) !== '') {
+                    if ($fontStyle->nodeName === 'sz') {
+                        $name = 'font-size';
+                    }
+                    else {
+                        $name = 'font-' . $fontStyle->nodeName;
+                    }
+                    $node[$name] = $v;
+                }
+            }
+            $this->styles['_'][$tagName][] = $node;
+        }
+    }
+
+    protected function _loadStyleFills($root, $tagName)
+    {
+        foreach ($root->childNodes as $fill) {
+            $node = [];
+            foreach ($fill->childNodes as $patternFill) {
+                if (($v = $patternFill->getAttribute('patternType')) !== '') {
+                    $node['fill-pattern'] = $v;
+                }
+                foreach ($patternFill->childNodes as $child) {
+                    if ($child->nodeName === 'fgColor') {
+                        $node['fill-color'] = '#' . substr($child->getAttribute('rgb'), 2);
+                    }
+                }
+            }
+            $this->styles['_'][$tagName][] = $node;
+        }
+    }
+
+    protected function _loadStyleBorders($root, $tagName)
+    {
+        foreach ($root->childNodes as $border) {
+            $node = [];
+            foreach ($border->childNodes as $side) {
+                if (($v = $side->getAttribute('style')) !== '') {
+                    $node['border-' . $side->nodeName . '-style'] = $v;
+                }
+                else {
+                    $node['border-' . $side->nodeName . '-style'] = null;
+                }
+                foreach ($side->childNodes as $child) {
+                    if ($child->nodeName === 'color') {
+                        $node['border-' . $side->nodeName . '-color'] = '#' . substr($child->getAttribute('rgb'), 2);
+                    }
+                }
+            }
+            $this->styles['_'][$tagName][] = $node;
+        }
+    }
+
+    protected function _loadStyleCellXfs($root, $tagName)
+    {
+        $attributes = ['numFmtId', 'fontId', 'fillId', 'borderId', 'xfId'];
+        foreach ($root->childNodes as $xf) {
+            $node = [];
+            foreach ($attributes as $attribute) {
+                if (($v = $xf->getAttribute($attribute)) !== '') {
+                    if (substr($attribute, -2) === 'Id') {
+                        $node[$attribute] = (int)$v;
+                    }
+                    else {
+                        $node[$attribute] = $v;
+                    }
+                }
+            }
+            foreach ($xf->childNodes as $child) {
+                if ($child->nodeName === 'alignment') {
+                    if ($v = $child->getAttribute('horizontal')) {
+                        $node['format']['format-align-horizontal'] = $v;
+                    }
+                    if ($v = $child->getAttribute('vertical')) {
+                        $node['format']['format-align-vertical'] = $v;
+                    }
+                    if (($v = $child->getAttribute('wrapText')) && ($v === 'true')) {
+                        $node['format']['format-wrap-text'] = 1;
+                    }
+                }
+            }
+            $this->styles['_'][$tagName][] = $node;
+        }
+    }
+
+    /**
+     * @param string|null $innerFile
+     */
+    protected function _loadCompleteStyles(string $innerFile = null)
+    {
+        if (!$innerFile) {
+            $innerFile = 'xl/styles.xml';
+        }
+        $this->xmlReader->openZip($innerFile);
+
+        while ($this->xmlReader->read()) {
+            if ($this->xmlReader->nodeType === \XMLReader::ELEMENT) {
+                switch ($this->xmlReader->name) {
+                    case 'numFmts':
+                        $this->_loadStyleNumFmts($this->xmlReader->expand(), 'numFmts');
+                        break;
+                    case 'fonts':
+                        $this->_loadStyleFonts($this->xmlReader->expand(), 'fonts');
+                        break;
+                    case 'fills':
+                        $this->_loadStyleFills($this->xmlReader->expand(), 'fills');
+                        break;
+                    case 'borders':
+                        $this->_loadStyleBorders($this->xmlReader->expand(), 'borders');
+                        break;
+                    case 'cellStyleXfs':
+                        $this->_loadStyleCellXfs($this->xmlReader->expand(), 'cellStyleXfs');
+                        break;
+                    case 'cellXfs':
+                        $this->_loadStyleCellXfs($this->xmlReader->expand(), 'cellXfs');
+                        break;
+                    default:
+                        //
+                }
+            }
+        }
+        $this->xmlReader->close();
+    }
+
     /**
      * Open XLSX file
      *
@@ -454,11 +610,11 @@ class Excel
      * Reads cell values and passes them to a callback function
      *
      * @param callback $callback
-     * @param int|null $indexStyle
+     * @param int|null $resultMode
      */
-    public function readCallback(callable $callback, int $indexStyle = null)
+    public function readCallback(callable $callback, int $resultMode = null, ?bool $styleIdxInclude = null)
     {
-        $this->sheets[$this->defaultSheetId]->readCallback($callback, $indexStyle);
+        $this->sheets[$this->defaultSheetId]->readCallback($callback, $resultMode);
     }
 
     /**
@@ -470,13 +626,53 @@ class Excel
      *  readRows(Excel::INDEX_ZERO_BASED | Excel::INDEX_RELATIVE)
      *
      * @param array|bool|int|null $columnKeys
-     * @param int|null $indexStyle
+     * @param int|null $resultMode
+     * @param bool|null $styleIdxInclude
      *
      * @return array
      */
-    public function readRows($columnKeys = [], int $indexStyle = null): array
+    public function readRows($columnKeys = [], int $resultMode = null, ?bool $styleIdxInclude = null): array
     {
-        return $this->sheets[$this->defaultSheetId]->readRows($columnKeys, $indexStyle);
+        return $this->sheets[$this->defaultSheetId]->readRows($columnKeys, $resultMode, $styleIdxInclude);
+    }
+
+    /**
+     * Returns cell values and styles as a two-dimensional array from default sheet [row][col]
+     *
+     * @param array|bool|int|null $columnKeys
+     * @param int|null $resultMode
+     *
+     * @return array
+     */
+    public function readRowsWithStyles($columnKeys = [], int $resultMode = null): array
+    {
+        return $this->sheets[$this->defaultSheetId]->readRowsWithStyles($columnKeys, $resultMode);
+    }
+
+    /**
+     * Returns cell values as a two-dimensional array from default sheet [col][row]
+     *
+     * @param array|bool|int|null $columnKeys
+     * @param int|null $resultMode
+     *
+     * @return array
+     */
+    public function readColumns($columnKeys = null, int $resultMode = null): array
+    {
+        return $this->sheets[$this->defaultSheetId]->readColumns($columnKeys, $resultMode);
+    }
+
+    /**
+     * Returns cell values and styles as a two-dimensional array from default sheet [col][row]
+     *
+     * @param array|bool|int|null $columnKeys
+     * @param int|null $resultMode
+     *
+     * @return array
+     */
+    public function readColumnsWithStyles($columnKeys = null, int $resultMode = null): array
+    {
+        return $this->sheets[$this->defaultSheetId]->readColumnsWithStyles($columnKeys, $resultMode);
     }
 
     /**
@@ -490,16 +686,13 @@ class Excel
     }
 
     /**
-     * Returns cell values as a two-dimensional array from default sheet [col][row]
-     *
-     * @param array|bool|int|null $columnKeys
-     * @param int|null $indexStyle
+     * Returns the values and styles of all cells as array
      *
      * @return array
      */
-    public function readColumns($columnKeys = null, int $indexStyle = null): array
+    public function readCellsWithStyles(): array
     {
-        return $this->sheets[$this->defaultSheetId]->readColumns($columnKeys, $indexStyle);
+        return $this->sheets[$this->defaultSheetId]->readCellsWithStyles();
     }
 
     public function innerFileList(): array
@@ -560,6 +753,92 @@ class Excel
             foreach ($this->sheets as $sheet) {
                 $result[$sheet->name()] = $sheet->getImageList();
             }
+        }
+
+        return $result;
+    }
+
+    public function readStyles(): array
+    {
+        if (!isset($this->styles['_'])) {
+            $this->styles['_'] = [];
+            $this->_loadCompleteStyles();
+        }
+
+        return $this->styles['_'];
+    }
+
+    public function getCompleteStyleByIdx($styleIdx, ?bool $flat = false)
+    {
+        static $completedStyles = [];
+
+        if (!isset($completedStyles[$styleIdx])) {
+            if ($styleIdx !== 0) {
+                $result = $this->getCompleteStyleByIdx(0);
+            }
+            else {
+                $result = [];
+            }
+            $styles = $this->readStyles();
+            if (isset($styles['cellXfs'][$styleIdx])) {
+                $result = array_replace_recursive($result, $styles['cellXfs'][$styleIdx]);
+            }
+
+            if (isset($result['xfId']) && isset($styles['cellStyleXfs'][$result['xfId']])) {
+                if ($styleIdx === 0 || ($styleIdx > 0 && $result['xfId'])) {
+                    $result = array_replace_recursive($result, $styles['cellStyleXfs'][$result['xfId']]);
+                }
+                unset($result['xfId']);
+            }
+
+            if (isset($result['numFmtId']) && isset($styles['numFmts'][$result['numFmtId']])) {
+                if (isset($result['format'])) {
+                    $result['format'] = array_replace_recursive($result['format'], $styles['numFmts'][$result['numFmtId']]);
+                }
+                else {
+                    $result['format'] = $styles['numFmts'][$result['numFmtId']];
+                }
+                unset($result['numFmtId']);
+            }
+
+            if (isset($result['fontId']) && isset($styles['fonts'][$result['fontId']])) {
+                if (isset($result['font'])) {
+                    $result['font'] = array_replace_recursive($result['font'], $styles['fonts'][$result['fontId']]);
+                }
+                else {
+                    $result['font'] = $styles['fonts'][$result['fontId']];
+                }
+                unset($result['fontId']);
+            }
+
+            if (isset($result['fillId']) && isset($styles['fills'][$result['fillId']])) {
+                if (isset($result['fill'])) {
+                    $result['fill'] = array_replace_recursive($result['fill'], $styles['fills'][$result['fillId']]);
+                }
+                else {
+                    $result['fill'] = $styles['fills'][$result['fillId']];
+                }
+                unset($result['fillId']);
+            }
+
+            if (isset($result['borderId']) && isset($styles['borders'][$result['borderId']])) {
+                if (isset($result['border'])) {
+                    $result['border'] = array_replace_recursive($result['border'], $styles['borders'][$result['borderId']]);
+                }
+                else {
+                    $result['border'] = $styles['borders'][$result['borderId']];
+                }
+                unset($result['borderId']);
+            }
+
+            $completedStyles[$styleIdx] = $result;
+        }
+        else {
+            $result = $completedStyles[$styleIdx];
+        }
+
+        if ($flat && $result) {
+            $result = array_merge(...array_values($result));
         }
 
         return $result;

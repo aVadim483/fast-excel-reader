@@ -42,10 +42,11 @@ class Sheet
 
     /**
      * @param $cell
+     * @param $styleIdx
      *
      * @return mixed
      */
-    protected function _cellValue($cell)
+    protected function _cellValue($cell, &$styleIdx = null)
     {
         // Determine data type
         $dataType = (string)$cell->getAttribute('t');
@@ -58,8 +59,8 @@ class Sheet
         }
 
         $format = null;
+        $styleIdx = (int)$cell->getAttribute('s');
         if ( $dataType === '' || $dataType === 'n' ) { // number
-            $styleIdx = (int)$cell->getAttribute('s');
             if ($styleIdx > 0 && ($style = $this->excel->styleByIdx($styleIdx))) {
                 $format = $style['format'] ?? null;
                 if (isset($style['formatType'])) {
@@ -176,7 +177,7 @@ class Sheet
     public function countRows(): int
     {
         $areaRange = $this->dimension();
-        if ($areaRange && preg_match('/^([A-Z]+)(\d+)(:([A-Z]+)(\d+))?$/', $areaRange, $matches)) {
+        if ($areaRange && preg_match('/^([A-Za-z]+)(\d+)(:([A-Za-z]+)(\d+))?$/', $areaRange, $matches)) {
             return (int)$matches[5] - (int)$matches[2] + 1;
         }
 
@@ -191,7 +192,7 @@ class Sheet
     public function countColumns(): int
     {
         $areaRange = $this->dimension();
-        if ($areaRange && preg_match('/^([A-Z]+)(\d+)(:([A-Z]+)(\d+))?$/', $areaRange, $matches)) {
+        if ($areaRange && preg_match('/^([A-Za-z]+)(\d+)(:([A-Za-z]+)(\d+))?$/', $areaRange, $matches)) {
             return Excel::colNum($matches[4]) - Excel::colNum($matches[1]) + 1;
         }
 
@@ -232,7 +233,7 @@ class Sheet
      */
     public function setReadArea(string $areaRange, ?bool $firstRowKeys = false): Sheet
     {
-        if (preg_match('/^([A-Z]+)(\d+)(:([A-Z]+)(\d+))?$/', $areaRange, $matches)) {
+        if (preg_match('/^([A-Za-z]+)(\d+)(:([A-Za-z]+)(\d+))?$/', $areaRange, $matches)) {
             $this->area['col_min'] = Excel::colNum($matches[1]);
             $this->area['row_min'] = (int)$matches[2];
             if (empty($matches[3])) {
@@ -261,7 +262,7 @@ class Sheet
      */
     public function setReadAreaColumns(string $columnsRange, ?bool $firstRowKeys = false): Sheet
     {
-        if (preg_match('/^([A-Z]+)(:([A-Z]+))?$/', $columnsRange, $matches)) {
+        if (preg_match('/^([A-Za-z]+)(:([A-Za-z]+))?$/', $columnsRange, $matches)) {
             $this->area['col_min'] = Excel::colNum($matches[1]);
             if (empty($matches[2])) {
                 $this->area['col_max'] = Excel::EXCEL_2007_MAX_COL;
@@ -278,13 +279,16 @@ class Sheet
 
     /**
      * Returns cell values as a two-dimensional array
+     *      [1 => ['A' => _value_A1_], ['B' => _value_B1_]],
+     *      [2 => ['A' => _value_A2_], ['B' => _value_B2_]]
      *
      * @param array|bool|int|null $columnKeys
-     * @param int|null $indexStyle
+     * @param int|null $resultMode
+     * @param bool|null $styleIdxInclude
      *
      * @return array
      */
-    public function readRows($columnKeys = [], int $indexStyle = null): array
+    public function readRows($columnKeys = [], int $resultMode = null, ?bool $styleIdxInclude = null): array
     {
         $data = [];
         $this->readCallback(static function($row, $col, $val) use (&$columnKeys, &$data) {
@@ -294,9 +298,9 @@ class Sheet
             else {
                 $data[$row][$col] = $val;
             }
-        }, $columnKeys, $indexStyle);
+        }, $columnKeys, $resultMode, $styleIdxInclude);
 
-        if ($data && ($indexStyle & Excel::KEYS_SWAP)) {
+        if ($data && ($resultMode & Excel::KEYS_SWAP)) {
             $newData = [];
             $rowKeys = array_keys($data);
             $len = count($rowKeys);
@@ -314,37 +318,105 @@ class Sheet
     }
 
     /**
-     * Returns cell values as a two-dimensional array from default sheet [col][row]
+     * Returns values and styles of cells as array ['v' => _value_, 's' => _styles_]
      *
      * @param array|bool|int|null $columnKeys
-     * @param int|null $indexStyle
+     * @param int|null $resultMode
      *
      * @return array
      */
-    public function readColumns($columnKeys = null, int $indexStyle = null): array
+    public function readRowsWithStyles($columnKeys = [], int $resultMode = null): array
     {
-        if (is_int($columnKeys) && $columnKeys > 1 && $indexStyle === null) {
-            $indexStyle = $columnKeys | Excel::KEYS_RELATIVE;
-            $columnKeys = $columnKeys & Excel::KEYS_FIRST_ROW;
-        }
-        else {
-            $indexStyle = $indexStyle | Excel::KEYS_RELATIVE;
+        $data = $this->readRows($columnKeys, $resultMode, true);
+
+        foreach ($data as $row => $rowData) {
+            foreach ($rowData as $col => $cellData) {
+                if (isset($cellData['s'])) {
+                    $data[$row][$col]['s'] = $this->excel->getCompleteStyleByIdx($cellData['s']);
+                }
+            }
         }
 
-        return $this->readRows($columnKeys, $indexStyle | Excel::KEYS_SWAP);
+        return $data;
     }
 
     /**
-     * Returns the values of all cells as array
+     * Returns cell values as a two-dimensional array from default sheet [col][row]
+     *      ['A' => [1 => _value_A1_], [2 => _value_A2_]],
+     *      ['B' => [1 => _value_B1_], [2 => _value_B2_]]
+     *
+     * @param array|bool|int|null $columnKeys
+     * @param int|null $resultMode
+     * @param bool|null $styleIdxInclude
      *
      * @return array
      */
-    public function readCells(): array
+    public function readColumns($columnKeys = null, int $resultMode = null, ?bool $styleIdxInclude = null): array
+    {
+        if (is_int($columnKeys) && $columnKeys > 1 && $resultMode === null) {
+            $resultMode = $columnKeys | Excel::KEYS_RELATIVE;
+            $columnKeys = $columnKeys & Excel::KEYS_FIRST_ROW;
+        }
+        else {
+            $resultMode = $resultMode | Excel::KEYS_RELATIVE;
+        }
+
+        return $this->readRows($columnKeys, $resultMode | Excel::KEYS_SWAP);
+    }
+
+    /**
+     * Returns values and styles of cells as array ['v' => _value_, 's' => _styles_]
+     *
+     * @param array|bool|int|null $columnKeys
+     * @param int|null $resultMode
+     *
+     * @return array
+     */
+    public function readColumnsWithStyles($columnKeys = null, int $resultMode = null): array
+    {
+        $data = $this->readColumns($columnKeys, $resultMode, true);
+
+        foreach ($data as $col => $colData) {
+            foreach ($colData as $row => $cellData) {
+                if (isset($cellData['s'])) {
+                    $data[$col][$row]['s'] = $this->excel->getCompleteStyleByIdx($cellData['s']);
+                }
+            }
+        }
+
+        return $data;
+    }
+
+    /**
+     * Returns values and styles of cells as array
+     *
+     * @param bool|null $styleIdxInclude
+     *
+     * @return array
+     */
+    public function readCells(?bool $styleIdxInclude = null): array
     {
         $data = [];
         $this->readCallback(static function($row, $col, $val) use (&$data) {
             $data[$col . $row] = $val;
-        });
+        }, [], null, $styleIdxInclude);
+
+        return $data;
+    }
+
+    /**
+     * Returns values and styles of cells as array ['v' => _value_, 's' => _styles_]
+     *
+     * @return array
+     */
+    public function readCellsWithStyles(): array
+    {
+        $data = $this->readCells(true);
+        foreach ($data as $cell => $cellData) {
+            if (isset($cellData['s'])) {
+                $data[$cell]['s'] = $this->excel->getCompleteStyleByIdx($cellData['s']);
+            }
+        }
 
         return $data;
     }
@@ -354,11 +426,12 @@ class Sheet
      *
      * @param callback $callback Callback function($row, $col, $value)
      * @param array|bool|int|null $columnKeys
-     * @param int|null $indexStyle
+     * @param int|null $resultMode
+     * @param bool|null $styleIdxInclude
      */
-    public function readCallback(callable $callback, $columnKeys = [], int $indexStyle = null)
+    public function readCallback(callable $callback, $columnKeys = [], int $resultMode = null, ?bool $styleIdxInclude = null)
     {
-        foreach ($this->nextRow($columnKeys, $indexStyle) as $row => $rowData) {
+        foreach ($this->nextRow($columnKeys, $resultMode, $styleIdxInclude) as $row => $rowData) {
             foreach ($rowData as $col => $val) {
                 $needBreak = $callback($row, $col, $val);
                 if ($needBreak) {
@@ -369,14 +442,18 @@ class Sheet
     }
 
     /**
-     * Read cell values row by row
+     * Read cell values row by row, returns either an array of values or an array of arrays
+     *
+     *      nextRow(..., ...) : <rowNum> => [<colNum1> => <value1>, <colNum2> => <value2>, ...]
+     *      nextRow(..., ..., true) : <rowNum> => [<colNum1> => ['v' => <value1>, 's' => <style1>], <colNum2> => ['v' => <value2>, 's' => <style2>], ...]
      *
      * @param array|bool|int|null $columnKeys
-     * @param int|null $indexStyle
+     * @param int|null $resultMode
+     * @param bool|null $styleIdxInclude
      *
      * @return \Generator|null
      */
-    public function nextRow($columnKeys = [], int $indexStyle = null): ?\Generator
+    public function nextRow($columnKeys = [], int $resultMode = null, ?bool $styleIdxInclude = null): ?\Generator
     {
         // <dimension ref="A1:C1"/>
         // sometimes sheets doesn't contain this tag
@@ -389,7 +466,7 @@ class Sheet
         $readArea = $this->area;
 
         if (is_array($columnKeys)) {
-            $firstRowKeys = is_int($indexStyle) && ($indexStyle & Excel::KEYS_FIRST_ROW);
+            $firstRowKeys = is_int($resultMode) && ($resultMode & Excel::KEYS_FIRST_ROW);
             $columnKeys = array_combine(array_map('strtoupper', array_keys($columnKeys)), array_values($columnKeys));
         }
         elseif ($columnKeys) {
@@ -410,8 +487,28 @@ class Sheet
                 if ($xmlReader->nodeType === \XMLReader::END_ELEMENT && $xmlReader->name === 'sheetData') {
                     break;
                 }
+
+                if ($xmlReader->nodeType === \XMLReader::END_ELEMENT && $xmlReader->name === 'row') {
+                    if ($rowCnt === 0 && $firstRowKeys) {
+                        if (!$columnKeys) {
+                            if ($styleIdxInclude) {
+                                $columnKeys = array_combine(array_keys($rowData), array_column($rowData, 'v'));
+                            }
+                            else {
+                                $columnKeys = $rowData;
+                            }
+                        }
+                    }
+                    else {
+                        $row = $rowNum - $rowOffset;
+                        yield $row => $rowData;
+                    }
+                    $rowData = [];
+                    continue;
+                }
+
                 if ($xmlReader->nodeType === \XMLReader::ELEMENT) {
-                    if ($xmlReader->name === 'row') {
+                    if ($xmlReader->name === 'row') { // <row ...> - tag row begins
                         $rowNum = (int)$xmlReader->getAttribute('r');
 
                         if ($rowNum > $readArea['row_max']) {
@@ -423,41 +520,37 @@ class Sheet
 
                         $rowCnt += 1;
                         if ($rowOffset === null) {
-                            $rowOffset = $rowNum - 1 + ($firstRowKeys ? 1 : 0);
-                            //var_dump(['$rowNum' => $rowNum, '$rowOffset' => $rowOffset]);
-                            if (is_int($indexStyle) && ($indexStyle & Excel::KEYS_ROW_ZERO_BASED)) {
-                                $rowOffset += 1;
-                            }
-                            //var_dump(['$rowNum' => $rowNum, '$rowOffset' => $rowOffset]);
-                        }
-                        if ($rowCnt > 0) {
-                            if ($rowCnt === 1 && $firstRowKeys) {
-                                if (!$columnKeys) {
-                                    $columnKeys = $rowData;
+                            $rowOffset = 0;
+                            if (is_int($resultMode) && $resultMode) {
+                                if ($resultMode & Excel::KEYS_ROW_ZERO_BASED) {
+                                    $rowOffset = $rowNum + ($firstRowKeys ? 1 : 0);
                                 }
-                                $rowData = [];
+                                elseif ($resultMode & Excel::KEYS_ROW_ONE_BASED) {
+                                    $rowOffset = $rowNum - 1 + ($firstRowKeys ? 1 : 0);
+                                }
+                            }
+                        }
+                    } // <row ...> - tag row end
+
+                    elseif ($xmlReader->name === 'c') { // <c ...> - tag cell begins
+                        $addr = $xmlReader->getAttribute('r');
+                        if ($addr && preg_match('/^([A-Za-z]+)(\d+)$/', $addr, $m)) {
+                            //
+                            if ($m[2] < $readArea['row_min'] || $m[2] > $readArea['row_max']) {
                                 continue;
                             }
-                            yield $row => $rowData;
-                            $rowData = [];
-                        }
-                    }
-                    elseif ($xmlReader->name === 'c') {
-                        $addr = $xmlReader->getAttribute('r');
-                        if ($addr && preg_match('/^([A-Z]+)(\d+)$/', $addr, $m)) {
                             $colLetter = $m[1];
                             $colNum = Excel::colNum($colLetter);
 
                             if ($colNum >= $readArea['col_min'] && $colNum <= $readArea['col_max']) {
                                 if ($colOffset === null) {
                                     $colOffset = $colNum - 1;
-                                    if (is_int($indexStyle) && ($indexStyle & Excel::KEYS_COL_ZERO_BASED)) {
+                                    if (is_int($resultMode) && ($resultMode & Excel::KEYS_COL_ZERO_BASED)) {
                                         $colOffset += 1;
                                     }
                                 }
-                                if ($indexStyle) {
-                                    $row = $rowNum - $rowOffset;
-                                    if (!($indexStyle & (Excel::KEYS_COL_ZERO_BASED | Excel::KEYS_COL_ONE_BASED))) {
+                                if ($resultMode) {
+                                    if (!($resultMode & (Excel::KEYS_COL_ZERO_BASED | Excel::KEYS_COL_ONE_BASED))) {
                                         $col = $colLetter;
                                     }
                                     else {
@@ -465,21 +558,26 @@ class Sheet
                                     }
                                 }
                                 else {
-                                    $row = (string)$rowNum;
                                     $col = $colLetter;
                                 }
                                 $cell = $xmlReader->expand();
                                 if (is_array($columnKeys) && isset($columnKeys[$colLetter])) {
                                     $col = $columnKeys[$colLetter];
                                 }
-                                $rowData[$col] = $this->_cellValue($cell);
+                                $value = $this->_cellValue($cell, $styleIdx);
+                                if ($styleIdxInclude) {
+                                    $rowData[$col] = ['v' => $value, 's' => $styleIdx];
+                                }
+                                else {
+                                    $rowData[$col] = $value;
+                                }
                             }
                         }
-                    }
+                    } // <c ...> - tag cell end
                 }
             }
         }
-        if ($row > -1) {
+        if ($row > -1 && $rowData) {
             yield $row => $rowData;
         }
 

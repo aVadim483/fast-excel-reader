@@ -221,9 +221,9 @@ Array
         )
 )
 ```
-Allowed values of index style
+Allowed values of result mode
 
-| style options       | descriptions                                                                    |
+| mode options        | descriptions                                                                    |
 |---------------------|---------------------------------------------------------------------------------|
 | KEYS_ORIGINAL       | rows from '1', columns from 'A' (default)                                       |
 | KEYS_ROW_ZERO_BASED | rows from 0                                                                     |
@@ -233,7 +233,7 @@ Allowed values of index style
 | KEYS_COL_ONE_BASED  | columns from 1                                                                  |
 | KEYS_ONE_BASED      | rows from 1, columns from 1 (same as KEYS_ROW_ONE_BASED + KEYS_COL_ONE_BASED)   |
 
-Additional options that can be combined with index styles
+Additional options that can be combined with result modes
 
 | options         | descriptions                                 |
 |-----------------|----------------------------------------------|
@@ -297,7 +297,7 @@ $result['#3'] = $excel
     ->setReadArea('F5:H13')
     ->readRows($columnKeys);
 ```
-If necessary, you can fully control the reading process using the method ```readSheetCallback``` with callback-function
+If necessary, you can fully control the reading process using the method ```readSheetCallback()``` with callback-function
 ```php
 use \avadim\FastExcelReader\Excel;
 
@@ -323,13 +323,31 @@ function readCellCallback($row, $col, $val)
 $excel->readSheetCallback('readCellCallback');
 ```
 
+## How to get complete info about the cell style 
+
+Usually read functions return just cell values, but you can read the values with styles.
+In this case, for each cell, not a scalar value will be returned, but an array 
+like ['v' => _scalar_value_, 's' => _style_array_]
+
+```php
+$excel = Excel::open($file);
+
+$sheet = $excel->sheet();
+
+$rows = $sheet->readRowsWithStyles();
+$columns = $sheet->readColumnsWithStyles();
+$cells = $sheet->readCells();
+
+```
+But we do not recommend using these methods with large files
+
 ## Some useful methods
 ### Excel object
 * ```getSheetNames()``` -- Returns names array of all sheets
 * ```sheet(?string $name = null)``` -- Returns default or specified sheet
-* ```selectSheet(string $name, string $areaRange = null, ?bool $firstRowKeys = false)``` -- Select default sheet by name
-* ```selectSheetById(int $sheetId, string $areaRange = null)``` -- Select default sheet by id
-* ```selectFirstSheet(string $areaRange = null)``` -- Select the first sheet as default
+* ```selectSheet(string $name, ?string $areaRange = null, ?bool $firstRowKeys = false)``` -- Select default sheet by name
+* ```selectSheetById(int $sheetId, ?string $areaRange = null)``` -- Select default sheet by id
+* ```selectFirstSheet(?string $areaRange = null)``` -- Select the first sheet as default
 
 ### Sheet object
 * ```name()``` -- Returns name of string
