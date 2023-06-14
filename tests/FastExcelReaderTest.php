@@ -8,9 +8,11 @@ use PHPUnit\Framework\TestCase;
 
 final class FastExcelReaderTest extends TestCase
 {
+    const DEMO_DIR = __DIR__ . '/../demo/files/';
+
     public function testExcelReader()
     {
-        $file = __DIR__ . '/../demo/files/demo-00-test.xlsx';
+        $file = self::DEMO_DIR . 'demo-00-test.xlsx';
         $excel = Excel::open($file);
 
         $this->assertEquals('A1:C3', $excel->sheet()->dimension());
@@ -50,7 +52,7 @@ final class FastExcelReaderTest extends TestCase
         $this->assertTrue(isset($result[0]['bee']) && $result[0]['bee'] === 111);
         $this->assertTrue(isset($result[1]['honey']) && $result[1]['honey'] === 'Word');
 
-        $file = __DIR__ . '/../demo/files/demo-02-advanced.xlsx';
+        $file = self::DEMO_DIR . 'demo-02-advanced.xlsx';
         $excel = Excel::open($file);
 
         $result = $excel
@@ -71,6 +73,21 @@ final class FastExcelReaderTest extends TestCase
 
         $this->assertEquals('Lorem', $result['C4']['v']);
         $this->assertEquals('thin', $result['C4']['s']['border']['border-left-style']);
+
+        $file = self::DEMO_DIR . 'demo-01-base.xlsx';
+        $excel = Excel::open($file);
+
+        $cells = $excel->sheet()->readCells();
+        $this->assertEquals('A1', array_key_first($cells));
+        $this->assertCount(4216, $cells);
+
+        $cells = $excel->sheet()->setReadArea('c10')->readCells();
+        $this->assertEquals('C10', array_key_first($cells));
+        $this->assertCount(3108, $cells);
+
+        $cells = $excel->selectSheet('report', 'd10:e18')->readCells();
+        $this->assertEquals('D10', array_key_first($cells));
+        $this->assertCount(18, $cells);
     }
 }
 
