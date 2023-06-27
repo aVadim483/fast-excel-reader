@@ -513,19 +513,20 @@ class Excel
      */
     public function sheet(?string $name = null): ?Sheet
     {
-        $sheetId = null;
+        $resultId = null;
         if (!$name) {
-            $sheetId = $this->defaultSheetId;
+            $resultId = $this->defaultSheetId;
         }
         else {
             foreach ($this->sheets as $sheetId => $sheet) {
                 if ($sheet->isName($name)) {
+                    $resultId = $sheetId;
                     break;
                 }
             }
         }
-        if ($sheetId && isset($this->sheets[$sheetId])) {
-            return $this->sheets[$sheetId];
+        if ($resultId && isset($this->sheets[$resultId])) {
+            return $this->sheets[$resultId];
         }
 
         return null;

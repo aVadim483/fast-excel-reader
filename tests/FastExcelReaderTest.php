@@ -12,6 +12,7 @@ final class FastExcelReaderTest extends TestCase
 
     public function testExcelReader()
     {
+        // =====================
         $file = self::DEMO_DIR . 'demo-00-test.xlsx';
         $excel = Excel::open($file);
 
@@ -52,6 +53,23 @@ final class FastExcelReaderTest extends TestCase
         $this->assertTrue(isset($result[0]['bee']) && $result[0]['bee'] === 111);
         $this->assertTrue(isset($result[1]['honey']) && $result[1]['honey'] === 'Word');
 
+        // =====================
+        $file = self::DEMO_DIR . 'demo-01-base.xlsx';
+        $excel = Excel::open($file);
+
+        $cells = $excel->sheet()->readCells();
+        $this->assertEquals('A1', array_key_first($cells));
+        $this->assertCount(4216, $cells);
+
+        $cells = $excel->sheet()->setReadArea('c10')->readCells();
+        $this->assertEquals('C10', array_key_first($cells));
+        $this->assertCount(3108, $cells);
+
+        $cells = $excel->selectSheet('report', 'd10:e18')->readCells();
+        $this->assertEquals('D10', array_key_first($cells));
+        $this->assertCount(18, $cells);
+
+        // =====================
         $file = self::DEMO_DIR . 'demo-02-advanced.xlsx';
         $excel = Excel::open($file);
 
@@ -74,20 +92,25 @@ final class FastExcelReaderTest extends TestCase
         $this->assertEquals('Lorem', $result['C4']['v']);
         $this->assertEquals('thin', $result['C4']['s']['border']['border-left-style']);
 
-        $file = self::DEMO_DIR . 'demo-01-base.xlsx';
-        $excel = Excel::open($file);
+        $excel->selectSheet('Demo1');
+        $this->assertEquals('Demo1', $excel->sheet()->name());
 
-        $cells = $excel->sheet()->readCells();
-        $this->assertEquals('A1', array_key_first($cells));
-        $this->assertCount(4216, $cells);
+        $excel->selectSheet('Demo2');
+        $this->assertEquals('Demo2', $excel->sheet()->name());
 
-        $cells = $excel->sheet()->setReadArea('c10')->readCells();
-        $this->assertEquals('C10', array_key_first($cells));
-        $this->assertCount(3108, $cells);
+        $sheet = $excel->sheet('WrongSheet');
+        $this->assertEquals(null, $sheet);
 
-        $cells = $excel->selectSheet('report', 'd10:e18')->readCells();
-        $this->assertEquals('D10', array_key_first($cells));
-        $this->assertCount(18, $cells);
+        $sheet = $excel->getSheet('Demo2', 'B4:D13', true);
+        $result = $sheet->readRows();
+        $this->assertTrue(isset($result[5]['Year']) && $result[5]['Year'] === 2000);
+        $this->assertTrue(isset($result[5]['Lorem']) && $result[5]['Lorem'] === 235);
+
+        $sheet = $excel->getFirstSheet();
+        $result = $sheet->readRows(false, Excel::KEYS_ZERO_BASED);
+        $this->assertTrue(isset($result[3][0]) && $result[3][0] === 'Giovanni');
+
+        $this->assertEquals('Demo2', $excel->sheet()->name());
     }
 }
 
