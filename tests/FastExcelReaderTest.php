@@ -63,6 +63,7 @@ final class FastExcelReaderTest extends TestCase
         $result = $excel
             ->selectSheet('Demo2', 'B5:D13')
             ->readRows($columnKeys, Excel::KEYS_ONE_BASED);
+        // default sheet is 'Demo2'
         $this->assertTrue(isset($result[5]['year']) && $result[5]['year'] === 2004);
         $this->assertTrue(isset($result[9]['value1']) && $result[9]['value1'] === 674);
 
@@ -71,6 +72,18 @@ final class FastExcelReaderTest extends TestCase
 
         $this->assertEquals('Lorem', $result['C4']['v']);
         $this->assertEquals('thin', $result['C4']['s']['border']['border-left-style']);
+
+        $sheet = $excel->getSheet('Demo2', 'B4:D13', true);
+        $result = $sheet->readRows();
+        $this->assertTrue(isset($result[5]['Year']) && $result[5]['Year'] === 2000);
+        $this->assertTrue(isset($result[5]['Lorem']) && $result[5]['Lorem'] === 235);
+
+        $sheet = $excel->getFirstSheet();
+        $result = $sheet->readRows(false, Excel::KEYS_ZERO_BASED);
+        $this->assertTrue(isset($result[3][0]) && $result[3][0] === 'Giovanni');
+
+        // default sheet is 'Demo2'
+        $this->assertEquals('Demo2', $excel->sheet()->name());
     }
 }
 

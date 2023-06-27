@@ -290,6 +290,11 @@ class Sheet
      *      [1 => ['A' => _value_A1_], ['B' => _value_B1_]],
      *      [2 => ['A' => _value_A2_], ['B' => _value_B2_]]
      *
+     *  readRows()
+     *  readRows(true)
+     *  readRows(false, Excel::KEYS_ZERO_BASED)
+     *  readRows(Excel::KEYS_ZERO_BASED | Excel::KEYS_RELATIVE)
+     *
      * @param array|bool|int|null $columnKeys
      * @param int|null $resultMode
      * @param bool|null $styleIdxInclude
@@ -473,7 +478,7 @@ class Sheet
         $xmlReader->openZip($this->path);
         $readArea = $this->area;
 
-        if (is_array($columnKeys)) {
+        if (!empty($columnKeys) && is_array($columnKeys)) {
             $firstRowKeys = is_int($resultMode) && ($resultMode & Excel::KEYS_FIRST_ROW);
             $columnKeys = array_combine(array_map('strtoupper', array_keys($columnKeys)), array_values($columnKeys));
         }
@@ -482,7 +487,8 @@ class Sheet
             $columnKeys = [];
         }
         else {
-            $firstRowKeys = false;
+            //$firstRowKeys = false;
+            $firstRowKeys = !empty($readArea['first_row']);
         }
 
         $rowData = [];

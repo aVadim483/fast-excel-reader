@@ -671,8 +671,8 @@ class Excel
      *
      *  readRows()
      *  readRows(true)
-     *  readRows(false, Excel::INDEX_ZERO_BASED)
-     *  readRows(Excel::INDEX_ZERO_BASED | Excel::INDEX_RELATIVE)
+     *  readRows(false, Excel::KEYS_ZERO_BASED)
+     *  readRows(Excel::KEYS_ZERO_BASED | Excel::KEYS_RELATIVE)
      *
      * @param array|bool|int|null $columnKeys
      * @param int|null $resultMode
