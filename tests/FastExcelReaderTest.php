@@ -8,9 +8,11 @@ use PHPUnit\Framework\TestCase;
 
 final class FastExcelReaderTest extends TestCase
 {
+    const DEMO_DIR = __DIR__ . '/../demo/files/';
+
     public function testExcelReader()
     {
-        $file = __DIR__ . '/../demo/files/demo-00-test.xlsx';
+        $file = self::DEMO_DIR . 'demo-00-test.xlsx';
         $excel = Excel::open($file);
 
         $this->assertEquals('A1:C3', $excel->sheet()->dimension());
@@ -50,7 +52,7 @@ final class FastExcelReaderTest extends TestCase
         $this->assertTrue(isset($result[0]['bee']) && $result[0]['bee'] === 111);
         $this->assertTrue(isset($result[1]['honey']) && $result[1]['honey'] === 'Word');
 
-        $file = __DIR__ . '/../demo/files/demo-02-advanced.xlsx';
+        $file = self::DEMO_DIR . 'demo-02-advanced.xlsx';
         $excel = Excel::open($file);
 
         $result = $excel
@@ -63,7 +65,6 @@ final class FastExcelReaderTest extends TestCase
         $result = $excel
             ->selectSheet('Demo2', 'B5:D13')
             ->readRows($columnKeys, Excel::KEYS_ONE_BASED);
-        // default sheet is 'Demo2'
         $this->assertTrue(isset($result[5]['year']) && $result[5]['year'] === 2004);
         $this->assertTrue(isset($result[9]['value1']) && $result[9]['value1'] === 674);
 
@@ -73,17 +74,20 @@ final class FastExcelReaderTest extends TestCase
         $this->assertEquals('Lorem', $result['C4']['v']);
         $this->assertEquals('thin', $result['C4']['s']['border']['border-left-style']);
 
-        $sheet = $excel->getSheet('Demo2', 'B4:D13', true);
-        $result = $sheet->readRows();
-        $this->assertTrue(isset($result[5]['Year']) && $result[5]['Year'] === 2000);
-        $this->assertTrue(isset($result[5]['Lorem']) && $result[5]['Lorem'] === 235);
+        $file = self::DEMO_DIR . 'demo-01-base.xlsx';
+        $excel = Excel::open($file);
 
-        $sheet = $excel->getFirstSheet();
-        $result = $sheet->readRows(false, Excel::KEYS_ZERO_BASED);
-        $this->assertTrue(isset($result[3][0]) && $result[3][0] === 'Giovanni');
+        $cells = $excel->sheet()->readCells();
+        $this->assertEquals('A1', array_key_first($cells));
+        $this->assertCount(4216, $cells);
 
-        // default sheet is 'Demo2'
-        $this->assertEquals('Demo2', $excel->sheet()->name());
+        $cells = $excel->sheet()->setReadArea('c10')->readCells();
+        $this->assertEquals('C10', array_key_first($cells));
+        $this->assertCount(3108, $cells);
+
+        $cells = $excel->selectSheet('report', 'd10:e18')->readCells();
+        $this->assertEquals('D10', array_key_first($cells));
+        $this->assertCount(18, $cells);
     }
 }
 
