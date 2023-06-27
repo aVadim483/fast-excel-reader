@@ -229,6 +229,35 @@ class Sheet
         return $this;
     }
 
+    protected static function _areaRange(string $areaRange)
+    {
+        $area = [];
+        if (preg_match('/^([A-Za-z]+)(\d+)(:([A-Za-z]+)(\d+))?$/', $areaRange, $matches)) {
+            $area['col_min'] = Excel::colNum($matches[1]);
+            $area['row_min'] = (int)$matches[2];
+            if (empty($matches[3])) {
+                $area['col_max'] = Excel::EXCEL_2007_MAX_COL;
+                $area['row_max'] = Excel::EXCEL_2007_MAX_ROW;
+            }
+            else {
+                $area['col_max'] = Excel::colNum($matches[4]);
+                $area['row_max'] = (int)$matches[5];
+            }
+        }
+        elseif (preg_match('/^([A-Za-z]+)(:([A-Za-z]+))?$/', $areaRange, $matches)) {
+            $area['col_min'] = Excel::colNum($matches[1]);
+            if (empty($matches[2])) {
+                $area['col_max'] = Excel::EXCEL_2007_MAX_COL;
+            }
+            else {
+                $area['col_max'] = Excel::colNum($matches[3]);
+            }
+            $area['row_min'] = 1;
+            $area['row_max'] = Excel::EXCEL_2007_MAX_ROW;
+        }
+
+        return $area;
+    }
 
     /**
      * setReadArea('C3:AZ28') - set top left and right bottom of read area
@@ -241,17 +270,9 @@ class Sheet
      */
     public function setReadArea(string $areaRange, ?bool $firstRowKeys = false): Sheet
     {
-        if (preg_match('/^([A-Za-z]+)(\d+)(:([A-Za-z]+)(\d+))?$/', $areaRange, $matches)) {
-            $this->area['col_min'] = Excel::colNum($matches[1]);
-            $this->area['row_min'] = (int)$matches[2];
-            if (empty($matches[3])) {
-                $this->area['col_max'] = Excel::EXCEL_2007_MAX_COL;
-                $this->area['row_max'] = Excel::EXCEL_2007_MAX_ROW;
-            }
-            else {
-                $this->area['col_max'] = Excel::colNum($matches[4]);
-                $this->area['row_max'] = (int)$matches[5];
-            }
+        $area = self::_areaRange($areaRange);
+        if ($area && isset($area['row_max'])) {
+            $this->area = $area;
             $this->area['first_row'] = $firstRowKeys;
 
             return $this;
@@ -270,14 +291,9 @@ class Sheet
      */
     public function setReadAreaColumns(string $columnsRange, ?bool $firstRowKeys = false): Sheet
     {
-        if (preg_match('/^([A-Za-z]+)(:([A-Za-z]+))?$/', $columnsRange, $matches)) {
-            $this->area['col_min'] = Excel::colNum($matches[1]);
-            if (empty($matches[2])) {
-                $this->area['col_max'] = Excel::EXCEL_2007_MAX_COL;
-            }
-            else {
-                $this->area['col_max'] = Excel::colNum($matches[3]);
-            }
+        $area = self::_areaRange($columnsRange);
+        if ($area) {
+            $this->area = $area;
             $this->area['first_row'] = $firstRowKeys;
 
             return $this;

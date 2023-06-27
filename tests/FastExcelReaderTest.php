@@ -106,6 +106,11 @@ final class FastExcelReaderTest extends TestCase
         $this->assertTrue(isset($result[5]['Year']) && $result[5]['Year'] === 2000);
         $this->assertTrue(isset($result[5]['Lorem']) && $result[5]['Lorem'] === 235);
 
+        $sheet = $excel->getSheet('Demo2', 'b:c');
+        $result = $sheet->readRows();
+        $this->assertTrue(isset($result[6]['B']) && $result[6]['B'] === 2001);
+        $this->assertFalse(isset($result[6]['D']));
+
         $sheet = $excel->getFirstSheet();
         $result = $sheet->readRows(false, Excel::KEYS_ZERO_BASED);
         $this->assertTrue(isset($result[3][0]) && $result[3][0] === 'Giovanni');
