@@ -124,6 +124,14 @@ class Sheet
     /**
      * @return string
      */
+    public function id(): string
+    {
+        return $this->sheetId;
+    }
+
+    /**
+     * @return string
+     */
     public function name(): string
     {
         return $this->name;

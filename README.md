@@ -345,9 +345,12 @@ But we do not recommend using these methods with large files
 ### Excel object
 * ```getSheetNames()``` -- Returns names array of all sheets
 * ```sheet(?string $name = null)``` -- Returns default or specified sheet
-* ```selectSheet(string $name, ?string $areaRange = null, ?bool $firstRowKeys = false)``` -- Select default sheet by name
-* ```selectSheetById(int $sheetId, ?string $areaRange = null)``` -- Select default sheet by id
-* ```selectFirstSheet(?string $areaRange = null)``` -- Select the first sheet as default
+* ```getSheet(string $name, ?string $areaRange = null, ?bool $firstRowKeys = false)``` -- Get sheet by name
+* ```getSheetById(int $sheetId, ?string $areaRange = null, ?bool $firstRowKeys = false)``` -- Get sheet by id
+* ```getFirstSheet(?string $areaRange = null, ?bool $firstRowKeys = false)``` -- Get the first sheet
+* ```selectSheet(string $name, ?string $areaRange = null, ?bool $firstRowKeys = false)``` -- Select default sheet by name and returns it
+* ```selectSheetById(int $sheetId, ?string $areaRange = null, ?bool $firstRowKeys = false)``` -- Select default sheet by id and returns it
+* ```selectFirstSheet(?string $areaRange = null, ?bool $firstRowKeys = false)``` -- Select the first sheet as default and returns it
 
 ### Sheet object
 * ```name()``` -- Returns name of string

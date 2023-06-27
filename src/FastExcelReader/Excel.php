@@ -532,7 +532,7 @@ class Excel
     }
 
     /**
-     * Select default sheet by name
+     * Returns a sheet by name
      *
      * @param string $name
      * @param string|null $areaRange
@@ -540,11 +540,10 @@ class Excel
      *
      * @return Sheet
      */
-    public function selectSheet(string $name, string $areaRange = null, ?bool $firstRowKeys = false): Sheet
+    public function getSheet(string $name, string $areaRange = null, ?bool $firstRowKeys = false): Sheet
     {
-        foreach ($this->sheets as $sheetId => $sheet) {
+        foreach ($this->sheets as $sheet) {
             if ($sheet->isName($name)) {
-                $this->defaultSheetId = $sheetId;
                 if ($areaRange) {
                     $sheet->setReadArea($areaRange, $firstRowKeys);
                 }
@@ -556,7 +555,64 @@ class Excel
     }
 
     /**
-     * Select default sheet by ID
+     * Returns a sheet by ID
+     *
+     * @param int $sheetId
+     * @param string|null $areaRange
+     * @param bool|null $firstRowKeys
+     *
+     * @return Sheet
+     */
+    public function getSheetById(int $sheetId, string $areaRange = null, ?bool $firstRowKeys = false): Sheet
+    {
+        if (!isset($this->sheets[$sheetId])) {
+            throw new Exception('Sheet ID "' . $sheetId . '" not found');
+        }
+        if ($areaRange) {
+            $this->sheets[$sheetId]->setReadArea($areaRange, $firstRowKeys);
+        }
+
+        return $this->sheets[$sheetId];
+    }
+
+    /**
+     * Returns the first sheet as default
+     *
+     * @param string|null $areaRange
+     * @param bool|null $firstRowKeys
+     *
+     * @return Sheet
+     */
+    public function getFirstSheet(string $areaRange = null, ?bool $firstRowKeys = false): Sheet
+    {
+        $sheetId = array_key_first($this->sheets);
+        $sheet = $this->sheets[$sheetId];
+        if ($areaRange) {
+            $sheet->setReadArea($areaRange, $firstRowKeys);
+        }
+
+        return $sheet;
+    }
+
+    /**
+     * Selects default sheet by name
+     *
+     * @param string $name
+     * @param string|null $areaRange
+     * @param bool|null $firstRowKeys
+     *
+     * @return Sheet
+     */
+    public function selectSheet(string $name, string $areaRange = null, ?bool $firstRowKeys = false): Sheet
+    {
+        $sheet = $this->getSheet($name, $areaRange, $firstRowKeys);
+        $this->defaultSheetId = $sheet->id();
+
+        return $sheet;
+    }
+
+    /**
+     * Selects default sheet by ID
      *
      * @param int $sheetId
      * @param string|null $areaRange
@@ -566,19 +622,14 @@ class Excel
      */
     public function selectSheetById(int $sheetId, string $areaRange = null, ?bool $firstRowKeys = false): Sheet
     {
-        if (!isset($this->sheets[$sheetId])) {
-            throw new Exception('Sheet ID "' . $sheetId . '" not found');
-        }
-        $this->defaultSheetId = $sheetId;
-        if ($areaRange) {
-            $this->sheets[$sheetId]->setReadArea($areaRange, $firstRowKeys);
-        }
+        $sheet = $this->getSheetById($sheetId, $areaRange, $firstRowKeys);
+        $this->defaultSheetId = $sheet->id();
 
-        return $this->sheets[$sheetId];
+        return $sheet;
     }
 
     /**
-     * Select the first sheet as default
+     * Selects the first sheet as default
      *
      * @param string|null $areaRange
      * @param bool|null $firstRowKeys
@@ -587,12 +638,10 @@ class Excel
      */
     public function selectFirstSheet(string $areaRange = null, ?bool $firstRowKeys = false): Sheet
     {
-        $this->defaultSheetId = array_key_first($this->sheets);
-        if ($areaRange) {
-            $this->sheets[$this->defaultSheetId]->setReadArea($areaRange, $firstRowKeys);
-        }
+        $sheet = $this->getFirstSheet($areaRange, $firstRowKeys);
+        $this->defaultSheetId = $sheet->id();
 
-        return $this->sheets[$this->defaultSheetId];
+        return $sheet;
     }
 
     /**
