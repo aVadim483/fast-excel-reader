@@ -288,9 +288,10 @@ $result['#1'] = $excel
     ->readRows(['C' => 'Birthday']); 
 
 // read other arrays with custom column keys
+// and in this case we define range by columns only
 $columnKeys = ['B' => 'year', 'C' => 'value1', 'D' => 'value2'];
 $result['#2'] = $excel
-    ->selectSheet('Demo2', 'B5:D13')
+    ->selectSheet('Demo2', 'B:D')
     ->readRows($columnKeys);
 
 $result['#3'] = $excel
@@ -321,6 +322,42 @@ function readCellCallback($row, $col, $val)
 }
 
 $excel->readSheetCallback('readCellCallback');
+```
+
+## Cell value types
+
+The library tries to determine the types of cell values, and in most cases it does it right. 
+Therefore, you get numeric or string values. Date values are returned as a timestamp by default.
+But you can change this behavior by setting the date format (see the formatting options for the date() php function).
+
+```php
+$excel = Excel::open($file);
+$result = $excel->readCells();
+print_r($result);
+```
+The above example will output:
+```text
+Array
+(
+    [B2] => -2205187200
+    [B3] => 6614697600
+    [B4] => -6845221817
+)
+```
+```php
+$excel = Excel::open($file);
+$excel->setDateFormat('Y-m-d');
+$result = $excel->readCells();
+print_r($result);
+```
+The above example will output:
+```text
+Array
+(
+    [B2] => '1900-02-14'
+    [B3] => '2179-08-12'
+    [B4] => '1753-01-30'
+)
 ```
 
 ## How to get complete info about the cell style 

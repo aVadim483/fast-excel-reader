@@ -59,8 +59,12 @@ class Sheet
         }
 
         $format = null;
+        // Value is a shared string
+        if ($dataType === 's' && is_numeric($cellValue) && ($str = $this->excel->sharedString((int)$cellValue))) {
+            $cellValue = $str;
+        }
         $styleIdx = (int)$cell->getAttribute('s');
-        if ( $dataType === '' || $dataType === 'n' ) { // number
+        if ( $dataType === '' || $dataType === 'n'  || $dataType === 's' ) { // number or data as string
             if ($styleIdx > 0 && ($style = $this->excel->styleByIdx($styleIdx))) {
                 $format = $style['format'] ?? null;
                 if (isset($style['formatType'])) {
@@ -72,13 +76,6 @@ class Sheet
         $value = '';
 
         switch ( $dataType ) {
-            case 's':
-                // Value is a shared string
-                if (is_numeric($cellValue) && ($str = $this->excel->sharedString((int)$cellValue)) !== null) {
-                    $value = $str;
-                }
-                break;
-
             case 'b':
                 // Value is boolean
                 $value = (bool)$cellValue;
@@ -97,7 +94,7 @@ class Sheet
             case 'd':
                 // Value is a date and non-empty
                 if (!empty($cellValue)) {
-                    $value = $this->excel->formatDate(Excel::timestamp($cellValue));
+                    $value = $this->excel->formatDate($this->excel->timestamp($cellValue));
                 }
                 break;
 
@@ -106,7 +103,7 @@ class Sheet
                 $value = (string) $cellValue;
 
                 // Check for numeric values
-                if (is_numeric($value) && $dataType !== 's') {
+                if (is_numeric($value)) {
                     /** @noinspection TypeUnsafeComparisonInspection */
                     if ($value == (int)$value) {
                         $value = (int)$value;
@@ -479,10 +476,11 @@ class Sheet
      * @param array|bool|int|null $columnKeys
      * @param int|null $resultMode
      * @param bool|null $styleIdxInclude
+     * @param int|null $rowLimit
      *
      * @return \Generator|null
      */
-    public function nextRow($columnKeys = [], int $resultMode = null, ?bool $styleIdxInclude = null): ?\Generator
+    public function nextRow($columnKeys = [], int $resultMode = null, ?bool $styleIdxInclude = null, int $rowLimit = 0): ?\Generator
     {
         // <dimension ref="A1:C1"/>
         // sometimes sheets doesn't contain this tag
@@ -490,10 +488,7 @@ class Sheet
             $this->dimension();
         }
 
-        $xmlReader = $this->getReader();
-        $xmlReader->openZip($this->path);
         $readArea = $this->area;
-
         if (!empty($columnKeys) && is_array($columnKeys)) {
             $firstRowKeys = is_int($resultMode) && ($resultMode & Excel::KEYS_FIRST_ROW);
             $columnKeys = array_combine(array_map('strtoupper', array_keys($columnKeys)), array_values($columnKeys));
@@ -503,9 +498,18 @@ class Sheet
             $columnKeys = [];
         }
         else {
-            //$firstRowKeys = false;
             $firstRowKeys = !empty($readArea['first_row']);
         }
+
+        if ($columnKeys && ($resultMode & Excel::KEYS_FIRST_ROW)) {
+            foreach ($this->nextRow([], Excel::KEYS_FIRST_ROW, null, 1) as $firstRowData) {
+                $columnKeys = array_merge($firstRowData, $columnKeys);
+                break;
+            }
+        }
+
+        $xmlReader = $this->getReader();
+        $xmlReader->openZip($this->path);
 
         $rowData = [];
         $rowNum = 0;
@@ -514,6 +518,9 @@ class Sheet
         $rowCnt = -1;
         if ($xmlReader->seekOpenTag('sheetData')) {
             while ($xmlReader->read()) {
+                if ($rowLimit > 0 && $rowCnt >= $rowLimit) {
+                    break;
+                }
                 if ($xmlReader->nodeType === \XMLReader::END_ELEMENT && $xmlReader->name === 'sheetData') {
                     break;
                 }

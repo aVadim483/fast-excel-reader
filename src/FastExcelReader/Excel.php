@@ -43,6 +43,9 @@ class Excel
 
     protected ?string $dateFormat = null;
 
+    protected bool $date1904 = false;
+
+
     /**
      * Excel constructor
      *
@@ -114,6 +117,12 @@ class Excel
         $this->xmlReader->openZip($innerFile);
         $sheetCnt = count($this->relations['worksheet']);
         while ($this->xmlReader->read()) {
+            if ($this->xmlReader->nodeType === \XMLReader::ELEMENT && $this->xmlReader->name === 'workbookPr') {
+                $date1904 = (string)$this->xmlReader->getAttribute('date1904');
+                if ($date1904 === '1' || $date1904 === 'true') {
+                    $this->date1904 = true;
+                }
+            }
             if ($this->xmlReader->nodeType === \XMLReader::ELEMENT && $this->xmlReader->name === 'sheet') {
                 $rId = $this->xmlReader->getAttribute('r:id');
                 $sheetId = $this->xmlReader->getAttribute('sheetId');
@@ -123,9 +132,11 @@ class Excel
                     $this->sheets[$sheetId] = new Sheet($this->file, $sheetId, $sheetName, $this->relations['worksheet'][$rId]);
                     $this->sheets[$sheetId]->excel = $this;
                 }
+                /*
                 if (--$sheetCnt < 1) {
                     break;
                 }
+                */
             }
         }
         $this->xmlReader->close();
@@ -426,13 +437,24 @@ class Excel
      *
      * @return int
      */
-    public static function timestamp($excelDateTime): int
+    public function timestamp($excelDateTime): int
     {
-        $d = floor($excelDateTime);
-        $t = $excelDateTime - $d;
-        // $d += 1462; // days since 1904
+        if (is_numeric($excelDateTime)) {
+            $d = floor($excelDateTime);
+            $t = $excelDateTime - $d;
+            if ($this->date1904) {
+                $d += 1462; // days since 1904
+            }
 
-        $t = (abs($d) > 0) ? ($d - 25569) * 86400 + round($t * 86400) : round($t * 86400);
+            // Adjust for Excel erroneously treating 1900 as a leap year.
+            if ($d <= 59) {
+                $d++;
+            }
+            $t = (abs($d) > 0) ? ($d - 25569) * 86400 + round($t * 86400) : round($t * 86400);
+        }
+        else {
+            $t = strtotime($excelDateTime);
+        }
 
         return (int)$t;
     }
