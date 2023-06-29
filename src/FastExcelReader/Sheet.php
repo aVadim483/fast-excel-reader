@@ -493,16 +493,19 @@ class Sheet
             $firstRowKeys = is_int($resultMode) && ($resultMode & Excel::KEYS_FIRST_ROW);
             $columnKeys = array_combine(array_map('strtoupper', array_keys($columnKeys)), array_values($columnKeys));
         }
-        elseif ($columnKeys) {
+        elseif ($columnKeys === true) {
             $firstRowKeys = true;
             $columnKeys = [];
+        }
+        elseif (is_array($columnKeys) && $resultMode & Excel::KEYS_FIRST_ROW) {
+            $firstRowKeys = true;
         }
         else {
             $firstRowKeys = !empty($readArea['first_row']);
         }
 
         if ($columnKeys && ($resultMode & Excel::KEYS_FIRST_ROW)) {
-            foreach ($this->nextRow([], Excel::KEYS_FIRST_ROW, null, 1) as $firstRowData) {
+            foreach ($this->nextRow([], 0, null, 1) as $firstRowData) {
                 $columnKeys = array_merge($firstRowData, $columnKeys);
                 break;
             }
