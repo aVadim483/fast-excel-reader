@@ -44,6 +44,7 @@ class Excel
     protected ?string $dateFormat = null;
 
     protected bool $date1904 = false;
+    protected string $timezone;
 
 
     /**
@@ -57,6 +58,7 @@ class Excel
             $this->file = $file;
             $this->_prepare($file);
         }
+        $this->timezone = date_default_timezone_get();
     }
 
     /**
@@ -466,10 +468,12 @@ class Excel
             $t = (abs($d) > 0) ? ($d - 25569) * 86400 + round($t * 86400) : round($t * 86400);
         }
         else {
+            if ($this->timezone !== 'UTC') {
+                date_default_timezone_set('UTC');
+            }
             $t = strtotime($excelDateTime);
-            // date < 1900-03-01
-            if ($t < -2203891200) {
-                $t += 86400;
+            if ($this->timezone !== 'UTC') {
+                date_default_timezone_set($this->timezone);
             }
         }
 
