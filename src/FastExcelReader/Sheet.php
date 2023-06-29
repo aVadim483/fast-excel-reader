@@ -24,11 +24,11 @@ class Sheet
     protected Reader $xmlReader;
 
 
-    public function __construct($file, $sheetId, $name, $path)
+    public function __construct($sheetName, $sheetId, $file, $path)
     {
-        $this->zipFilename = $file;
+        $this->name = $sheetName;
         $this->sheetId = $sheetId;
-        $this->name = $name;
+        $this->zipFilename = $file;
         $this->path = $path;
 
         $this->area = [

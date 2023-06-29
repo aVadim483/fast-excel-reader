@@ -129,7 +129,7 @@ class Excel
                 $path = $this->relations['worksheet'][$rId];
                 if ($path) {
                     $sheetName = $this->xmlReader->getAttribute('name');
-                    $this->sheets[$sheetId] = new Sheet($this->file, $sheetId, $sheetName, $this->relations['worksheet'][$rId]);
+                    $this->sheets[$sheetId] = static::createSheet($sheetName, $sheetId, $this->file, $this->relations['worksheet'][$rId]);
                     $this->sheets[$sheetId]->excel = $this;
                 }
                 /*
@@ -369,6 +369,19 @@ class Excel
     public static function open(string $file): Excel
     {
         return new self($file);
+    }
+
+    /**
+     * @param string $sheetName
+     * @param $sheetId
+     * @param $file
+     * @param $path
+     *
+     * @return Sheet
+     */
+    public static function createSheet(string $sheetName, $sheetId, $file, $path): Sheet
+    {
+        return new Sheet($sheetName, $sheetId, $file, $path);
     }
 
     /**
