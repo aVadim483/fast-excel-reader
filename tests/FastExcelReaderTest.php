@@ -30,7 +30,7 @@ final class FastExcelReaderTest extends TestCase
         $result = $excel->readColumns();
         $this->assertEquals(count($result), $excel->sheet()->countCols());
         $this->assertTrue(isset($result['A']['1']) && $result['A']['1'] === 'name');
-        $this->assertTrue(isset($result['B']['4']) && $result['B']['4'] === -6845135417);
+        $this->assertTrue(isset($result['B']['4']) && $result['B']['4'] === -6845212800);
 
         // Read rows and use the first row as column keys
         $result = $excel->readRows(true);
@@ -157,6 +157,18 @@ final class FastExcelReaderTest extends TestCase
         $this->assertTrue(isset($result[3][0]) && $result[3][0] === 'Giovanni');
 
         $this->assertEquals('Demo2', $excel->sheet()->name());
+
+        // =====================
+        $file = self::DEMO_DIR . 'demo-03-images.xlsx';
+        $excel = Excel::open($file);
+        $this->assertEquals(2, $excel->countImages());
+
+        $this->assertFalse($excel->sheet()->hasImage('c1'));
+        $this->assertTrue($excel->sheet()->hasImage('c2'));
+
+        $result = $excel->getImageList();
+        $this->assertTrue(isset($result['Sheet1']['C2']));
+        $this->assertEquals('image1.jpeg', $result['Sheet1']['C2']['file_name']);
     }
 }
 

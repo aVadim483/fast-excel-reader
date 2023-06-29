@@ -139,40 +139,6 @@ foreach ($sheet->nextRow(['A' => 'One', 'B' => 'Two'], Excel::KEYS_FIRST_ROW) as
 }
 ```
 
-### Images functions
-```php
-// Returns count images on all sheets
-$excel->countImages()
-
-// Returns count images on sheet
-$sheet->countImages()
-
-// Returns image list of sheet
-$sheet->getImageList()
-
-// Returns image list of specified row
-$sheet->getImageListByRow($rowNumber)
-
-// Returns TRUE if the specified cell has an image
-$sheet->hasImage($cellAddress)
-
-// Returns mime type of image in the specified cell (or NULL)
-$sheet->getImageMimeType($cellAddress)
-
-// Returns inner name of image in the specified cell (or NULL)
-$sheet->getImageName($cellAddress)
-
-// Returns an image from the cell as a blob (if exists) or NULL
-$sheet->getImageBlob($cellAddress)
-
-// Writes an image from the cell to the specified filename
-$sheet->saveImage($cellAddress, $fullFilenamePath)
-
-// Writes an image from the cell to the specified directory
-$sheet->saveImageTo($cellAddress, $fullDirectoryPath)
-```
-
-
 ### Keys in resulting arrays
 ```php
 // Read rows and use the first row as column keys
@@ -324,6 +290,39 @@ function readCellCallback($row, $col, $val)
 $excel->readSheetCallback('readCellCallback');
 ```
 
+### Images functions
+```php
+// Returns count images on all sheets
+$excel->countImages()
+
+// Returns count images on sheet
+$sheet->countImages()
+
+// Returns image list of sheet
+$sheet->getImageList()
+
+// Returns image list of specified row
+$sheet->getImageListByRow($rowNumber)
+
+// Returns TRUE if the specified cell has an image
+$sheet->hasImage($cellAddress)
+
+// Returns mime type of image in the specified cell (or NULL)
+$sheet->getImageMimeType($cellAddress)
+
+// Returns inner name of image in the specified cell (or NULL)
+$sheet->getImageName($cellAddress)
+
+// Returns an image from the cell as a blob (if exists) or NULL
+$sheet->getImageBlob($cellAddress)
+
+// Writes an image from the cell to the specified filename
+$sheet->saveImage($cellAddress, $fullFilenamePath)
+
+// Writes an image from the cell to the specified directory
+$sheet->saveImageTo($cellAddress, $fullDirectoryPath)
+```
+
 ## Cell value types
 
 The library tries to determine the types of cell values, and in most cases it does it right. 
@@ -341,7 +340,7 @@ Array
 (
     [B2] => -2205187200
     [B3] => 6614697600
-    [B4] => -6845221817
+    [B4] => -6845212800
 )
 ```
 ```php
@@ -356,7 +355,7 @@ Array
 (
     [B2] => '1900-02-14'
     [B3] => '2179-08-12'
-    [B4] => '1753-01-30'
+    [B4] => '1753-01-31'
 )
 ```
 
