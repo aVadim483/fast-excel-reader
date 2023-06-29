@@ -467,6 +467,10 @@ class Excel
         }
         else {
             $t = strtotime($excelDateTime);
+            // date < 1900-03-01
+            if ($t < -2203891200) {
+                $t += 86400;
+            }
         }
 
         return (int)$t;
