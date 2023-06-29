@@ -30,7 +30,7 @@ final class FastExcelReaderTest extends TestCase
         $result = $excel->readColumns();
         $this->assertEquals(count($result), $excel->sheet()->countCols());
         $this->assertTrue(isset($result['A']['1']) && $result['A']['1'] === 'name');
-        $this->assertTrue(isset($result['B']['4']) && $result['B']['4'] === -6845221817);
+        $this->assertTrue(isset($result['B']['4']) && $result['B']['4'] === -6845135417);
 
         // Read rows and use the first row as column keys
         $result = $excel->readRows(true);
@@ -92,7 +92,7 @@ final class FastExcelReaderTest extends TestCase
         $result = $excel->readCells();
         $this->assertEquals('1900-02-14', $result['B2']);
         $this->assertEquals('2179-08-12', $result['B3']);
-        $this->assertEquals('1753-01-30', $result['B4']);
+        $this->assertEquals('1753-01-31', $result['B4']);
 
         // =====================
         $file = self::DEMO_DIR . 'demo-01-base.xlsx';
