@@ -528,7 +528,7 @@ class Sheet
                     break;
                 }
 
-                if ($xmlReader->nodeType === \XMLReader::END_ELEMENT && $xmlReader->name === 'row') {
+                if ($xmlReader->nodeType === \XMLReader::END_ELEMENT && $xmlReader->name === 'row' && $rowNum >= $readArea['row_min'] && $rowNum <= $readArea['row_max']) {
                     if ($rowCnt === 0 && $firstRowKeys) {
                         if (!$columnKeys) {
                             if ($styleIdxInclude) {

@@ -75,6 +75,19 @@ final class FastExcelReaderTest extends TestCase
         $result = $excel->readRows([], Excel::KEYS_FIRST_ROW);
         $this->assertTrue(isset($result[2]['name']) && $result[2]['name'] === 'James Bond');
 
+        $result = [];
+        $sheet = $excel->setReadArea('b2');
+        foreach ($sheet->nextRow() as $row => $rowData) {
+            $result[$row] = $rowData;
+        }
+        $this->assertCount(3, $result);
+        $this->assertFalse(isset($result[1]));
+        $this->assertFalse(isset($result[2]['A']));
+        $this->assertTrue(isset($result[2]['B']) && $result[2]['B'] === -2205187200);
+        $this->assertTrue(isset($result[2]['C']) && $result[2]['C'] === 4573);
+        $this->assertFalse(isset($result[2]['D']));
+        $this->assertFalse(isset($result[5]));
+
         $excel->setDateFormat('Y-m-d');
         $result = $excel->readCells();
         $this->assertEquals('1900-02-14', $result['B2']);
