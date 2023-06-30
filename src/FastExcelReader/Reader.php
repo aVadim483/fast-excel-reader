@@ -70,6 +70,7 @@ class Reader extends \XMLReader
                     $error = 'Unknown error';
                     $code = -1;
             }
+            $error = 'Error reading file "' . $this->zipFile . '" - ' . $error;
             throw new Exception($error, $code);
         }
 

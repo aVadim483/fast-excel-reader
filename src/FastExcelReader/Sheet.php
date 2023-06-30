@@ -497,7 +497,7 @@ class Sheet
             $firstRowKeys = true;
             $columnKeys = [];
         }
-        elseif (is_array($columnKeys) && $resultMode & Excel::KEYS_FIRST_ROW) {
+        elseif ($resultMode & Excel::KEYS_FIRST_ROW) {
             $firstRowKeys = true;
         }
         else {
