@@ -127,7 +127,8 @@ final class FastExcelReaderTest extends TestCase
         $this->assertTrue(isset($result[5]['year']) && $result[5]['year'] === 2004);
         $this->assertTrue(isset($result[9]['value1']) && $result[9]['value1'] === 674);
 
-        $sheet = $excel->sheet('Demo2')->setReadArea('b4:d13');
+        // default sheet is Demo2
+        $sheet = $excel->getSheet()->setReadArea('b4:d13');
         $result = $sheet->readCellsWithStyles();
 
         $this->assertEquals('Lorem', $result['C4']['v']);

@@ -630,21 +630,27 @@ class Excel
      */
     public function getSheet(?string $name = null, ?string $areaRange = null, ?bool $firstRowKeys = false): Sheet
     {
+        $sheet = null;
         if (!$name) {
             $sheet = $this->sheet();
-            return $sheet->setReadArea($areaRange, $firstRowKeys);
         }
-
-        foreach ($this->sheets as $sheet) {
-            if ($sheet->isName($name)) {
-                if ($areaRange) {
-                    $sheet->setReadArea($areaRange, $firstRowKeys);
+        else {
+            foreach ($this->sheets as $foundSheet) {
+                if ($foundSheet->isName($name)) {
+                    $sheet = $foundSheet;
+                    break;
                 }
-
-                return $sheet;
+            }
+            if (!$sheet) {
+                throw new Exception('Sheet name "' . $name . '" not found');
             }
         }
-        throw new Exception('Sheet name "' . $name . '" not found');
+
+        if ($areaRange) {
+            $sheet->setReadArea($areaRange, $firstRowKeys);
+        }
+
+        return $sheet;
     }
 
     /**
