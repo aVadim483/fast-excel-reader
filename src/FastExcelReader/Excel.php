@@ -622,14 +622,19 @@ class Excel
     /**
      * Returns a sheet by name
      *
-     * @param string $name
+     * @param string|null $name
      * @param string|null $areaRange
      * @param bool|null $firstRowKeys
      *
      * @return Sheet
      */
-    public function getSheet(string $name, string $areaRange = null, ?bool $firstRowKeys = false): Sheet
+    public function getSheet(?string $name = null, ?string $areaRange = null, ?bool $firstRowKeys = false): Sheet
     {
+        if (!$name) {
+            $sheet = $this->sheet();
+            return $sheet->setReadArea($areaRange, $firstRowKeys);
+        }
+
         foreach ($this->sheets as $sheet) {
             if ($sheet->isName($name)) {
                 if ($areaRange) {

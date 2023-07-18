@@ -15,7 +15,7 @@ From version 2.0 you can extract images from XLSX files.
 
 By the way, **FastExcelWriter** also exists - https://github.com/aVadim483/fast-excel-writer
 
-And if you are Laravel-developer then you can use special Laravel edition -
+And if you are Laravel-developer then you can use special **Laravel** edition -
 [FastExcelLaravel](https://packagist.org/packages/avadim/fast-excel-laravel).
 
 ## Installation
