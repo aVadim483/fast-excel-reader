@@ -267,6 +267,27 @@ $result['#3'] = $excel
     ->setReadArea('F5:H13')
     ->readRows($columnKeys);
 ```
+You can set read area by defined names in workbook. For example if workbook has defined name **Headers** with range **Demo1!$B$4:$D$4**
+then you can read cells by this name
+
+```php
+$excel->setReadArea('Values');
+$cells = $excel->readCells();
+```
+Note that since the value contains the sheet name, this sheet becomes the default sheet.
+
+You can set read area in the sheet
+```php
+$sheet = $excel->getSheet('Demo1')->setReadArea('Headers');
+$cells = $sheet->readCells();
+```
+But if you try to use this name on another sheet, you will get an error
+```php
+$sheet = $excel->getSheet('Demo2')->setReadArea('Headers');
+// Exception: Wrong address or range "Values"
+
+```
+
 If necessary, you can fully control the reading process using the method ```readSheetCallback()``` with callback-function
 ```php
 use \avadim\FastExcelReader\Excel;
@@ -390,6 +411,7 @@ But we do not recommend using these methods with large files
 * ```selectSheet(string $name, ?string $areaRange = null, ?bool $firstRowKeys = false)``` -- Select default sheet by name and returns it
 * ```selectSheetById(int $sheetId, ?string $areaRange = null, ?bool $firstRowKeys = false)``` -- Select default sheet by id and returns it
 * ```selectFirstSheet(?string $areaRange = null, ?bool $firstRowKeys = false)``` -- Select the first sheet as default and returns it
+* ```getDefinedNames()``` -- Returns defined names of workbook
 
 ### Sheet object
 * ```name()``` -- Returns name of string
@@ -399,7 +421,9 @@ But we do not recommend using these methods with large files
 
 ## Do you want to support FastExcelReader?
 
-if you find this package useful you can give me star on GitHub.
+if you find this package useful you can give me a star on GitHub.
+
 Or you can donate me :)
-* TetherUSD (TRC20): TSsUFvJehQBJCKeYgNNR1cpswY6JZnbZK7
-* TetherUSD (ERC20): 0x5244519D65035aF868a010C2f68a086F473FC82b
+* USDT (TRC20) TSsUFvJehQBJCKeYgNNR1cpswY6JZnbZK7
+* USDT (ERC20) 0x5244519D65035aF868a010C2f68a086F473FC82b
+* ETH 0x5244519D65035aF868a010C2f68a086F473FC82b

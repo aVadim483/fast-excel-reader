@@ -46,6 +46,8 @@ class Excel
     protected bool $date1904 = false;
     protected string $timezone;
 
+    protected array $names = [];
+
 
     /**
      * Excel constructor
@@ -119,26 +121,28 @@ class Excel
         $this->xmlReader->openZip($innerFile);
         $sheetCnt = count($this->relations['worksheet']);
         while ($this->xmlReader->read()) {
-            if ($this->xmlReader->nodeType === \XMLReader::ELEMENT && $this->xmlReader->name === 'workbookPr') {
-                $date1904 = (string)$this->xmlReader->getAttribute('date1904');
-                if ($date1904 === '1' || $date1904 === 'true') {
-                    $this->date1904 = true;
+            if ($this->xmlReader->nodeType === \XMLReader::ELEMENT) {
+                if ($this->xmlReader->name === 'workbookPr') {
+                    $date1904 = (string)$this->xmlReader->getAttribute('date1904');
+                    if ($date1904 === '1' || $date1904 === 'true') {
+                        $this->date1904 = true;
+                    }
                 }
-            }
-            if ($this->xmlReader->nodeType === \XMLReader::ELEMENT && $this->xmlReader->name === 'sheet') {
-                $rId = $this->xmlReader->getAttribute('r:id');
-                $sheetId = $this->xmlReader->getAttribute('sheetId');
-                $path = $this->relations['worksheet'][$rId];
-                if ($path) {
-                    $sheetName = $this->xmlReader->getAttribute('name');
-                    $this->sheets[$sheetId] = static::createSheet($sheetName, $sheetId, $this->file, $this->relations['worksheet'][$rId]);
-                    $this->sheets[$sheetId]->excel = $this;
+                elseif ($this->xmlReader->name === 'sheet') {
+                    $rId = $this->xmlReader->getAttribute('r:id');
+                    $sheetId = $this->xmlReader->getAttribute('sheetId');
+                    $path = $this->relations['worksheet'][$rId];
+                    if ($path) {
+                        $sheetName = $this->xmlReader->getAttribute('name');
+                        $this->sheets[$sheetId] = static::createSheet($sheetName, $sheetId, $this->file, $this->relations['worksheet'][$rId]);
+                        $this->sheets[$sheetId]->excel = $this;
+                    }
                 }
-                /*
-                if (--$sheetCnt < 1) {
-                    break;
+                elseif ($this->xmlReader->name === 'definedName') {
+                    $name = $this->xmlReader->getAttribute('name');
+                    $address = $this->xmlReader->readString();
+                    $this->names[$name] = $address;
                 }
-                */
             }
         }
         $this->xmlReader->close();
@@ -441,7 +445,7 @@ class Excel
             $index += (ord(substr($letters, -1)) - 64) * (26 ** $i);
         }
 
-        $colNumbers[$colLetter] = ($index <= self::EXCEL_2007_MAX_COL) ? (int)$index: self::EXCEL_2007_MAX_COL;
+        $colNumbers[$colLetter] = ($index <= self::EXCEL_2007_MAX_COL) ? (int)$index : -1;
 
         return $colNumbers[$colLetter];
     }
@@ -561,6 +565,16 @@ class Excel
     public function sharedString($stringId): ?string
     {
         return $this->sharedStrings[$stringId] ?? null;
+    }
+
+    /**
+     * Returns defined names of workbook
+     *
+     * @return array
+     */
+    public function getDefinedNames(): array
+    {
+        return $this->names;
     }
 
     /**
@@ -726,7 +740,19 @@ class Excel
      */
     public function setReadArea(string $areaRange, ?bool $firstRowKeys = false): Sheet
     {
-        return $this->sheets[$this->defaultSheetId]->setReadArea($areaRange, $firstRowKeys);
+        $sheet = $this->sheets[$this->defaultSheetId];
+        if (preg_match('/^\w+$/', $areaRange)) {
+            foreach ($this->getDefinedNames() as $name => $range) {
+                if ($name === $areaRange) {
+                    [$sheetName, $definedRange] = explode('!', $range);
+                    $sheet = $this->selectSheet($sheetName);
+                    $areaRange = $definedRange;
+                    break;
+                }
+            }
+        }
+
+        return $sheet->setReadArea($areaRange, $firstRowKeys);
     }
 
     /**

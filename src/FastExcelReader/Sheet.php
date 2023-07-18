@@ -226,10 +226,10 @@ class Sheet
         return $this;
     }
 
-    protected static function _areaRange(string $areaRange)
+    protected static function _areaRange(string $areaRange): array
     {
         $area = [];
-        if (preg_match('/^([A-Za-z]+)(\d+)(:([A-Za-z]+)(\d+))?$/', $areaRange, $matches)) {
+        if (preg_match('/^\$?([A-Za-z]+)\$?(\d+)(:\$?([A-Za-z]+)\$?(\d+))?$/', $areaRange, $matches)) {
             $area['col_min'] = Excel::colNum($matches[1]);
             $area['row_min'] = (int)$matches[2];
             if (empty($matches[3])) {
@@ -252,6 +252,9 @@ class Sheet
             $area['row_min'] = 1;
             $area['row_max'] = Excel::EXCEL_2007_MAX_ROW;
         }
+        if (isset($area['col_min'], $area['col_max']) && ($area['col_min'] < 0 || $area['col_max'] < 0)) {
+            return [];
+        }
 
         return $area;
     }
@@ -267,6 +270,15 @@ class Sheet
      */
     public function setReadArea(string $areaRange, ?bool $firstRowKeys = false): Sheet
     {
+        if (preg_match('/^\w+$/', $areaRange)) {
+            foreach ($this->excel->getDefinedNames() as $name => $range) {
+                if ($name === $areaRange && strpos($range, $this->name . '!') === 0) {
+                    [$sheetName, $definedRange] = explode('!', $range);
+                    $areaRange = $definedRange;
+                    break;
+                }
+            }
+        }
         $area = self::_areaRange($areaRange);
         if ($area && isset($area['row_max'])) {
             $this->area = $area;

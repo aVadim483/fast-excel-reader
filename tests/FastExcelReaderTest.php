@@ -158,6 +158,17 @@ final class FastExcelReaderTest extends TestCase
 
         $this->assertEquals('Demo2', $excel->sheet()->name());
 
+        $excel->setReadArea('Values');
+        $result = $excel->readCells();
+        $this->assertEquals('Giovanni', $result['B5']);
+
+        $sheet = $excel->getSheet('Demo1')->setReadArea('Headers');
+        $result = $sheet->readCells();
+        $this->assertEquals('Name', $result['B4']);
+
+        $this->expectException(\avadim\FastExcelReader\Exception::class);
+        $sheet = $excel->getSheet('Demo2')->setReadArea('Values');
+
         // =====================
         $file = self::DEMO_DIR . 'demo-03-images.xlsx';
         $excel = Excel::open($file);
