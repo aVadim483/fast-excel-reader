@@ -57,8 +57,18 @@ class Sheet
                 break;
             }
         }
+        if ($cellValue === null) {
+            foreach($cell->childNodes as $node) {
+                if ($node->nodeName === 'f') {
+                    $cellValue = $node->nodeValue;
+                    if ($cellValue && ($cellValue[0] !== '=')) {
+                        $cellValue = '=' . $cellValue;
+                    }
+                    break;
+                }
+            }
+        }
 
-        $format = null;
         // Value is a shared string
         if ($dataType === 's' && is_numeric($cellValue) && ($str = $this->excel->sharedString((int)$cellValue))) {
             $cellValue = $str;
@@ -99,18 +109,23 @@ class Sheet
                 break;
 
             default:
-                // Value is a string
-                $value = (string) $cellValue;
+                if ($cellValue === null) {
+                    $value = null;
+                }
+                else {
+                    // Value is a string
+                    $value = (string) $cellValue;
 
-                // Check for numeric values
-                if (is_numeric($value)) {
-                    /** @noinspection TypeUnsafeComparisonInspection */
-                    if ($value == (int)$value) {
-                        $value = (int)$value;
-                    }
-                    /** @noinspection TypeUnsafeComparisonInspection */
-                    elseif ($value == (float)$value) {
-                        $value = (float)$value;
+                    // Check for numeric values
+                    if (is_numeric($value)) {
+                        /** @noinspection TypeUnsafeComparisonInspection */
+                        if ($value == (int)$value) {
+                            $value = (int)$value;
+                        }
+                        /** @noinspection TypeUnsafeComparisonInspection */
+                        elseif ($value == (float)$value) {
+                            $value = (float)$value;
+                        }
                     }
                 }
         }
@@ -471,9 +486,11 @@ class Sheet
     {
         foreach ($this->nextRow($columnKeys, $resultMode, $styleIdxInclude) as $row => $rowData) {
             foreach ($rowData as $col => $val) {
-                $needBreak = $callback($row, $col, $val);
-                if ($needBreak) {
-                    return;
+                if ($val !== null) {
+                    $needBreak = $callback($row, $col, $val);
+                    if ($needBreak) {
+                        return;
+                    }
                 }
             }
         }
