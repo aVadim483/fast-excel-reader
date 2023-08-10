@@ -43,29 +43,33 @@ class Sheet
     /**
      * @param $cell
      * @param $styleIdx
+     * @param $formula
      *
      * @return mixed
      */
-    protected function _cellValue($cell, &$styleIdx = null)
+    protected function _cellValue($cell, &$styleIdx = null, &$formula = null)
     {
         // Determine data type
         $dataType = (string)$cell->getAttribute('t');
-        $cellValue = null;
-        foreach($cell->childNodes as $node) {
-            if ($node->nodeName === 'v') {
-                $cellValue = $node->nodeValue;
-                break;
+        $cellValue = $styleIdx = $formula = null;
+        if ($cell->hasChildNodes()) {
+            foreach($cell->childNodes as $node) {
+                if ($node->nodeName === 'v') {
+                    $cellValue = $node->nodeValue;
+                    break;
+                }
             }
-        }
-        if ($cellValue === null) {
             foreach($cell->childNodes as $node) {
                 if ($node->nodeName === 'f') {
-                    $cellValue = $node->nodeValue;
-                    if ($cellValue && ($cellValue[0] !== '=')) {
-                        $cellValue = '=' . $cellValue;
+                    $formula = $node->nodeValue;
+                    if ($formula && ($formula[0] !== '=')) {
+                        $formula = '=' . $formula;
                     }
                     break;
                 }
+            }
+            if ($cellValue === null) {
+                $cellValue = $formula;
             }
         }
 
@@ -486,7 +490,7 @@ class Sheet
     {
         foreach ($this->nextRow($columnKeys, $resultMode, $styleIdxInclude) as $row => $rowData) {
             foreach ($rowData as $col => $val) {
-                if ($val !== null) {
+                if ((!is_array($val) && $val !== null) || isset($val['v'])) {
                     $needBreak = $callback($row, $col, $val);
                     if ($needBreak) {
                         return;
@@ -633,9 +637,9 @@ class Sheet
                                 if (is_array($columnKeys) && isset($columnKeys[$colLetter])) {
                                     $col = $columnKeys[$colLetter];
                                 }
-                                $value = $this->_cellValue($cell, $styleIdx);
+                                $value = $this->_cellValue($cell, $styleIdx, $formula);
                                 if ($styleIdxInclude) {
-                                    $rowData[$col] = ['v' => $value, 's' => $styleIdx];
+                                    $rowData[$col] = ['v' => $value, 's' => $styleIdx, 'f' => $formula];
                                 }
                                 else {
                                     $rowData[$col] = $value;

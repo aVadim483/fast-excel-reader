@@ -98,9 +98,10 @@ final class FastExcelReaderTest extends TestCase
         $file = self::DEMO_DIR . 'demo-01-base.xlsx';
         $excel = Excel::open($file);
 
-        $cells = $excel->sheet()->readCells();
+        $cells = $excel->sheet()->readCells(true);
         $this->assertEquals('A1', array_key_first($cells));
         $this->assertCount(4216, $cells);
+        $this->assertEquals(142408, $cells['H2']['v']);
 
         $cells = $excel->sheet()->setReadArea('c10')->readCells();
         $this->assertEquals('C10', array_key_first($cells));
