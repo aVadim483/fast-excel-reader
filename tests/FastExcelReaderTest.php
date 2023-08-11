@@ -10,7 +10,7 @@ final class FastExcelReaderTest extends TestCase
 {
     const DEMO_DIR = __DIR__ . '/../demo/files/';
 
-    public function testExcelReader()
+    public function testExcelReader00()
     {
         // =====================
         $file = self::DEMO_DIR . 'demo-00-test.xlsx';
@@ -93,7 +93,10 @@ final class FastExcelReaderTest extends TestCase
         $this->assertEquals('1900-02-14', $result['B2']);
         $this->assertEquals('2179-08-12', $result['B3']);
         $this->assertEquals('1753-01-31', $result['B4']);
+    }
 
+    public function testExcelReader01()
+    {
         // =====================
         $file = self::DEMO_DIR . 'demo-01-base.xlsx';
         $excel = Excel::open($file);
@@ -111,7 +114,10 @@ final class FastExcelReaderTest extends TestCase
         $this->assertEquals('D10', array_key_first($cells));
         $this->assertCount(18, $cells);
 
-        // =====================
+    }
+
+    public function testExcelReader02()
+    {
         $file = self::DEMO_DIR . 'demo-02-advanced.xlsx';
         $excel = Excel::open($file);
 
@@ -169,9 +175,11 @@ final class FastExcelReaderTest extends TestCase
         $this->assertEquals('Name', $result['B4']);
 
         $this->expectException(\avadim\FastExcelReader\Exception::class);
-        $sheet = $excel->getSheet('Demo2')->setReadArea('Values');
+        $excel->getSheet('Demo2')->setReadArea('Values');
+    }
 
-        // =====================
+    public function testExcelReader03()
+    {
         $file = self::DEMO_DIR . 'demo-03-images.xlsx';
         $excel = Excel::open($file);
         $this->assertEquals(2, $excel->countImages());
@@ -182,6 +190,45 @@ final class FastExcelReaderTest extends TestCase
         $result = $excel->getImageList();
         $this->assertTrue(isset($result['Sheet1']['C2']));
         $this->assertEquals('image1.jpeg', $result['Sheet1']['C2']['file_name']);
+    }
+
+    public function testExcelReader04()
+    {
+        $file = self::DEMO_DIR . 'demo-04-styles.xlsx';
+        $excel = Excel::open($file);
+        $cells = $excel->readCellsWithStyles();
+        $this->assertEquals('#9FC63C', $cells['A1']['s']['fill']['fill-color']);
+        $this->assertEquals([
+            'border-left-style' => 'thick',
+            'border-right-style' => 'thin',
+            'border-top-style' => 'thick',
+            'border-bottom-style' => 'thin',
+            'border-diagonal-style' => null,
+            'border-left-color' => '#000000',
+            'border-right-color' => '#000000',
+            'border-top-color' => '#000000',
+            'border-bottom-color' => '#000000',
+        ], $cells['A6']['s']['border']);
+
+        $cells = $excel->readCellStyles(true);
+        $this->assertEquals([
+            'format-num-id' => 0,
+            'format-pattern' => 'General',
+            'font-size' => '10',
+            'font-name' => 'Arial',
+            'font-family' => '2',
+            'font-charset' => '1',
+            'fill-pattern' => 'solid',
+            'fill-color' => '#9FC63C',
+            'border-left-style' => null,
+            'border-right-style' => null,
+            'border-top-style' => null,
+            'border-bottom-style' => null,
+            'border-diagonal-style' => null,
+        ], $cells['A1']);
+        $this->assertEquals('thick', $cells['A6']['border-left-style']);
+        $this->assertEquals('thin', $cells['A6']['border-bottom-style']);
+        $this->assertEquals('#000000', $cells['A6']['border-top-color']);
     }
 }
 

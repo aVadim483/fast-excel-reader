@@ -479,6 +479,29 @@ class Sheet
     }
 
     /**
+     * Returns styles of cells as array
+     *
+     * @param bool|null $flat
+     *
+     * @return array
+     */
+    public function readCellStyles(?bool $flat = false): array
+    {
+        $cells = $this->readCells(true);
+        $result = [];
+        foreach ($cells as $cell => $cellData) {
+            if (isset($cellData['s'])) {
+                $result[$cell] = $this->excel->getCompleteStyleByIdx($cellData['s'], $flat);
+            }
+            else {
+                $result[$cell] = [];
+            }
+        }
+
+        return $result;
+    }
+
+    /**
      * Reads cell values and passes them to a callback function
      *
      * @param callback $callback Callback function($row, $col, $value)
@@ -490,7 +513,7 @@ class Sheet
     {
         foreach ($this->nextRow($columnKeys, $resultMode, $styleIdxInclude) as $row => $rowData) {
             foreach ($rowData as $col => $val) {
-                if ((!is_array($val) && $val !== null) || isset($val['v'])) {
+                if ((!is_array($val) && $val !== null) || isset($val['v']) || isset($val['f']) || isset($val['s'])) {
                     $needBreak = $callback($row, $col, $val);
                     if ($needBreak) {
                         return;

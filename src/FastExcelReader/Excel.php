@@ -211,7 +211,8 @@ class Excel
 
     protected function _loadStyleNumFmts($root, $tagName)
     {
-        static $standardNumFmt = [0 => "General",
+        static $standardNumFmt = [
+            0 => "General",
             1 => "0",
             2 => "0.00",
             3 => "#,##0",
@@ -241,6 +242,12 @@ class Excel
             49 => "@",
         ];
 
+        foreach ($standardNumFmt as $key => $val) {
+            $this->styles['_'][$tagName][$key] = [
+                'format-num-id' => $key,
+                'format-pattern' => $val,
+            ];
+        }
         foreach ($root->childNodes as $child) {
             $numFmtId = $child->getAttribute('numFmtId');
             $formatCode = $child->getAttribute('formatCode');
@@ -853,6 +860,18 @@ class Excel
     public function readCellsWithStyles(): array
     {
         return $this->sheets[$this->defaultSheetId]->readCellsWithStyles();
+    }
+
+    /**
+     * Returns the styles of all cells as array
+     *
+     * @param bool|null $flat
+     *
+     * @return array
+     */
+    public function readCellStyles(?bool $flat = false): array
+    {
+        return $this->sheets[$this->defaultSheetId]->readCellStyles($flat);
     }
 
     public function innerFileList(): array
