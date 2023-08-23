@@ -44,10 +44,11 @@ class Sheet
      * @param $cell
      * @param $styleIdx
      * @param $formula
+     * @param $dataType
      *
      * @return mixed
      */
-    protected function _cellValue($cell, &$styleIdx = null, &$formula = null)
+    protected function _cellValue($cell, &$styleIdx = null, &$formula = null, &$dataType = null)
     {
         // Determine data type
         $dataType = (string)$cell->getAttribute('t');
@@ -660,9 +661,9 @@ class Sheet
                                 if (is_array($columnKeys) && isset($columnKeys[$colLetter])) {
                                     $col = $columnKeys[$colLetter];
                                 }
-                                $value = $this->_cellValue($cell, $styleIdx, $formula);
+                                $value = $this->_cellValue($cell, $styleIdx, $formula, $dataType);
                                 if ($styleIdxInclude) {
-                                    $rowData[$col] = ['v' => $value, 's' => $styleIdx, 'f' => $formula];
+                                    $rowData[$col] = ['v' => $value, 's' => $styleIdx, 'f' => $formula, 't' => $dataType];
                                 }
                                 else {
                                     $rowData[$col] = $value;

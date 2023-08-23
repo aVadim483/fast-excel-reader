@@ -31,6 +31,17 @@ Also you can download package and include autoload file of the library:
 require 'path/to/fast-excel-writer/src/autoload.php';
 ```
 
+Jump to:
+* [Simple example](#simple-example)
+* [Read values row by row in loop](#read-values-row-by-row-in-loop)
+* [Keys in resulting arrays](#keys-in-resulting-arrays)
+* [Advanced example](#advanced-example)
+* [Date Formatter](#date-formatter)
+* [Images functions](#images-functions)
+* [Cell value types](#cell-value-types)
+* [How to get complete info about the cell style](#how-to-get-complete-info-about-the-cell-style)
+* [Some useful methods](#some-useful-methods)
+
 ## Usage
 
 You can find more examples in */demo* folder
@@ -312,6 +323,30 @@ function readCellCallback($row, $col, $val)
 }
 
 $excel->readCallback('readCellCallback');
+```
+
+### Date Formatter
+By default all datetime values returns as timestamp. But you can change this behavior 
+```php
+$excel = Excel::open($file);
+$cells = $excel->sheet()->readCells();
+echo $cells['C5']; // 18316800
+
+// set date format
+$excel->setDateFormat('Y-m-d');
+$cells = $excel->sheet()->readCells();
+echo $cells['C5']; // '1970-08-01'
+
+// set date formatter function
+$excel->dateFormatter(fn($value) => gmdate('m/d/Y', $value));
+$cells = $excel->sheet()->readCells();
+echo $cells['C5']; // '08/01/1970'
+
+// set date formatter function
+$excel->dateFormatter(fn($value) => (int)(new \DateTime())->setTimestamp($value)->format('z'));
+$cells = $excel->sheet()->readCells();
+echo $cells['C5']; // 212
+
 ```
 
 ### Images functions

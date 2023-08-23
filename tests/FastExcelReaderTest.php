@@ -230,5 +230,41 @@ final class FastExcelReaderTest extends TestCase
         $this->assertEquals('thin', $cells['A6']['border-bottom-style']);
         $this->assertEquals('#000000', $cells['A6']['border-top-color']);
     }
+
+    public function testDateFormatter()
+    {
+        // =====================
+        $file = self::DEMO_DIR . 'demo-02-advanced.xlsx';
+        $excel = Excel::open($file);
+
+        $cells = $excel->sheet()->readCells();
+        $this->assertEquals(18316800, $cells['C5']);
+        $this->assertEquals(-777600, $cells['C6']);
+        $this->assertEquals(-62121600, $cells['C7']);
+        $this->assertEquals(38707200, $cells['C8']);
+
+        $excel->setDateFormat('Y-m-d');
+        $cells = $excel->sheet()->readCells();
+        $this->assertEquals('1970-08-01', $cells['C5']);
+        $this->assertEquals('1969-12-23', $cells['C6']);
+        $this->assertEquals('1968-01-13', $cells['C7']);
+        $this->assertEquals('1971-03-25', $cells['C8']);
+
+        $excel->dateFormatter(fn($value) => gmdate('m/d/Y', $value));
+        $cells = $excel->sheet()->readCells();
+        $this->assertEquals('08/01/1970', $cells['C5']);
+        $this->assertEquals('12/23/1969', $cells['C6']);
+        $this->assertEquals('01/13/1968', $cells['C7']);
+        $this->assertEquals('03/25/1971', $cells['C8']);
+
+        $excel->dateFormatter(fn($value) => (new \DateTime())->setTimestamp($value)->format('z'));
+        $cells = $excel->sheet()->readCells();
+        $this->assertEquals('212', $cells['C5']);
+        $this->assertEquals('356', $cells['C6']);
+        $this->assertEquals('12', $cells['C7']);
+        $this->assertEquals('83', $cells['C8']);
+    }
+
+
 }
 

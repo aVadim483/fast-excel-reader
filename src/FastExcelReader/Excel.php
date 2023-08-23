@@ -43,6 +43,9 @@ class Excel
 
     protected ?string $dateFormat = null;
 
+    /** @var \Closure|callable|null  */
+    protected $dateFormatter = null;
+
     protected bool $date1904 = false;
     protected string $timezone;
 
@@ -61,6 +64,14 @@ class Excel
             $this->_prepare($file);
         }
         $this->timezone = date_default_timezone_get();
+
+        $this->dateFormatter = function($value, $format = null) {
+            if ($format || $this->dateFormat) {
+                return gmdate($format ?: $this->dateFormat, $value);
+            }
+
+            return $value;
+        };
     }
 
     /**
@@ -543,11 +554,15 @@ class Excel
 
     public function formatDate($value, $format = null)
     {
-        if ($format || $this->dateFormat) {
-            return gmdate($format ?: $this->dateFormat, $value);
-        }
+        return ($this->dateFormatter)($value, $format);
+    }
 
-        return $value;
+
+    public function dateFormatter($callback): Excel
+    {
+        $this->dateFormatter = $callback;
+
+        return $this;
     }
 
     /**
