@@ -311,7 +311,7 @@ function readCellCallback($row, $col, $val)
     return false;
 }
 
-$excel->readSheetCallback('readCellCallback');
+$excel->readCallback('readCellCallback');
 ```
 
 ### Images functions
