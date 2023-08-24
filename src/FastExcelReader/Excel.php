@@ -557,7 +557,13 @@ class Excel
         return ($this->dateFormatter)($value, $format);
     }
 
-
+    /**
+     * Sets custom date formatter
+     *
+     * @param $callback
+     *
+     * @return $this
+     */
     public function dateFormatter($callback): Excel
     {
         $this->dateFormatter = $callback;

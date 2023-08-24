@@ -265,6 +265,47 @@ final class FastExcelReaderTest extends TestCase
         $this->assertEquals('83', $cells['C8']);
     }
 
+    public function testFillRow()
+    {
+        // =====================
+        $file = self::DEMO_DIR . 'demo-02-advanced.xlsx';
+        $excel = Excel::open($file);
+        $sheet = $excel->sheet('Demo3');
+
+        $cells = $sheet->readCells();
+        $this->assertCount(14, $cells);
+
+        $sheet->setReadArea('a:f');
+        $cells = $sheet->readCells();
+        $this->assertCount(30, $cells);
+
+        $sheet->setReadArea('a5:d6');
+        $cells = $sheet->readCells();
+        $this->assertCount(8, $cells);
+
+        $excel = Excel::open($file);
+        $sheet = $excel->sheet('Demo3');
+        $rows = $sheet->readRows();
+        $this->assertEquals(['A' => 'aaa', 'B' => 'bbb', 'C' => 'ccc', 'D' => 'ddd'], $rows[2]);
+        $this->assertEquals(['A' => 6], $rows[6]);
+
+        $sheet->setReadArea('a:f');
+        $rows = $sheet->readRows(null, Excel::KEYS_ROW_ZERO_BASED);
+        $this->assertEquals(['A' => 'aaa', 'B' => 'bbb', 'C' => 'ccc', 'D' => 'ddd', 'E' => null, 'F' => null], $rows[0]);
+        $this->assertEquals(['A' => 6, 'B' => null, 'C' => null, 'D' => null, 'E' => null, 'F' => null], $rows[4]);
+
+        $excel = Excel::open($file);
+        $sheet = $excel->sheet('Demo3');
+        $row = $sheet->readFirstRow();
+        $this->assertEquals(['A' => 'aaa', 'B' => 'bbb', 'C' => 'ccc', 'D' => 'ddd'], $row);
+
+        $row = $sheet->readFirstRowCells();
+        $this->assertEquals(['A2' => 'aaa', 'B2' => 'bbb', 'C2' => 'ccc', 'D2' => 'ddd'], $row);
+
+        $excel = Excel::open($file);
+        $sheet = $excel->sheet('Demo3');
+        $this->assertEquals(['A', 2], [$sheet->firstCol(), $sheet->firstRow()]);
+    }
 
 }
 

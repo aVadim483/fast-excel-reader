@@ -505,6 +505,10 @@ But we do not recommend using these methods with large files
 * ```dimension()``` -- Returns dimension of default work area from sheet properties
 * ```countRows()``` -- Count rows from dimension
 * ```countColumns()``` -- Count columns from dimension
+* ```firstRow()``` -- The first row number
+* ```firstCol()``` -- The first column letter
+* ```readFirstRow()``` -- Returns values of cells of 1st row as array
+* ```readFirstRowWithStyles()``` -- Returns values and styles of cells of 1st row as array
 
 ## Do you want to support FastExcelReader?
 
