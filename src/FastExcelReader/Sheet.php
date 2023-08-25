@@ -37,6 +37,7 @@ class Sheet
             'row_max' => Excel::EXCEL_2007_MAX_ROW,
             'col_max' => Excel::EXCEL_2007_MAX_COL,
             'first_row_keys' => false,
+            'col_keys' => [],
         ];
     }
 
@@ -50,9 +51,11 @@ class Sheet
      */
     protected function _cellValue($cell, &$styleIdx = null, &$formula = null, &$dataType = null)
     {
-        // Determine data type
+        // Determine data type and style index
         $dataType = (string)$cell->getAttribute('t');
-        $cellValue = $styleIdx = $formula = null;
+        $styleIdx = (int)$cell->getAttribute('s');
+
+        $cellValue = $formula = null;
         if ($cell->hasChildNodes()) {
             foreach($cell->childNodes as $node) {
                 if ($node->nodeName === 'v') {
@@ -73,12 +76,14 @@ class Sheet
                 $cellValue = $formula;
             }
         }
+        elseif ($styleIdx) {
+            $cellValue = '';
+        }
 
         // Value is a shared string
         if ($dataType === 's' && is_numeric($cellValue) && null !== ($str = $this->excel->sharedString((int)$cellValue))) {
             $cellValue = $str;
         }
-        $styleIdx = (int)$cell->getAttribute('s');
         if ( $dataType === '' || $dataType === 'n'  || $dataType === 's' ) { // number or data as string
             if ($styleIdx > 0 && ($style = $this->excel->styleByIdx($styleIdx))) {
                 $format = $style['format'] ?? null;
@@ -119,7 +124,7 @@ class Sheet
                 }
                 else {
                     // Value is a string
-                    $value = (string) $cellValue;
+                    $value = (string)$cellValue;
 
                     // Check for numeric values
                     if (is_numeric($value)) {
