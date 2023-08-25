@@ -75,7 +75,7 @@ class Sheet
         }
 
         // Value is a shared string
-        if ($dataType === 's' && is_numeric($cellValue) && ($str = $this->excel->sharedString((int)$cellValue))) {
+        if ($dataType === 's' && is_numeric($cellValue) && null !== ($str = $this->excel->sharedString((int)$cellValue))) {
             $cellValue = $str;
         }
         $styleIdx = (int)$cell->getAttribute('s');
