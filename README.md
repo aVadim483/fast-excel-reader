@@ -352,34 +352,34 @@ echo $cells['C5']; // 212
 ### Images functions
 ```php
 // Returns count images on all sheets
-$excel->countImages()
+$excel->countImages();
 
 // Returns count images on sheet
-$sheet->countImages()
+$sheet->countImages();
 
 // Returns image list of sheet
-$sheet->getImageList()
+$sheet->getImageList();
 
 // Returns image list of specified row
-$sheet->getImageListByRow($rowNumber)
+$sheet->getImageListByRow($rowNumber);
 
 // Returns TRUE if the specified cell has an image
-$sheet->hasImage($cellAddress)
+$sheet->hasImage($cellAddress);
 
 // Returns mime type of image in the specified cell (or NULL)
-$sheet->getImageMimeType($cellAddress)
+$sheet->getImageMimeType($cellAddress);
 
 // Returns inner name of image in the specified cell (or NULL)
-$sheet->getImageName($cellAddress)
+$sheet->getImageName($cellAddress);
 
 // Returns an image from the cell as a blob (if exists) or NULL
-$sheet->getImageBlob($cellAddress)
+$sheet->getImageBlob($cellAddress);
 
 // Writes an image from the cell to the specified filename
-$sheet->saveImage($cellAddress, $fullFilenamePath)
+$sheet->saveImage($cellAddress, $fullFilenamePath);
 
 // Writes an image from the cell to the specified directory
-$sheet->saveImageTo($cellAddress, $fullDirectoryPath)
+$sheet->saveImageTo($cellAddress, $fullDirectoryPath);
 ```
 
 ## Cell value types

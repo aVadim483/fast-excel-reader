@@ -823,19 +823,29 @@ class Sheet
             'rel' => dirname($xmlName) . '/_rels/' . basename($xmlName) . '.rels',
         ];
         $contents = file_get_contents('zip://' . $this->zipFilename . '#' . $xmlName);
+        $typeAnchors = [];
+        if (preg_match_all('#<xdr:oneCellAnchor[^>]*>(.*)</xdr:oneCellAnchor#siU', $contents, $anchors)) {
+            $typeAnchors['one'] = $anchors[1];
+        }
         if (preg_match_all('#<xdr:twoCellAnchor[^>]*>(.*)</xdr:twoCellAnchor#siU', $contents, $anchors)) {
-            foreach ($anchors[1] as $twoCellAnchor) {
+            $typeAnchors['two'] = $anchors[1];
+        }
+        if (preg_match_all('#<xdr:absoluteAnchor>[^>]*>(.*)</xdr:absoluteAnchor>#siU', $contents, $anchors)) {
+            $typeAnchors['abs'] = $anchors[1];
+        }
+        foreach ($typeAnchors as $type => $anchors) {
+            foreach ($anchors as $anchorStr) {
                 $drawing = [];
-                if (preg_match('#<xdr:pic>(.*)</xdr:pic>#siU', $twoCellAnchor, $pic)) {
-                    if (preg_match('#<a:blip\s(.*)r:embed="(.+)"#siU', $twoCellAnchor, $m)) {
+                if (preg_match('#<xdr:pic>(.*)</xdr:pic>#siU', $anchorStr, $pic)) {
+                    if (preg_match('#<a:blip\s(.*)r:embed="(.+)"#siU', $anchorStr, $m)) {
                         $drawing['rId'] = $m[2];
                     }
-                    if ($drawing && preg_match('#<xdr:cNvPr(.*)\sname="(.*)">#siU', $pic[1], $m)) {
+                    if ($drawing && preg_match('#<xdr:cNvPr(.*)\sname="([^"]*)"/?>#siU', $pic[1], $m)) {
                         $drawing['name'] = $m[2];
                     }
                 }
                 if ($drawing) {
-                    if (preg_match('#<xdr:from[^>]*>(.*)</xdr:from#siU', $twoCellAnchor, $m)) {
+                    if (preg_match('#<xdr:from[^>]*>(.*)</xdr:from#siU', $anchorStr, $m)) {
                         if (preg_match('#<xdr:col>(.*)</xdr:col#siU', $m[1], $m1)) {
                             $drawing['colIdx'] = (int)$m1[1];
                             $drawing['col'] = Excel::colLetter($drawing['colIdx'] + 1);
