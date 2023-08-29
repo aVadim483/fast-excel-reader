@@ -835,29 +835,29 @@ class Sheet
         }
         foreach ($typeAnchors as $type => $anchors) {
             foreach ($anchors as $anchorStr) {
-                $drawing = [];
+                $picture = [];
                 if (preg_match('#<xdr:pic>(.*)</xdr:pic>#siU', $anchorStr, $pic)) {
-                    if (preg_match('#<a:blip\s(.*)r:embed="(.+)"#siU', $anchorStr, $m)) {
-                        $drawing['rId'] = $m[2];
+                    if (preg_match('#<a:blip\s(.*)r:embed="(.+)"#siU', $pic[1], $m)) {
+                        $picture['rId'] = $m[2];
                     }
-                    if ($drawing && preg_match('#<xdr:cNvPr(.*)\sname="([^"]*)"/?>#siU', $pic[1], $m)) {
-                        $drawing['name'] = $m[2];
+                    if ($picture && preg_match('#<xdr:cNvPr(.*)\sname="([^"]*)"/?>#siU', $pic[1], $m)) {
+                        $picture['name'] = $m[2];
                     }
                 }
-                if ($drawing) {
+                if ($picture) {
                     if (preg_match('#<xdr:from[^>]*>(.*)</xdr:from#siU', $anchorStr, $m)) {
                         if (preg_match('#<xdr:col>(.*)</xdr:col#siU', $m[1], $m1)) {
-                            $drawing['colIdx'] = (int)$m1[1];
-                            $drawing['col'] = Excel::colLetter($drawing['colIdx'] + 1);
+                            $picture['colIdx'] = (int)$m1[1];
+                            $picture['col'] = Excel::colLetter($picture['colIdx'] + 1);
                         }
                         if (preg_match('#<xdr:row>(.*)</xdr:row#siU', $m[1], $m1)) {
-                            $drawing['rowIdx'] = (int)$m1[1];
-                            $drawing['row'] = (string)($drawing['rowIdx'] + 1);
+                            $picture['rowIdx'] = (int)$m1[1];
+                            $picture['row'] = (string)($picture['rowIdx'] + 1);
                         }
                     }
-                    $drawings['media'][$drawing['rId']] = $drawing;
-                    if (isset($drawing['col'], $drawing['row'])) {
-                        $drawing['cell'] = $drawing['col'] . $drawing['row'];
+                    if (isset($picture['col'], $picture['row'])) {
+                        $picture['cell'] = $picture['col'] . $picture['row'];
+                        $drawings['media'][$picture['rId']] = $picture;
                     }
                 }
             }
