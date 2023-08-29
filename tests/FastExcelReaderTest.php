@@ -305,6 +305,25 @@ final class FastExcelReaderTest extends TestCase
         $excel = Excel::open($file);
         $sheet = $excel->sheet('Demo3');
         $this->assertEquals(['A', 2], [$sheet->firstCol(), $sheet->firstRow()]);
+
+        $file = self::DEMO_DIR . 'demo-00-test.xlsx';
+        $excel = Excel::open($file);
+        $sheet = $excel->sheet();
+        $sheet->setReadArea('a:d');
+        $rows = $sheet->readRows();
+        $this->assertEquals(['A' => 'name', 'B' => 'birthday', 'C' => 'random_int', 'D' => null], $rows[1]);
+
+        $excel = Excel::open($file);
+        $sheet = $excel->sheet();
+        $rows = $sheet->readRows(Excel::KEYS_FIRST_ROW);
+        $this->assertEquals(['name' => 'James Bond', 'birthday' => -2205187200, 'random_int' => 4573], $rows[2]);
+
+        $rows = [];
+        foreach ($sheet->nextRow([], Excel::KEYS_FIRST_ROW) as $n => $rowData) {
+            $rows[$n] = $rowData;
+        }
+        $this->assertEquals(['name' => 'James Bond', 'birthday' => -2205187200, 'random_int' => 4573], $rows[2]);
+
     }
 
 }

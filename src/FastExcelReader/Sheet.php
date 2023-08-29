@@ -361,6 +361,10 @@ class Sheet
     public function readRows($columnKeys = [], int $resultMode = null, ?bool $styleIdxInclude = null): array
     {
         $data = [];
+        if (is_int($columnKeys) && !is_int($resultMode)) {
+            $resultMode = $columnKeys;
+            $columnKeys = [];
+        }
         $this->readCallback(static function($row, $col, $val) use (&$columnKeys, &$data) {
             if (isset($columnKeys[$col])) {
                 $data[$row][$columnKeys[$col]] = $val;
@@ -659,6 +663,10 @@ class Sheet
             $this->dimension();
         }
 
+        if (!$columnKeys && is_int($resultMode) && ($resultMode & Excel::KEYS_FIRST_ROW)) {
+            $firstRowValues = $this->readFirstRow();
+            $columnKeys = array_keys($firstRowValues);
+        }
         $readArea = $this->area;
         $rowTemplate = $readArea['col_keys'];
         if (!empty($columnKeys) && is_array($columnKeys)) {
