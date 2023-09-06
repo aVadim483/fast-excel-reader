@@ -331,30 +331,30 @@ By default, all datetime values returns as timestamp. But you can change this be
 ![demo date](demo/files/demo2.jpg)
 ```php
 $excel = Excel::open($file);
-$sheet = $excel->sheet();
+$sheet = $excel->sheet()->setReadArea('B5:D7');
 $cells = $sheet->readCells();
-echo $cells['B2']; // -2205187200
+echo $cells['C5']; // -2205187200
 
 // If argument TRUE is passed, then all dates will be formatted as specified in cell styles
 // IMPORTANT! The datetime format depends on the locale
 $excel->dateFormatter(true);
 $cells = $sheet->readCells();
-echo $cells['B2']; // '14.02.1900'
+echo $cells['C5']; // '14.02.1900'
 
 // You can specify date format pattern
 $excel->dateFormatter('Y-m-d');
 $cells = $sheet->readCells();
-echo $cells['B2']; // '1900-02-14'
+echo $cells['C5']; // '1900-02-14'
 
 // set date formatter function
 $excel->dateFormatter(fn($value) => gmdate('m/d/Y', $value));
 $cells = $sheet->readCells();
-echo $cells['B2']; // '02/14/1900'
+echo $cells['C5']; // '02/14/1900'
 
 // returns DateTime instance
 $excel->dateFormatter(fn($value) => (new \DateTime())->setTimestamp($value));
 $cells = $sheet->readCells();
-echo get_class($cells['B2']); // 'DateTime'
+echo get_class($cells['C5']); // 'DateTime'
 
 ```
 
