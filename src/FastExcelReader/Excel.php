@@ -224,9 +224,8 @@ class Excel
      */
     protected function _isDatePattern(string $pattern): bool
     {
-        [$format, $ext] = explode(';', $pattern);
 
-        return (bool)preg_match('/yy|mm|dd|h|MM|ss/', $format);
+        return (bool)preg_match('/yy|mm|dd|h|MM|ss(;.+)?/', $pattern);
     }
 
     protected function _loadStyleNumFmts($root, $tagName)
