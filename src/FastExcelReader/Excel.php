@@ -64,12 +64,10 @@ class Excel
             $this->_prepare($file);
         }
         $this->timezone = date_default_timezone_get();
-
-        $this->dateFormatter = function($value, $format = null) {
+        $this->dateFormatter = function ($value, $format = null) {
             if ($format || $this->dateFormat) {
                 return gmdate($format ?: $this->dateFormat, $value);
             }
-
             return $value;
         };
     }
@@ -200,8 +198,7 @@ class Excel
                 elseif ($this->xmlReader->name === 'xf') {
                     $numFmtId = (int)$this->xmlReader->getAttribute('numFmtId');
                     if (isset($numFmts[$numFmtId])) {
-                        $format = $numFmts[$numFmtId];
-                        if (strpos($format, 'M') !== false || strpos($format, 'm') !== false) {
+                        if ($this->_isDatePattern($numFmts[$numFmtId])) {
                             $this->styles[$styleType][] = ['format' => $numFmts[$numFmtId], 'formatType' => 'd'];
                         }
                         else {
@@ -220,54 +217,77 @@ class Excel
         $this->xmlReader->close();
     }
 
+    /**
+     * @param string $pattern
+     *
+     * @return bool
+     */
+    protected function _isDatePattern(string $pattern): bool
+    {
+        [$format, $ext] = explode(';', $pattern);
+
+        return (bool)preg_match('/yy|mm|dd|h|MM|ss/', $format);
+    }
+
     protected function _loadStyleNumFmts($root, $tagName)
     {
         static $standardNumFmt = [
-            0 => "General",
-            1 => "0",
-            2 => "0.00",
-            3 => "#,##0",
-            4 => "#,##0.00",
-            9 => "0%",
-            10 => "0.00%",
-            11 => "0.00E+00",
-            12 => "# ?/?",
-            13 => "# ??/??",
-            14 => "mm-dd-yy",
-            15 => "d-mmm-yy",
-            16 => "d-mmm",
-            17 => "mmm-yy",
-            18 => "h:mm AM/PM",
-            19 => "h:mm:ss AM/PM",
-            20 => "h:mm",
-            21 => "h:mm:ss",
-            22 => "m/d/yy h:mm",
-            37 => "#,##0 ;(#,##0)",
-            38 => "#,##0 ;[Red](#,##0)",
-            39 => "#,##0.00;(#,##0.00)",
-            40 => "#,##0.00;[Red](#,##0.00)",
-            45 => "mm:ss",
-            46 => "[h]:mm:ss",
-            47 => "mmss.0",
-            48 => "##0.0E+0",
-            49 => "@",
+            0 => ['pattern' => 'General', 'category' => 'general'],
+            1 => ['pattern' => '0', 'category' => 'number'],
+            2 => ['pattern' => '0.00', 'category' => 'number'],
+            3 => ['pattern' => '#,##0', 'category' => 'number'],
+            4 => ['pattern' => '#,##0.00', 'category' => 'number'],
+            9 => ['pattern' => '0%', 'category' => 'number'],
+            10 => ['pattern' => '0.00%', 'category' => 'number'],
+            11 => ['pattern' => '0.00E+00', 'category' => 'number'],
+            12 => ['pattern' => '# ?/?', 'category' => 'general'],
+            13 => ['pattern' => '# ??/??', 'category' => 'general'],
+            14 => ['pattern' => 'mm-dd-yy', 'category' => 'date'],
+            15 => ['pattern' => 'd-mmm-yy', 'category' => 'date'],
+            16 => ['pattern' => 'd-mmm', 'category' => 'date'],
+            17 => ['pattern' => 'mmm-yy', 'category' => 'date'],
+            18 => ['pattern' => 'h:mm AM/PM', 'category' => 'date'],
+            19 => ['pattern' => 'h:mm:ss AM/PM', 'category' => 'date'],
+            20 => ['pattern' => 'h:mm', 'category' => 'date'],
+            21 => ['pattern' => 'h:mm:ss', 'category' => 'date'],
+            22 => ['pattern' => 'm/d/yy h:mm', 'category' => 'date'],
+            37 => ['pattern' => '#,##0 ;(#,##0)', 'category' => 'number'],
+            38 => ['pattern' => '#,##0 ;[Red](#,##0)', 'category' => 'number'],
+            39 => ['pattern' => '#,##0.00;(#,##0.00)', 'category' => 'number'],
+            40 => ['pattern' => '#,##0.00;[Red](#,##0.00)', 'category' => 'number'],
+            45 => ['pattern' => 'mm:ss', 'category' => 'date'],
+            46 => ['pattern' => '[h]:mm:ss', 'category' => 'date'],
+            47 => ['pattern' => 'mmss.0', 'category' => 'date'],
+            48 => ['pattern' => '##0.0E+0', 'category' => 'number'],
+            49 => ['pattern' => '@', 'category' => 'string'],
         ];
 
+        if (class_exists('IntlDateFormatter', false)) {
+            $formatter = new \IntlDateFormatter('ru_RU', \IntlDateFormatter::SHORT, \IntlDateFormatter::SHORT);
+            [$d, $t] = array_map('trim', explode(',', $formatter->getPattern()));
+            if (preg_match('/^[dMy.\/\-]+$/', $d)) {
+                $standardNumFmt[14]['pattern'] = preg_replace(['/MM/', '/^M([^M])/', '/([^M])M$/', '/^y([^y])/', '/([^y])y$/'], ['mm', 'm$1', '$1m', 'yyyy$1', '$1yyyy'], $d);
+            }
+        }
         foreach ($standardNumFmt as $key => $val) {
             $this->styles['_'][$tagName][$key] = [
                 'format-num-id' => $key,
-                'format-pattern' => $val,
+                'format-pattern' => $val['pattern'],
+                'format-category' => $val['category'],
             ];
         }
-        foreach ($root->childNodes as $child) {
-            $numFmtId = $child->getAttribute('numFmtId');
-            $formatCode = $child->getAttribute('formatCode');
-            if ($numFmtId !== '' && $formatCode !== '') {
-                $node = [
-                    'format-num-id' => (int)$numFmtId,
-                    'format-pattern' => $formatCode,
-                ];
-                $this->styles['_'][$tagName][$node['format-num-id']] = $node;
+        if ($root) {
+            foreach ($root->childNodes as $child) {
+                $numFmtId = $child->getAttribute('numFmtId');
+                $formatCode = $child->getAttribute('formatCode');
+                if ($numFmtId !== '' && $formatCode !== '') {
+                    $node = [
+                        'format-num-id' => (int)$numFmtId,
+                        'format-pattern' => $formatCode,
+                        'format-category' => $this->_isDatePattern($formatCode) ? 'date' : '',
+                    ];
+                    $this->styles['_'][$tagName][$node['format-num-id']] = $node;
+                }
             }
         }
     }
@@ -409,6 +429,9 @@ class Excel
                         //
                 }
             }
+        }
+        if (empty($this->styles['_']['numFmts'])) {
+            $this->_loadStyleNumFmts(null, 'numFmts');
         }
         $this->xmlReader->close();
     }
@@ -552,21 +575,56 @@ class Excel
         return $this->dateFormat;
     }
 
-    public function formatDate($value, $format = null)
+    /**
+     * @param $value
+     * @param $format
+     *
+     * @return false|mixed|string
+     */
+    public function formatDate($value, $format = null, $styleIdx = null)
     {
-        return ($this->dateFormatter)($value, $format);
+        if ($this->dateFormatter) {
+            return ($this->dateFormatter)($value, $format, $styleIdx);
+        }
+
+        return $value;
     }
 
     /**
      * Sets custom date formatter
      *
-     * @param $callback
+     * @param \Closure|callable|string|bool $formatter
      *
      * @return $this
      */
-    public function dateFormatter($callback): Excel
+    public function dateFormatter($formatter): Excel
     {
-        $this->dateFormatter = $callback;
+        if ($formatter === false) {
+            $this->dateFormatter = null;
+        }
+        elseif ($formatter === true) {
+            $this->dateFormatter = function ($value, $format = null, $styleIdx = null) {
+                if ($styleIdx !== null && $pattern = $this->getDateFormatPattern($styleIdx)) {
+                    return gmdate($pattern, $value);
+                }
+                elseif ($format || $this->dateFormat) {
+                    return gmdate($format ?: $this->dateFormat, $value);
+                }
+                return $value;
+            };
+        }
+        elseif (is_string($formatter)) {
+            $this->dateFormat = $formatter;
+            $this->dateFormatter = function ($value, $format = null) {
+                if ($format || $this->dateFormat) {
+                    return gmdate($format ?: $this->dateFormat, $value);
+                }
+                return $value;
+            };
+        }
+        else {
+            $this->dateFormatter = $formatter;
+        }
 
         return $this;
     }
@@ -1052,6 +1110,91 @@ class Excel
         }
 
         return $result;
+    }
+
+    /**
+     * @param int $styleIdx
+     *
+     * @return mixed|string
+     */
+    public function getFormatPattern(int $styleIdx)
+    {
+        $style = $this->getCompleteStyleByIdx($styleIdx);
+
+        return $style['format']['format-pattern'] ?? '';
+    }
+
+    public function _convertDateFormatPattern($pattern)
+    {
+        static $patterns = [];
+
+        if (isset($patterns[$pattern])) {
+            return $patterns[$pattern];
+        }
+
+        if ($this->_isDatePattern($pattern) && preg_match('/^(\[.+])?([^;]+)(;.*)?/', $pattern, $m)) {
+            if (strpos($m[2], 'AM/PM')) {
+                $am = true;
+                $pattern = str_replace('AM/PM', 'A', $m[2]);
+            }
+            elseif (strpos($m[1], 'am/pm')) {
+                $am = true;
+                $pattern = str_replace('am/pm', 'a', $m[2]);
+            }
+            else {
+                $am = false;
+                $pattern = $m[2];
+            }
+            $pattern = str_replace(['\\ ', '\\-', '\\/'], [' ', '-', '/'], $pattern);
+            $pattern = preg_replace(['/^mm(\W)s/', '/h(\W)mm$/', '/h(\W)mm([^m])/', '/([^m])mm(\W)s/'], ['i$1s', 'h$1i', 'h$1i$2', '$1i$1s'], $pattern);
+            if ($am) {
+                $pattern = str_replace(['hh', 'h'], ['h', 'g'], $pattern);
+            }
+            else {
+                $pattern = str_replace(['hh', 'h'], ['H', 'G'], $pattern);
+            }
+            if (strpos($pattern, 'dd') !== false) {
+                $pattern = str_replace('dd', 'd', $pattern);
+            }
+            else {
+                $pattern = str_replace('d', 'j', $pattern);
+            }
+            if (strpos($pattern, 'mm') !== false) {
+                $pattern = str_replace('mm', 'm', $pattern);
+            }
+            else {
+                $pattern = str_replace('m', 'n', $pattern);
+            }
+            $convert = [
+                'ss' => 's',
+                'dddd' => 'l',
+                'ddd' => 'D',
+                'mmmm' => 'F',
+                'mmm' => 'M',
+                'yyyy' => 'Y',
+                'yy' => 'y',
+            ];
+            $patterns[$pattern] = str_replace(array_keys($convert), array_values($convert), $pattern);
+
+            return $patterns[$pattern];
+        }
+
+        return null;
+    }
+
+    /**
+     * @param int $styleIdx
+     *
+     * @return string|null
+     */
+    public function getDateFormatPattern(int $styleIdx): ?string
+    {
+        $pattern = $this->getFormatPattern($styleIdx);
+        if ($pattern) {
+            return $this->_convertDateFormatPattern($pattern);
+        }
+
+        return null;
     }
 }
 

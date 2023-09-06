@@ -81,12 +81,13 @@ class Sheet
         }
 
         // Value is a shared string
-        if ($dataType === 's' && is_numeric($cellValue) && null !== ($str = $this->excel->sharedString((int)$cellValue))) {
-            $cellValue = $str;
+        if ($dataType === 's') {
+            if (is_numeric($cellValue) && null !== ($str = $this->excel->sharedString((int)$cellValue))) {
+                $cellValue = $str;
+            }
         }
-        if ( $dataType === '' || $dataType === 'n'  || $dataType === 's' ) { // number or data as string
+        if ($cellValue && ($dataType === '' || $dataType === 'n'  || $dataType === 's')) { // number or date as string
             if ($styleIdx > 0 && ($style = $this->excel->styleByIdx($styleIdx))) {
-                $format = $style['format'] ?? null;
                 if (isset($style['formatType'])) {
                     $dataType = $style['formatType'];
                 }
@@ -99,26 +100,37 @@ class Sheet
             case 'b':
                 // Value is boolean
                 $value = (bool)$cellValue;
+                $dataType = 'bool';
                 break;
 
             case 'inlineStr':
                 // Value is rich text inline
                 $value = $cell->textContent;
+                $dataType = 'string';
                 break;
 
             case 'e':
                 // Value is an error message
                 $value = (string)$cellValue;
+                $dataType = 'error';
                 break;
 
             case 'd':
+            case 'date':
                 // Value is a date and non-empty
                 if (!empty($cellValue)) {
-                    $value = $this->excel->formatDate($this->excel->timestamp($cellValue));
+                    $value = $this->excel->formatDate($this->excel->timestamp($cellValue), null, $styleIdx);
                 }
+                $dataType = 'date';
                 break;
 
             default:
+                if ($dataType === 'n') {
+                    $dataType = 'number';
+                }
+                elseif ($dataType === 's') {
+                    $dataType = 'string';
+                }
                 if ($cellValue === null) {
                     $value = null;
                 }
@@ -596,16 +608,24 @@ class Sheet
      * Returns styles of cells as array
      *
      * @param bool|null $flat
+     * @param string|null $part
      *
      * @return array
      */
-    public function readCellStyles(?bool $flat = false): array
+    public function readCellStyles(?bool $flat = false, ?string $part = null): array
     {
         $cells = $this->readCells(true);
         $result = [];
+        if ($part) {
+            $flat = false;
+        }
         foreach ($cells as $cell => $cellData) {
             if (isset($cellData['s'])) {
-                $result[$cell] = $this->excel->getCompleteStyleByIdx($cellData['s'], $flat);
+                $style = $this->excel->getCompleteStyleByIdx($cellData['s'], $flat);
+                if ($cellData['t'] === 'date') {
+                    //$style['format']['format-category'] = 'date';
+                }
+                $result[$cell] = $part ? ($style[$part] ?? []) : $style;
             }
             else {
                 $result[$cell] = [];
@@ -724,7 +744,6 @@ class Sheet
                         $row = $rowNum - $rowOffset;
                         yield $row => $rowData;
                     }
-                    $rowData = $rowTemplate;
                     continue;
                 }
 
@@ -738,6 +757,7 @@ class Sheet
                         if ($rowNum < $readArea['row_min']) {
                             continue;
                         }
+                        $rowData = $rowTemplate;
 
                         $rowCnt += 1;
                         if ($rowOffset === null) {

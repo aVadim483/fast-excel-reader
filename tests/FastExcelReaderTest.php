@@ -214,6 +214,7 @@ final class FastExcelReaderTest extends TestCase
         $this->assertEquals([
             'format-num-id' => 0,
             'format-pattern' => 'General',
+            'format-category' => 'general',
             'font-size' => '10',
             'font-name' => 'Arial',
             'font-family' => '2',
@@ -263,6 +264,25 @@ final class FastExcelReaderTest extends TestCase
         $this->assertEquals('356', $cells['C6']);
         $this->assertEquals('12', $cells['C7']);
         $this->assertEquals('83', $cells['C8']);
+
+        $file = self::DEMO_DIR . 'demo-05-datetime.xlsx';
+        $excel = Excel::open($file);
+
+        $sheet = $excel->sheet()->setReadArea('B2:B2');
+        $cells = $sheet->readCells();
+        $this->assertEquals(441696063, $cells['B2']);
+
+        $excel->dateFormatter(true);
+        $cells = $sheet->readCells();
+        $this->assertEquals('1983-12-31 05:21:03', $cells['B2']);
+
+        $excel->dateFormatter('Y-m-d');
+        $cells = $sheet->readCells();
+        $this->assertEquals('1983-12-31', $cells['B2']);
+
+        $excel->dateFormatter(fn($v) => gmdate('d/m/y', $v));
+        $cells = $sheet->readCells();
+        $this->assertEquals('31/12/83', $cells['B2']);
     }
 
     public function testFillRow()
@@ -323,7 +343,6 @@ final class FastExcelReaderTest extends TestCase
             $rows[$n] = $rowData;
         }
         $this->assertEquals(['name' => 'James Bond', 'birthday' => -2205187200, 'random_int' => 4573], $rows[2]);
-
     }
 
 }

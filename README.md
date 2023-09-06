@@ -326,26 +326,35 @@ $excel->readCallback('readCellCallback');
 ```
 
 ### Date Formatter
-By default all datetime values returns as timestamp. But you can change this behavior 
+By default, all datetime values returns as timestamp. But you can change this behavior using ```dateFormatter()```
+
+![demo date](demo/files/demo2.jpg)
 ```php
 $excel = Excel::open($file);
-$cells = $excel->sheet()->readCells();
-echo $cells['C5']; // 18316800
+$sheet = $excel->sheet();
+$cells = $sheet->readCells();
+echo $cells['B2']; // -2205187200
 
-// set date format
-$excel->setDateFormat('Y-m-d');
-$cells = $excel->sheet()->readCells();
-echo $cells['C5']; // '1970-08-01'
+// If argument TRUE is passed, then all dates will be formatted as specified in cell styles
+// IMPORTANT! The datetime format depends on the locale
+$excel->dateFormatter(true);
+$cells = $sheet->readCells();
+echo $cells['B2']; // '14.02.1900'
+
+// You can specify date format pattern
+$excel->dateFormatter('Y-m-d');
+$cells = $sheet->readCells();
+echo $cells['B2']; // '1900-02-14'
 
 // set date formatter function
 $excel->dateFormatter(fn($value) => gmdate('m/d/Y', $value));
-$cells = $excel->sheet()->readCells();
-echo $cells['C5']; // '08/01/1970'
+$cells = $sheet->readCells();
+echo $cells['B2']; // '02/14/1900'
 
-// set date formatter function
-$excel->dateFormatter(fn($value) => (int)(new \DateTime())->setTimestamp($value)->format('z'));
-$cells = $excel->sheet()->readCells();
-echo $cells['C5']; // 212
+// returns DateTime instance
+$excel->dateFormatter(fn($value) => (new \DateTime())->setTimestamp($value));
+$cells = $sheet->readCells();
+echo get_class($cells['B2']); // 'DateTime'
 
 ```
 
