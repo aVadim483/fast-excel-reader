@@ -356,6 +356,24 @@ $excel->dateFormatter(fn($value) => (new \DateTime())->setTimestamp($value));
 $cells = $sheet->readCells();
 echo get_class($cells['C5']); // 'DateTime'
 
+// custom manipulations with datetime values
+$excel->dateFormatter(function($value, $format, $styleIdx) use($excel) {
+    // get Excel format of the cell, e.g. '[$-F400]h:mm:ss\ AM/PM'
+    $excelFormat = $excel->getFormatPattern($styleIdx);
+
+    // get format converted for use in php functions date(), gmdate(), etc
+    // for example the Excel pattern above would be converted to 'g:i:s A'
+    $phpFormat = $excel->getDateFormatPattern($styleIdx);
+    
+    // and if you need you can get value of numFmtId for this cell
+    $style = $excel->getCompleteStyleByIdx($styleIdx, true);
+    $numFmtId = $style['format-num-id'];
+    
+    // do something and write to $result
+    $result = gmdate($phpFormat, $value);
+
+    return $result;
+});
 ```
 
 ### Images functions

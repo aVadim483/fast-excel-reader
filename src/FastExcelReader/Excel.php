@@ -197,16 +197,12 @@ class Excel
                 }
                 elseif ($this->xmlReader->name === 'xf') {
                     $numFmtId = (int)$this->xmlReader->getAttribute('numFmtId');
-                    if (isset($numFmts[$numFmtId])) {
-                        if ($this->_isDatePattern($numFmts[$numFmtId])) {
-                            $this->styles[$styleType][] = ['format' => $numFmts[$numFmtId], 'formatType' => 'd'];
-                        }
-                        else {
-                            $this->styles[$styleType][] = ['format' => $numFmts[$numFmtId]];
-                        }
+                    $formatCode = $numFmts[$numFmtId] ?? '';
+                    if ($this->_isDatePattern($numFmtId, $formatCode)) {
+                        $this->styles[$styleType][] = ['format' => $formatCode, 'formatType' => 'd'];
                     }
-                    elseif (($numFmtId >= 14 && $numFmtId <= 22) || ($numFmtId >= 45 && $numFmtId <= 47)) {
-                            $this->styles[$styleType][] = ['formatType' => 'd'];
+                    elseif ($formatCode) {
+                        $this->styles[$styleType][] = ['format' => $formatCode];
                     }
                     else {
                         $this->styles[$styleType][] = null;
@@ -218,16 +214,38 @@ class Excel
     }
 
     /**
+     * @param int|null $numFmtId
      * @param string $pattern
      *
      * @return bool
      */
-    protected function _isDatePattern(string $pattern): bool
+    protected function _isDatePattern(?int $numFmtId, string $pattern): bool
     {
+        if ($numFmtId && (
+            ($numFmtId >= 14 && $numFmtId <= 22)
+            || ($numFmtId >= 45 && $numFmtId <= 47)
+            || ($numFmtId >= 27 && $numFmtId <= 36)
+            || ($numFmtId >= 50 && $numFmtId <= 58)
+            || ($numFmtId >= 71 && $numFmtId <= 81)
+            )) {
+            return true;
+        }
+        if ($pattern) {
+            if (preg_match('/^\[\$-[0-9A-F]{3,4}].+/', $pattern)) {
+                return true;
+            }
+            return (bool)preg_match('/yy|mm|dd|h|MM|ss|[\/\.][dm](;.+)?/', $pattern);
+        }
 
-        return (bool)preg_match('/yy|mm|dd|h|MM|ss(;.+)?/', $pattern);
+        return false;
     }
 
+    /**
+     * @param $root
+     * @param $tagName
+     *
+     * @return void
+     */
     protected function _loadStyleNumFmts($root, $tagName)
     {
         static $standardNumFmt = [
@@ -283,7 +301,7 @@ class Excel
                     $node = [
                         'format-num-id' => (int)$numFmtId,
                         'format-pattern' => $formatCode,
-                        'format-category' => $this->_isDatePattern($formatCode) ? 'date' : '',
+                        'format-category' => $this->_isDatePattern($numFmtId, $formatCode) ? 'date' : '',
                     ];
                     $this->styles['_'][$tagName][$node['format-num-id']] = $node;
                 }
@@ -291,6 +309,12 @@ class Excel
         }
     }
 
+    /**
+     * @param $root
+     * @param $tagName
+     *
+     * @return void
+     */
     protected function _loadStyleFonts($root, $tagName)
     {
         foreach ($root->childNodes as $font) {
@@ -322,6 +346,12 @@ class Excel
         }
     }
 
+    /**
+     * @param $root
+     * @param $tagName
+     *
+     * @return void
+     */
     protected function _loadStyleFills($root, $tagName)
     {
         foreach ($root->childNodes as $fill) {
@@ -340,6 +370,12 @@ class Excel
         }
     }
 
+    /**
+     * @param $root
+     * @param $tagName
+     *
+     * @return void
+     */
     protected function _loadStyleBorders($root, $tagName)
     {
         foreach ($root->childNodes as $border) {
@@ -361,6 +397,12 @@ class Excel
         }
     }
 
+    /**
+     * @param $root
+     * @param $tagName
+     *
+     * @return void
+     */
     protected function _loadStyleCellXfs($root, $tagName)
     {
         $attributes = ['numFmtId', 'fontId', 'fillId', 'borderId', 'xfId'];
@@ -1131,7 +1173,7 @@ class Excel
             return $patterns[$pattern];
         }
 
-        if ($this->_isDatePattern($pattern) && preg_match('/^(\[.+])?([^;]+)(;.*)?/', $pattern, $m)) {
+        if ($this->_isDatePattern(null, $pattern) && preg_match('/^(\[.+])?([^;]+)(;.*)?/', $pattern, $m)) {
             if (strpos($m[2], 'AM/PM')) {
                 $am = true;
                 $pattern = str_replace('AM/PM', 'A', $m[2]);
