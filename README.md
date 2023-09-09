@@ -5,13 +5,22 @@
 
 # FastExcelReader
 
-This php-class can read Excel compatible spreadsheets in XLSX format (Office 2007+). 
+This library can read Excel compatible spreadsheets in XLSX format (Office 2007+). 
 It only reads data, but it does it very quickly and with minimal memory usage.
 
-If you want to read colors, formats and other properties you need use **PhpSpreadsheet**. 
-But if you only want data then your choice is **FastExcelReader**.
+## Introduction
 
-From version 2.0 you can extract images from XLSX files.
+This library is designed to be lightweight, super-fast and requires minimal memory usage.
+
+This library creates Excel compatible spreadsheets in XLSX format (Office 2007+).
+
+**Features**
+
+* Multiple worksheets
+* Supports autodetect currency/numeric/date types
+* Supports auto formatter and custom formatter of datetime values
+* The library can define and extract images from XLSX files
+* The library can read styling options of cells - formatting patterns, colors, borders, fonts, etc.
 
 By the way, **FastExcelWriter** also exists - https://github.com/aVadim483/fast-excel-writer
 
