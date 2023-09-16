@@ -10,13 +10,11 @@ It only reads data, but it does it very quickly and with minimal memory usage.
 
 ## Introduction
 
-This library is designed to be lightweight, super-fast and requires minimal memory usage.
-
-This library creates Excel compatible spreadsheets in XLSX format (Office 2007+).
+This library is designed to be lightweight, super-fast and requires minimal memory usage. 
 
 **Features**
 
-* Multiple worksheets
+* Supports XLSX format only (Office 2007+) with multiple worksheets
 * Supports autodetect currency/numeric/date types
 * Supports auto formatter and custom formatter of datetime values
 * The library can define and extract images from XLSX files
@@ -56,7 +54,7 @@ Jump to:
 You can find more examples in */demo* folder
 
 ### Simple example
-![demo file](demo/files/demo.jpg)
+![demo file](demo/files/img1.jpg)
 ```php
 use \avadim\FastExcelReader\Excel;
 
@@ -337,7 +335,7 @@ $excel->readCallback('readCellCallback');
 ### Date Formatter
 By default, all datetime values returns as timestamp. But you can change this behavior using ```dateFormatter()```
 
-![demo date](demo/files/demo2.jpg)
+![demo date](demo/files/img2.jpg)
 ```php
 $excel = Excel::open($file);
 $sheet = $excel->sheet()->setReadArea('B5:D7');

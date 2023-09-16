@@ -490,6 +490,35 @@ class Excel
     }
 
     /**
+     * @param string $file
+     * @param array|null $errors
+     *
+     * @return bool
+     */
+    public static function validate(string $file, ?array &$errors = []): bool
+    {
+        $result = true;
+        $xmlReader = new Reader($file, [\XMLReader::VALIDATE => true]);
+
+        $fileList = $xmlReader->fileList();
+        \libxml_use_internal_errors(true);
+        foreach ($fileList as $innerFile) {
+            $ext = pathinfo($innerFile, PATHINFO_EXTENSION);
+            if (in_array($ext, ['xml', 'rels', 'vml'])) {
+                $zipFile = 'zip://' . $file . '#' . $innerFile;
+                $dom = new \DOMDocument;
+                $dom->load($zipFile);
+                $errors = \libxml_get_errors();
+                if ($errors) {
+                    $result = false;
+                }
+            }
+        }
+
+        return $result;
+    }
+
+    /**
      * @param string $sheetName
      * @param $sheetId
      * @param $file

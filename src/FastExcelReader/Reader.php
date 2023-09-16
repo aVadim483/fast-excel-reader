@@ -13,9 +13,14 @@ class Reader extends \XMLReader
 
     protected ?string $innerFile = null;
 
-    public function __construct($file)
+    protected array $xmlParserProperties = [];
+
+    public function __construct($file, ?array $parserProperties = [])
     {
         $this->zipFile = $file;
+        if ($parserProperties) {
+            $this->xmlParserProperties = $parserProperties;
+        }
     }
 
     public function __destruct()
@@ -23,7 +28,7 @@ class Reader extends \XMLReader
         $this->close();
     }
 
-    public function fileList(): array
+    public function entryList(): array
     {
         $result = [];
 
@@ -77,6 +82,18 @@ class Reader extends \XMLReader
         return $result;
     }
 
+    public function fileList(): array
+    {
+        $result = [];
+        foreach ($this->entryList() as $entry) {
+            if (substr($entry, -1) !== '/') {
+                $result[] = $entry;
+            }
+        }
+
+        return $result;
+    }
+
     /**
      * @param string $innerFile
      * @param string|null $encoding
@@ -88,7 +105,12 @@ class Reader extends \XMLReader
     {
         $this->innerFile = $innerFile;
 
-        return $this->open('zip://' . $this->zipFile . '#' . $innerFile, $encoding, $options);
+        $result = $this->open('zip://' . $this->zipFile . '#' . $innerFile, $encoding, $options);
+        foreach ($this->xmlParserProperties as $property => $value) {
+            $this->setParserProperty($property, $value);
+        }
+
+        return $result;
     }
 
     /**
@@ -116,6 +138,14 @@ class Reader extends \XMLReader
             }
         }
         return false;
+    }
+
+    public function validate()
+    {
+        $this->setParserProperty(self::VALIDATE, true);
+        foreach ($this->fileList() as $file) {
+            echo $file, '<br>';
+        }
     }
 }
 
