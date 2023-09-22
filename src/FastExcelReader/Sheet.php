@@ -117,11 +117,19 @@ class Sheet
 
             case 'd':
             case 'date':
-                // Value is a date and non-empty
-                if (!empty($cellValue)) {
-                    $value = $this->excel->formatDate($this->excel->timestamp($cellValue), null, $styleIdx);
+                $timestamp = $this->excel->timestamp($cellValue);
+
+                if ($timestamp || empty($cellValue)) {
+                    // Value is a date and non-empty
+                    if (!empty($cellValue)) {
+                        $value = $this->excel->formatDate($timestamp, null, $styleIdx);
+                    }
+                    $dataType = 'date';
+                } else {
+                    // Value is not a date, load its original value
+                    $value = (string) $cellValue;
+                    $dataType = 'string';
                 }
-                $dataType = 'date';
                 break;
 
             default:
