@@ -86,7 +86,7 @@ class Sheet
                 $cellValue = $str;
             }
         }
-        if ($cellValue && ($dataType === '' || $dataType === 'n'  || $dataType === 's')) { // number or date as string
+        if (($cellValue !== null) && ($cellValue !== '') && ($dataType === '' || $dataType === 'n'  || $dataType === 's')) { // number or date as string
             if ($styleIdx > 0 && ($style = $this->excel->styleByIdx($styleIdx))) {
                 if (isset($style['formatType'])) {
                     $dataType = $style['formatType'];
@@ -117,17 +117,17 @@ class Sheet
 
             case 'd':
             case 'date':
-                $timestamp = $this->excel->timestamp($cellValue);
-
-                if ($timestamp || empty($cellValue)) {
-                    // Value is a date and non-empty
-                    if (!empty($cellValue)) {
-                        $value = $this->excel->formatDate($timestamp, null, $styleIdx);
-                    }
+                if (($cellValue === null) || ($cellValue === '')) {
                     $dataType = 'date';
-                } else {
+                }
+                elseif ($timestamp = $this->excel->timestamp($cellValue)) {
+                    // Value is a date and non-empty
+                    $value = $this->excel->formatDate($timestamp, null, $styleIdx);
+                    $dataType = 'date';
+                }
+                else {
                     // Value is not a date, load its original value
-                    $value = (string) $cellValue;
+                    $value = (string)$cellValue;
                     $dataType = 'string';
                 }
                 break;

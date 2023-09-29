@@ -49,6 +49,8 @@ class Excel
     protected bool $date1904 = false;
     protected string $timezone;
 
+    protected array $builtinFormats = [];
+
     protected array $names = [];
 
 
@@ -63,6 +65,56 @@ class Excel
             $this->file = $file;
             $this->_prepare($file);
         }
+        $this->builtinFormats = [
+            0 => ['pattern' => 'General', 'category' => 'general'],
+            1 => ['pattern' => '0', 'category' => 'number'],
+            2 => ['pattern' => '0.00', 'category' => 'number'],
+            3 => ['pattern' => '#,##0', 'category' => 'number'],
+            4 => ['pattern' => '#,##0.00', 'category' => 'number'],
+            9 => ['pattern' => '0%', 'category' => 'number'],
+            10 => ['pattern' => '0.00%', 'category' => 'number'],
+            11 => ['pattern' => '0.00E+00', 'category' => 'number'],
+            12 => ['pattern' => '# ?/?', 'category' => 'general'],
+            13 => ['pattern' => '# ??/??', 'category' => 'general'],
+            14 => ['pattern' => 'mm-dd-yy', 'category' => 'date'], // Short date
+            15 => ['pattern' => 'd-mmm-yy', 'category' => 'date'],
+            16 => ['pattern' => 'd-mmm', 'category' => 'date'],
+            17 => ['pattern' => 'mmm-yy', 'category' => 'date'],
+            18 => ['pattern' => 'h:mm AM/PM', 'category' => 'date'],
+            19 => ['pattern' => 'h:mm:ss AM/PM', 'category' => 'date'],
+            20 => ['pattern' => 'h:mm', 'category' => 'date'], // Short time
+            21 => ['pattern' => 'h:mm:ss', 'category' => 'date'], // Long time
+            22 => ['pattern' => 'm/d/yy h:mm', 'category' => 'date'], // Date-time
+            37 => ['pattern' => '#,##0 ;(#,##0)', 'category' => 'number'],
+            38 => ['pattern' => '#,##0 ;[Red](#,##0)', 'category' => 'number'],
+            39 => ['pattern' => '#,##0.00;(#,##0.00)', 'category' => 'number'],
+            40 => ['pattern' => '#,##0.00;[Red](#,##0.00)', 'category' => 'number'],
+            45 => ['pattern' => 'mm:ss', 'category' => 'date'],
+            46 => ['pattern' => '[h]:mm:ss', 'category' => 'date'],
+            47 => ['pattern' => 'mmss.0', 'category' => 'date'],
+            48 => ['pattern' => '##0.0E+0', 'category' => 'number'],
+            49 => ['pattern' => '@', 'category' => 'string'],
+        ];
+
+        if (class_exists('IntlDateFormatter')) {
+            $formatter = new \IntlDateFormatter(null, \IntlDateFormatter::SHORT, \IntlDateFormatter::NONE);
+            $this->builtinFormats[14]['pattern'] = str_replace('#', 'yy', str_replace(['M', 'y'], ['m', 'yyyy'], str_replace('yy', '#', $formatter->getPattern())));
+
+            $formatter = new \IntlDateFormatter(null, \IntlDateFormatter::NONE, \IntlDateFormatter::SHORT);
+            $this->builtinFormats[20]['pattern'] = str_replace('H', 'h', $formatter->getPattern());
+
+            $formatter = new \IntlDateFormatter(null, \IntlDateFormatter::NONE, \IntlDateFormatter::MEDIUM);
+            $this->builtinFormats[21]['pattern'] = str_replace('H', 'h', $formatter->getPattern());
+
+            $this->builtinFormats[22]['pattern'] = $this->builtinFormats[14]['pattern'] . ' ' . $this->builtinFormats[20]['pattern'];
+        }
+        else {
+            $t = mktime(3, 4, 5, 2, 1, 1999);
+
+            $this->builtinFormats[14]['pattern'] = str_replace(['1999', '99', '02', '2', '01', '1'], ['yyyy', 'yy', 'mm', 'm', 'dd', 'd'], strftime('%x', $t));
+            $this->builtinFormats[22]['pattern'] = $this->builtinFormats[14]['pattern'] . ' h:mm';
+        }
+
         $this->timezone = date_default_timezone_get();
         $this->dateFormatter = function ($value, $format = null) {
             if ($format || $this->dateFormat) {
@@ -248,45 +300,7 @@ class Excel
      */
     protected function _loadStyleNumFmts($root, $tagName)
     {
-        static $standardNumFmt = [
-            0 => ['pattern' => 'General', 'category' => 'general'],
-            1 => ['pattern' => '0', 'category' => 'number'],
-            2 => ['pattern' => '0.00', 'category' => 'number'],
-            3 => ['pattern' => '#,##0', 'category' => 'number'],
-            4 => ['pattern' => '#,##0.00', 'category' => 'number'],
-            9 => ['pattern' => '0%', 'category' => 'number'],
-            10 => ['pattern' => '0.00%', 'category' => 'number'],
-            11 => ['pattern' => '0.00E+00', 'category' => 'number'],
-            12 => ['pattern' => '# ?/?', 'category' => 'general'],
-            13 => ['pattern' => '# ??/??', 'category' => 'general'],
-            14 => ['pattern' => 'mm-dd-yy', 'category' => 'date'],
-            15 => ['pattern' => 'd-mmm-yy', 'category' => 'date'],
-            16 => ['pattern' => 'd-mmm', 'category' => 'date'],
-            17 => ['pattern' => 'mmm-yy', 'category' => 'date'],
-            18 => ['pattern' => 'h:mm AM/PM', 'category' => 'date'],
-            19 => ['pattern' => 'h:mm:ss AM/PM', 'category' => 'date'],
-            20 => ['pattern' => 'h:mm', 'category' => 'date'],
-            21 => ['pattern' => 'h:mm:ss', 'category' => 'date'],
-            22 => ['pattern' => 'm/d/yy h:mm', 'category' => 'date'],
-            37 => ['pattern' => '#,##0 ;(#,##0)', 'category' => 'number'],
-            38 => ['pattern' => '#,##0 ;[Red](#,##0)', 'category' => 'number'],
-            39 => ['pattern' => '#,##0.00;(#,##0.00)', 'category' => 'number'],
-            40 => ['pattern' => '#,##0.00;[Red](#,##0.00)', 'category' => 'number'],
-            45 => ['pattern' => 'mm:ss', 'category' => 'date'],
-            46 => ['pattern' => '[h]:mm:ss', 'category' => 'date'],
-            47 => ['pattern' => 'mmss.0', 'category' => 'date'],
-            48 => ['pattern' => '##0.0E+0', 'category' => 'number'],
-            49 => ['pattern' => '@', 'category' => 'string'],
-        ];
-
-        if (class_exists('IntlDateFormatter', false)) {
-            $formatter = new \IntlDateFormatter('ru_RU', \IntlDateFormatter::SHORT, \IntlDateFormatter::SHORT);
-            [$d, $t] = array_map('trim', explode(',', $formatter->getPattern()));
-            if (preg_match('/^[dMy.\/\-]+$/', $d)) {
-                $standardNumFmt[14]['pattern'] = preg_replace(['/MM/', '/^M([^M])/', '/([^M])M$/', '/^y([^y])/', '/([^y])y$/'], ['mm', 'm$1', '$1m', 'yyyy$1', '$1yyyy'], $d);
-            }
-        }
-        foreach ($standardNumFmt as $key => $val) {
+        foreach ($this->builtinFormats as $key => $val) {
             $this->styles['_'][$tagName][$key] = [
                 'format-num-id' => $key,
                 'format-pattern' => $val['pattern'],
