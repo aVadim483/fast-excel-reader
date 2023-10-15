@@ -3,13 +3,16 @@
 namespace avadim\FastExcelReader;
 
 use avadim\FastExcelHelper\Helper;
+use avadim\FastExcelReader\Interfaces\InterfaceExcelReader;
+use avadim\FastExcelReader\Interfaces\InterfaceSheetReader;
+use avadim\FastExcelReader\Interfaces\InterfaceXmlReader;
 
 /**
  * Class Excel
  *
  * @package avadim\FastExcelReader
  */
-class Excel
+class Excel implements InterfaceExcelReader
 {
     public const EXCEL_2007_MAX_ROW = 1048576;
     public const EXCEL_2007_MAX_COL = 16384;
@@ -609,7 +612,7 @@ class Excel
      *
      * @return Sheet
      */
-    public static function createSheet(string $sheetName, $sheetId, $file, $path, $excel): Sheet
+    public static function createSheet(string $sheetName, $sheetId, $file, $path, $excel): InterfaceSheetReader
     {
         return new Sheet($sheetName, $sheetId, $file, $path, $excel);
     }
@@ -620,7 +623,7 @@ class Excel
      *
      * @return Reader
      */
-    public static function createReader(string $file, ?array $parserProperties = []): Reader
+    public static function createReader(string $file, ?array $parserProperties = []): InterfaceXmlReader
     {
         return new Reader($file, $parserProperties);
     }

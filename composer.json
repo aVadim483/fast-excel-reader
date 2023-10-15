@@ -25,7 +25,6 @@
     "require": {
         "php": ">=7.4",
         "ext-zip": "*",
-        "ext-json": "*",
         "ext-mbstring": "*",
         "ext-ctype": "*",
         "ext-xmlreader": "*",

@@ -2,12 +2,14 @@
 
 namespace avadim\FastExcelReader;
 
+use avadim\FastExcelReader\Interfaces\InterfaceXmlReader;
+
 /**
  * Class Reader
  *
  * @package avadim\FastExcelReader
  */
-class Reader extends \XMLReader
+class Reader extends \XMLReader implements InterfaceXmlReader
 {
     protected string $zipFile;
 

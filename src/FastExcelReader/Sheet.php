@@ -3,8 +3,9 @@
 namespace avadim\FastExcelReader;
 
 use avadim\FastExcelHelper\Helper;
+use avadim\FastExcelReader\Interfaces\InterfaceSheetReader;
 
-class Sheet
+class Sheet implements InterfaceSheetReader
 {
     public Excel $excel;
 
