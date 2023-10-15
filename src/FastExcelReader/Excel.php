@@ -3,7 +3,7 @@
 namespace avadim\FastExcelReader;
 
 use avadim\FastExcelHelper\Helper;
-use avadim\FastExcelReader\Interfaces\InterfaceExcelReader;
+use avadim\FastExcelReader\Interfaces\InterfaceBookReader;
 use avadim\FastExcelReader\Interfaces\InterfaceSheetReader;
 use avadim\FastExcelReader\Interfaces\InterfaceXmlReader;
 
@@ -12,7 +12,7 @@ use avadim\FastExcelReader\Interfaces\InterfaceXmlReader;
  *
  * @package avadim\FastExcelReader
  */
-class Excel implements InterfaceExcelReader
+class Excel implements InterfaceBookReader
 {
     public const EXCEL_2007_MAX_ROW = 1048576;
     public const EXCEL_2007_MAX_COL = 16384;

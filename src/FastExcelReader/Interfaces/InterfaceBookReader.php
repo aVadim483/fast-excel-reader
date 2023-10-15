@@ -2,7 +2,7 @@
 
 namespace avadim\FastExcelReader\Interfaces;
 
-interface InterfaceExcelReader
+interface InterfaceBookReader
 {
 
 }
