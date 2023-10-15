@@ -3,11 +3,13 @@
 namespace avadim\FastExcelReader;
 
 use avadim\FastExcelHelper\Helper;
+use avadim\FastExcelReader\Interfaces\InterfaceBookReader;
 use avadim\FastExcelReader\Interfaces\InterfaceSheetReader;
+use avadim\FastExcelReader\Interfaces\InterfaceXmlReader;
 
 class Sheet implements InterfaceSheetReader
 {
-    public Excel $excel;
+    public InterfaceBookReader $excel;
 
     protected string $zipFilename;
 
@@ -27,7 +29,7 @@ class Sheet implements InterfaceSheetReader
     protected ?array $mergedCells = null;
 
     /** @var Reader */
-    protected Reader $xmlReader;
+    protected InterfaceXmlReader $xmlReader;
 
     protected int $readRowNum = 0;
 
@@ -47,7 +49,7 @@ class Sheet implements InterfaceSheetReader
             'row_min' => 1,
             'col_min' => 1,
             'row_max' => Helper::EXCEL_2007_MAX_ROW,
-            'col_max' => Excel::EXCEL_2007_MAX_COL,
+            'col_max' => Helper::EXCEL_2007_MAX_COL,
             'first_row_keys' => false,
             'col_keys' => [],
         ];
@@ -223,7 +225,7 @@ class Sheet implements InterfaceSheetReader
      *
      * @return Reader
      */
-    protected function getReader(string $file = null): Reader
+    protected function getReader(string $file = null): InterfaceXmlReader
     {
         if (empty($this->xmlReader)) {
             if (!$file) {
