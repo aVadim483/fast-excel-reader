@@ -28,7 +28,8 @@
         "ext-json": "*",
         "ext-mbstring": "*",
         "ext-ctype": "*",
-        "ext-xmlreader": "*"
+        "ext-xmlreader": "*",
+        "avadim/fast-excel-helper": "dev-main"
     },
     "require-dev": {
         "phpunit/phpunit": "^9.0"

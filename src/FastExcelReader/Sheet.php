@@ -2,6 +2,8 @@
 
 namespace avadim\FastExcelReader;
 
+use avadim\FastExcelHelper\Helper;
+
 class Sheet
 {
     public Excel $excel;
@@ -16,16 +18,25 @@ class Sheet
 
     protected ?string $dimension = null;
 
+    protected ?bool $active = null;
     protected array $area = [];
 
     protected array $props = [];
 
+    protected ?array $mergedCells = null;
+
     /** @var Reader */
     protected Reader $xmlReader;
 
+    protected int $readRowNum = 0;
 
-    public function __construct($sheetName, $sheetId, $file, $path)
+    protected $preReadFunc = null;
+    protected $postReadFunc = null;
+
+
+    public function __construct($sheetName, $sheetId, $file, $path, $excel)
     {
+        $this->excel = $excel;
         $this->name = $sheetName;
         $this->sheetId = $sheetId;
         $this->zipFilename = $file;
@@ -34,7 +45,7 @@ class Sheet
         $this->area = [
             'row_min' => 1,
             'col_min' => 1,
-            'row_max' => Excel::EXCEL_2007_MAX_ROW,
+            'row_max' => Helper::EXCEL_2007_MAX_ROW,
             'col_max' => Excel::EXCEL_2007_MAX_COL,
             'first_row_keys' => false,
             'col_keys' => [],
@@ -46,10 +57,11 @@ class Sheet
      * @param $styleIdx
      * @param $formula
      * @param $dataType
+     * @param $originalValue
      *
      * @return mixed
      */
-    protected function _cellValue($cell, &$styleIdx = null, &$formula = null, &$dataType = null)
+    protected function _cellValue($cell, &$styleIdx = null, &$formula = null, &$dataType = null, &$originalValue = null)
     {
         // Determine data type and style index
         $dataType = (string)$cell->getAttribute('t');
@@ -94,6 +106,7 @@ class Sheet
             }
         }
 
+        $originalValue = $cellValue;
         $value = '';
 
         switch ( $dataType ) {
@@ -128,8 +141,9 @@ class Sheet
                 else {
                     // Value is not a date, load its original value
                     $value = (string)$cellValue;
-                    $dataType = 'string';
+                    //$dataType = 'string';
                 }
+                $dataType = 'date';
                 break;
 
             default:
@@ -151,10 +165,12 @@ class Sheet
                         /** @noinspection TypeUnsafeComparisonInspection */
                         if ($value == (int)$value) {
                             $value = (int)$value;
+                            $dataType = 'number';
                         }
                         /** @noinspection TypeUnsafeComparisonInspection */
                         elseif ($value == (float)$value) {
                             $value = (float)$value;
+                            $dataType = 'number';
                         }
                     }
                 }
@@ -190,6 +206,18 @@ class Sheet
     }
 
     /**
+     * @return bool
+     */
+    public function isActive(): bool
+    {
+        if ($this->active === null) {
+            $this->_readHeader();
+        }
+
+        return $this->active === 1;
+    }
+
+    /**
      * @param string|null $file
      *
      * @return Reader
@@ -200,33 +228,87 @@ class Sheet
             if (!$file) {
                 $file = $this->zipFilename;
             }
-            $this->xmlReader = new Reader($file);
+            $this->xmlReader = Excel::createReader($file);
         }
 
         return $this->xmlReader;
     }
 
-    public function dimension(): ?string
+    protected function _readHeader()
     {
         if ($this->dimension === null) {
             $xmlReader = $this->getReader();
             $xmlReader->openZip($this->path);
-            if ($xmlReader->seekOpenTag('dimension')) {
-                $this->dimension = (string)$xmlReader->getAttribute('ref');
+            while ($xmlReader->read()) {
+                if ($xmlReader->nodeType === \XMLReader::ELEMENT && $xmlReader->name === 'dimension') {
+                    $this->dimension = (string)$xmlReader->getAttribute('ref');
+                }
+                if ($xmlReader->nodeType === \XMLReader::ELEMENT && $xmlReader->name === 'sheetView') {
+                    $this->active = (int)$xmlReader->getAttribute('sheetView');
+                }
             }
-
+            $xmlReader->close();
         }
+    }
+
+    protected function _readBottom()
+    {
+        if ($this->mergedCells === null) {
+            $xmlReader = $this->getReader();
+            $xmlReader->openZip($this->path);
+            while ($xmlReader->read()) {
+                if ($xmlReader->nodeType === \XMLReader::END_ELEMENT && $xmlReader->name === 'sheetData') {
+                    break;
+                }
+            }
+            $this->mergedCells = [];
+            while ($xmlReader->read()) {
+                if ($xmlReader->nodeType === \XMLReader::ELEMENT && $xmlReader->name === 'mergeCell') {
+                    $ref = (string)$xmlReader->getAttribute('ref');
+                    if ($ref) {
+                        $arr = Helper::rangeArray($ref);
+                        $this->mergedCells[$arr['min_cell']] = $ref;
+                    }
+                }
+            }
+            $xmlReader->close();
+        }
+    }
+
+    /**
+     * @return string|null
+     */
+    public function dimension(): ?string
+    {
+        if ($this->dimension === null) {
+            $this->_readHeader();
+            if ($this->dimension === null) {
+                $this->dimension = '';
+            }
+        }
+
         return $this->dimension;
+    }
+
+    /**
+     * @return array
+     */
+    public function dimensionArray(): array
+    {
+
+        return Helper::rangeArray($this->dimension());
     }
 
     /**
      * Count rows by dimension value
      *
+     * @param string|null $range
+     *
      * @return int
      */
-    public function countRows(): int
+    public function countRows(?string $range = null): int
     {
-        $areaRange = $this->dimension();
+        $areaRange = $range ?: $this->dimension();
         if ($areaRange && preg_match('/^([A-Za-z]+)(\d+)(:([A-Za-z]+)(\d+))?$/', $areaRange, $matches)) {
             return (int)$matches[5] - (int)$matches[2] + 1;
         }
@@ -237,11 +319,13 @@ class Sheet
     /**
      * Count columns by dimension value
      *
+     * @param string|null $range
+     *
      * @return int
      */
-    public function countColumns(): int
+    public function countColumns(?string $range = null): int
     {
-        $areaRange = $this->dimension();
+        $areaRange = $range ?: $this->dimension();
         if ($areaRange && preg_match('/^([A-Za-z]+)(\d+)(:([A-Za-z]+)(\d+))?$/', $areaRange, $matches)) {
             return Excel::colNum($matches[4]) - Excel::colNum($matches[1]) + 1;
         }
@@ -252,11 +336,13 @@ class Sheet
     /**
      * Count columns by dimension value, alias of countColumns()
      *
+     * @param string|null $range
+     *
      * @return int
      */
-    public function countCols(): int
+    public function countCols(?string $range = null): int
     {
-        return $this->countColumns();
+        return $this->countColumns($range);
     }
 
     /**
@@ -276,33 +362,33 @@ class Sheet
         $area = [];
         $area['col_keys'] = [];
         if (preg_match('/^\$?([A-Za-z]+)\$?(\d+)(:\$?([A-Za-z]+)\$?(\d+))?$/', $areaRange, $matches)) {
-            $area['col_min'] = Excel::colNum($matches[1]);
+            $area['col_min'] = Helper::colNumber($matches[1]);
             $area['row_min'] = (int)$matches[2];
             if (empty($matches[3])) {
-                $area['col_max'] = Excel::EXCEL_2007_MAX_COL;
-                $area['row_max'] = Excel::EXCEL_2007_MAX_ROW;
+                $area['col_max'] = Helper::EXCEL_2007_MAX_COL;
+                $area['row_max'] = Helper::EXCEL_2007_MAX_ROW;
             }
             else {
-                $area['col_max'] = Excel::colNum($matches[4]);
+                $area['col_max'] = Helper::colNumber($matches[4]);
                 $area['row_max'] = (int)$matches[5];
                 for ($col = $area['col_min']; $col <= $area['col_max']; $col++) {
-                    $area['col_keys'][Excel::colLetter($col)] = null;
+                    $area['col_keys'][Helper::colLetter($col)] = null;
                 }
             }
         }
         elseif (preg_match('/^([A-Za-z]+)(:([A-Za-z]+))?$/', $areaRange, $matches)) {
-            $area['col_min'] = Excel::colNum($matches[1]);
+            $area['col_min'] = Helper::colNumber($matches[1]);
             if (empty($matches[2])) {
-                $area['col_max'] = Excel::EXCEL_2007_MAX_COL;
+                $area['col_max'] = Helper::EXCEL_2007_MAX_COL;
             }
             else {
-                $area['col_max'] = Excel::colNum($matches[3]);
+                $area['col_max'] = Helper::colNumber($matches[3]);
                 for ($col = $area['col_min']; $col <= $area['col_max']; $col++) {
-                    $area['col_keys'][Excel::colLetter($col)] = null;
+                    $area['col_keys'][Helper::colLetter($col)] = null;
                 }
             }
             $area['row_min'] = 1;
-            $area['row_max'] = Excel::EXCEL_2007_MAX_ROW;
+            $area['row_max'] = Helper::EXCEL_2007_MAX_ROW;
         }
         if (isset($area['col_min'], $area['col_max']) && ($area['col_min'] < 0 || $area['col_max'] < 0)) {
             return [];
@@ -727,6 +813,11 @@ class Sheet
         $rowOffset = $colOffset = null;
         $row = -1;
         $rowCnt = -1;
+
+        if ($this->preReadFunc) {
+            ($this->preReadFunc)($xmlReader);
+        }
+
         if ($xmlReader->seekOpenTag('sheetData')) {
             while ($xmlReader->read()) {
                 if ($rowLimit > 0 && $rowCnt >= $rowLimit) {
@@ -737,6 +828,7 @@ class Sheet
                 }
 
                 if ($xmlReader->nodeType === \XMLReader::END_ELEMENT && $xmlReader->name === 'row' && $rowNum >= $readArea['row_min'] && $rowNum <= $readArea['row_max']) {
+                    $this->readRowNum = $rowNum;
                     if ($rowCnt === 0 && $firstRowKeys) {
                         if (!$columnKeys) {
                             if ($styleIdxInclude) {
@@ -813,9 +905,9 @@ class Sheet
                                 if (is_array($columnKeys) && isset($columnKeys[$colLetter])) {
                                     $col = $columnKeys[$colLetter];
                                 }
-                                $value = $this->_cellValue($cell, $styleIdx, $formula, $dataType);
+                                $value = $this->_cellValue($cell, $styleIdx, $formula, $dataType, $originalValue);
                                 if ($styleIdxInclude) {
-                                    $rowData[$col] = ['v' => $value, 's' => $styleIdx, 'f' => $formula, 't' => $dataType];
+                                    $rowData[$col] = ['v' => $value, 's' => $styleIdx, 'f' => $formula, 't' => $dataType, 'o' => $originalValue];
                                 }
                                 else {
                                     $rowData[$col] = $value;
@@ -826,15 +918,32 @@ class Sheet
                 }
             }
         }
-        /*
-        if ($row > -1 && $rowData) {
-            yield $row => $rowData;
+
+        if ($this->postReadFunc) {
+            ($this->postReadFunc)($xmlReader);
         }
-        */
 
         $xmlReader->close();
 
         return null;
+    }
+
+    /**
+     * @return int
+     */
+    public function getReadRowNum(): int
+    {
+        return $this->readRowNum;
+    }
+
+
+    public function getMergedCells(): ?array
+    {
+        if ($this->mergedCells === null) {
+            $this->_readBottom();
+        }
+
+        return $this->mergedCells;
     }
 
     /**
@@ -981,6 +1090,8 @@ class Sheet
     }
 
     /**
+     * @param $row
+     *
      * @return array
      */
     public function getImageListByRow($row): array

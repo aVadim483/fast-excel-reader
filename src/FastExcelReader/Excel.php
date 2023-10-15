@@ -2,6 +2,8 @@
 
 namespace avadim\FastExcelReader;
 
+use avadim\FastExcelHelper\Helper;
+
 /**
  * Class Excel
  *
@@ -53,6 +55,7 @@ class Excel
 
     protected array $names = [];
 
+    protected ?array $themeColors = null;
 
     /**
      * Excel constructor
@@ -129,7 +132,7 @@ class Excel
      */
     protected function _prepare(string $file)
     {
-        $this->xmlReader = new Reader($file);
+        $this->xmlReader = static::createReader($file);
         $this->fileList = $this->xmlReader->fileList();
         foreach ($this->fileList as $fileName) {
             if (strpos($fileName, 'xl/drawings/drawing') === 0) {
@@ -137,9 +140,6 @@ class Excel
             }
             elseif (strpos($fileName, 'xl/media/') === 0) {
                 $this->relations['media'][] = $fileName;
-            }
-            elseif (strpos($fileName, 'xl/theme/') === 0) {
-                $this->relations['theme'][] = $fileName;
             }
         }
 
@@ -161,6 +161,9 @@ class Excel
         if (isset($this->relations['sharedStrings'])) {
             $this->_loadSharedStrings(reset($this->relations['sharedStrings']));
         }
+        if (isset($this->relations['theme'])) {
+            $this->_loadThemes(reset($this->relations['theme']));
+        }
         if (isset($this->relations['styles'])) {
             $this->_loadStyles(reset($this->relations['styles']));
         }
@@ -180,7 +183,7 @@ class Excel
             $innerFile = 'xl/workbook.xml';
         }
         $this->xmlReader->openZip($innerFile);
-        $sheetCnt = count($this->relations['worksheet']);
+
         while ($this->xmlReader->read()) {
             if ($this->xmlReader->nodeType === \XMLReader::ELEMENT) {
                 if ($this->xmlReader->name === 'workbookPr') {
@@ -195,8 +198,11 @@ class Excel
                     $path = $this->relations['worksheet'][$rId];
                     if ($path) {
                         $sheetName = $this->xmlReader->getAttribute('name');
-                        $this->sheets[$sheetId] = static::createSheet($sheetName, $sheetId, $this->file, $this->relations['worksheet'][$rId]);
-                        $this->sheets[$sheetId]->excel = $this;
+                        $this->sheets[$sheetId] = static::createSheet($sheetName, $sheetId, $this->file, $this->relations['worksheet'][$rId], $this);
+                        //$this->sheets[$sheetId]->excel = $this;
+                        if ($this->sheets[$sheetId]->isActive()) {
+                            $this->defaultSheetId = $sheetId;
+                        }
                     }
                 }
                 elseif ($this->xmlReader->name === 'definedName') {
@@ -224,6 +230,40 @@ class Excel
             }
         }
         $this->xmlReader->close();
+    }
+
+    /**
+     * @param string|null $innerFile
+     *
+     * @return void
+     */
+    protected function _loadThemes(string $innerFile = null)
+    {
+        if (!$innerFile) {
+            $innerFile = 'xl/theme/theme1.xml';
+        }
+        $this->xmlReader->openZip($innerFile);
+        while ($this->xmlReader->read()) {
+            if ($this->xmlReader->nodeType === \XMLReader::ELEMENT && $this->xmlReader->localName === 'clrScheme') {
+                break;
+            }
+        }
+        while ($this->xmlReader->read()) {
+            if ($this->xmlReader->nodeType === \XMLReader::END_ELEMENT && $this->xmlReader->localName === 'clrScheme') {
+                break;
+            }
+            if ($this->xmlReader->nodeType === \XMLReader::ELEMENT && $this->xmlReader->localName === 'srgbClr') {
+                $this->themeColors[] = '#' . $this->xmlReader->getAttribute('val');
+            }
+            elseif ($this->xmlReader->nodeType === \XMLReader::ELEMENT && $this->xmlReader->localName === 'sysClr') {
+                if ($lastClr = $this->xmlReader->getAttribute('lastClr')) {
+                    $this->themeColors[] = '#' . $lastClr;
+                }
+                else {
+                    $this->themeColors[] = '';
+                }
+            }
+        }
     }
 
     /**
@@ -376,12 +416,40 @@ class Excel
                 }
                 foreach ($patternFill->childNodes as $child) {
                     if ($child->nodeName === 'fgColor') {
-                        $node['fill-color'] = '#' . substr($child->getAttribute('rgb'), 2);
+                        $color = $this->_extractColor($child);
+                        if ($color) {
+                            $node['fill-color'] = $color;
+                        }
                     }
                 }
             }
             $this->styles['_'][$tagName][] = $node;
         }
+    }
+
+    /**
+     * @param $node
+     *
+     * @return string
+     */
+    protected function _extractColor($node): string
+    {
+        if ($rgb = $node->getAttribute('rgb')) {
+            return '#' . substr($rgb, 2);
+        }
+        $theme = $node->getAttribute('theme');
+        if ($theme !== null && $theme !== '') {
+            $color = $this->themeColors[(int)$theme] ?? '';
+            if ($color) {
+                $tint = $node->getAttribute('tint');
+                if (!empty($tint)) {
+                    $color = Helper::correctColor($color, $tint);
+                }
+            }
+            return $color;
+        }
+
+        return '';
     }
 
     /**
@@ -512,7 +580,7 @@ class Excel
     public static function validate(string $file, ?array &$errors = []): bool
     {
         $result = true;
-        $xmlReader = new Reader($file, [\XMLReader::VALIDATE => true]);
+        $xmlReader = self::createReader($file, [\XMLReader::VALIDATE => true]);
 
         $fileList = $xmlReader->fileList();
         \libxml_use_internal_errors(true);
@@ -537,12 +605,24 @@ class Excel
      * @param $sheetId
      * @param $file
      * @param $path
+     * @param $excel
      *
      * @return Sheet
      */
-    public static function createSheet(string $sheetName, $sheetId, $file, $path): Sheet
+    public static function createSheet(string $sheetName, $sheetId, $file, $path, $excel): Sheet
     {
-        return new Sheet($sheetName, $sheetId, $file, $path);
+        return new Sheet($sheetName, $sheetId, $file, $path, $excel);
+    }
+
+    /**
+     * @param string $file
+     * @param array|null $parserProperties
+     *
+     * @return Reader
+     */
+    public static function createReader(string $file, ?array $parserProperties = []): Reader
+    {
+        return new Reader($file, $parserProperties);
     }
 
     /**
@@ -554,25 +634,8 @@ class Excel
      */
     public static function colNum(string $colLetter): int
     {
-        static $colNumbers = [];
 
-        if (isset($colNumbers[$colLetter])) {
-            return $colNumbers[$colLetter];
-        }
-        // Strip cell reference down to just letters
-        $letters = preg_replace('/[^A-Z]/', '', strtoupper($colLetter));
-
-        if (strlen($letters) >= 3 && $letters > 'XFD') {
-            return self::EXCEL_2007_MAX_COL;
-        }
-        // Iterate through each letter, starting at the back to increment the value
-        for ($index = 0, $i = 0; $letters !== ''; $letters = substr($letters, 0, -1), $i++) {
-            $index += (ord(substr($letters, -1)) - 64) * (26 ** $i);
-        }
-
-        $colNumbers[$colLetter] = ($index <= self::EXCEL_2007_MAX_COL) ? (int)$index : -1;
-
-        return $colNumbers[$colLetter];
+        return Helper::colNumber($colLetter);
     }
 
     /**
@@ -584,26 +647,8 @@ class Excel
      */
     public static function colLetter(int $colNumber): string
     {
-        static $colLetters = ['',
-            'A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'J', 'K', 'L', 'M', 'N', 'O', 'P', 'Q', 'R', 'S', 'T', 'U', 'V', 'W', 'X', 'Y', 'Z',
-            'AA', 'AB', 'AC', 'AD', 'AE', 'AF', 'AG', 'AH', 'AI', 'AJ', 'AK', 'AL', 'AM', 'AN', 'AO', 'AP', 'AQ', 'AR', 'AS', 'AT', 'AU', 'AV', 'AW', 'AX', 'AY', 'AZ',
-        ];
 
-        if (isset($colLetters[$colNumber])) {
-            return $colLetters[$colNumber];
-        }
-
-        if ($colNumber > 0 && $colNumber <= self::EXCEL_2007_MAX_COL) {
-            $num = $colNumber - 1;
-            for ($letter = ''; $num >= 0; $num = (int)($num / 26) - 1) {
-                $letter = chr($num % 26 + 0x41) . $letter;
-            }
-            $colLetters[$colNumber] = $letter;
-
-            return $letter;
-        }
-
-        return '';
+        return Helper::colLetter($colNumber);
     }
 
     /**
