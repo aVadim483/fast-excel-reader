@@ -35,6 +35,7 @@ class Sheet implements InterfaceSheetReader
 
     protected $preReadFunc = null;
     protected $postReadFunc = null;
+    protected array $readNodeFunc = [];
 
 
     public function __construct($sheetName, $sheetId, $file, $path, $excel)
@@ -828,6 +829,9 @@ class Sheet implements InterfaceSheetReader
                 }
                 if ($xmlReader->nodeType === \XMLReader::END_ELEMENT && $xmlReader->name === 'sheetData') {
                     break;
+                }
+                if ($this->readNodeFunc && isset($this->readNodeFunc[$xmlReader->name])) {
+                    ($this->readNodeFunc[$xmlReader->name])($xmlReader->expand());
                 }
 
                 if ($xmlReader->nodeType === \XMLReader::END_ELEMENT && $xmlReader->name === 'row' && $rowNum >= $readArea['row_min'] && $rowNum <= $readArea['row_max']) {
