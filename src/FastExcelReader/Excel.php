@@ -28,6 +28,10 @@ class Excel implements InterfaceBookReader
     public const KEYS_RELATIVE = 32;
     public const KEYS_SWAP = 64;
 
+    // nextRow() returns cells & row attributes
+    // ['__cells' => [...], '__row' => [...]]
+    public const RESULT_MODE_ROW = 1024;
+
     protected string $file;
 
     /** @var Reader */

@@ -744,6 +744,9 @@ class Sheet implements InterfaceSheetReader
     public function readCallback(callable $callback, $columnKeys = [], int $resultMode = null, ?bool $styleIdxInclude = null)
     {
         foreach ($this->nextRow($columnKeys, $resultMode, $styleIdxInclude) as $row => $rowData) {
+            if (isset($rowData['__cells'], $rowData['__row'])) {
+                $rowData = $rowData['__cells'];
+            }
             foreach ($rowData as $col => $val) {
                 if (isset($this->area['col_keys']) && array_key_exists($col, $this->area['col_keys'])
                     || (!is_array($val) && $val !== null) || isset($val['v']) || isset($val['f']) || isset($val['s'])) {
@@ -848,6 +851,17 @@ class Sheet implements InterfaceSheetReader
                         }
                     }
                     else {
+                        if ($resultMode & Excel::RESULT_MODE_ROW) {
+                            $rowNode = $xmlReader->expand();
+                            $rowAttributes = [];
+                            foreach ($rowNode->attributes as $key => $val) {
+                                $rowAttributes[$key] = $val->value;
+                            }
+                            $rowData = [
+                                '__cells' => $rowData,
+                                '__row' => $rowAttributes,
+                            ];
+                        }
                         $row = $rowNum - $rowOffset;
                         yield $row => $rowData;
                     }
