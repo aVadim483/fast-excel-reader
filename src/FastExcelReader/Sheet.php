@@ -892,6 +892,19 @@ class Sheet implements InterfaceSheetReader
                                 }
                             }
                         }
+                        if ($xmlReader->isEmptyElement && ($resultMode & Excel::RESULT_MODE_ROW)) {
+                            $rowNode = $xmlReader->expand();
+                            $rowAttributes = [];
+                            foreach ($rowNode->attributes as $key => $val) {
+                                $rowAttributes[$key] = $val->value;
+                            }
+                            $rowData = [
+                                '__cells' => $rowData,
+                                '__row' => $rowAttributes,
+                            ];
+                            $row = $rowNum - $rowOffset;
+                            yield $row => $rowData;
+                        }
                     } // <row ...> - tag row end
 
                     elseif ($xmlReader->name === 'c') { // <c ...> - tag cell begins
