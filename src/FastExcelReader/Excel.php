@@ -393,6 +393,12 @@ class Excel implements InterfaceBookReader
                 elseif ($fontStyle->nodeName === 'strike') {
                     $node['font-style-strike'] = 1;
                 }
+                elseif ($fontStyle->nodeName === 'color') {
+                    $color = $this->_extractColor($fontStyle);
+                    if ($color) {
+                        $node['font-color'] = $color;
+                    }
+                }
                 elseif (($v = $fontStyle->getAttribute('val')) !== '') {
                     if ($fontStyle->nodeName === 'sz') {
                         $name = 'font-size';
