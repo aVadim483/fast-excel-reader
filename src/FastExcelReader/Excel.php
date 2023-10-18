@@ -263,7 +263,13 @@ class Excel implements InterfaceBookReader
                 $this->themeColors[] = '#' . $this->xmlReader->getAttribute('val');
             }
             elseif ($this->xmlReader->nodeType === \XMLReader::ELEMENT && $this->xmlReader->localName === 'sysClr') {
-                if ($lastClr = $this->xmlReader->getAttribute('lastClr')) {
+                if ($this->xmlReader->getAttribute('val') === 'windowText') {
+                    $this->themeColors[] = '#ffffff';
+                }
+                elseif ($this->xmlReader->getAttribute('val') === 'window') {
+                    $this->themeColors[] = '#202020';
+                }
+                elseif ($lastClr = $this->xmlReader->getAttribute('lastClr')) {
                     $this->themeColors[] = '#' . $lastClr;
                 }
                 else {
