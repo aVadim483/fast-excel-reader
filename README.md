@@ -5,12 +5,19 @@
 
 # FastExcelReader
 
-This library can read Excel compatible spreadsheets in XLSX format (Office 2007+). 
-It only reads data, but it does it very quickly and with minimal memory usage.
+**FastExcelReader** is a part of the FastExcelPhp Project which consists of
+
+* [FastExcelWriter](https://packagist.org/packages/avadim/fast-excel-writer)
+* [FastExcelReader](https://packagist.org/packages/avadim/fast-excel-reader)
+* [FastExcelTemplator](https://packagist.org/packages/avadim/fast-excel-templator)
+* [FastExcelLaravel](https://packagist.org/packages/avadim/fast-excel-laravel)
 
 ## Introduction
 
-This library is designed to be lightweight, super-fast and requires minimal memory usage. 
+This library is designed to be lightweight, super-fast and requires minimal memory usage.
+
+**FastExcelReader** can read Excel compatible spreadsheets in XLSX format (Office 2007+).
+It only reads data, but it does it very quickly and with minimal memory usage.
 
 **Features**
 
