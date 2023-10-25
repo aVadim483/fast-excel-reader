@@ -7,10 +7,10 @@
 
 **FastExcelReader** is a part of the FastExcelPhp Project which consists of
 
-* [FastExcelWriter](https://packagist.org/packages/avadim/fast-excel-writer)
-* [FastExcelReader](https://packagist.org/packages/avadim/fast-excel-reader)
-* [FastExcelTemplator](https://packagist.org/packages/avadim/fast-excel-templator)
-* [FastExcelLaravel](https://packagist.org/packages/avadim/fast-excel-laravel)
+* [FastExcelWriter](https://packagist.org/packages/avadim/fast-excel-writer) - to create Excel spreadsheets
+* [FastExcelReader](https://packagist.org/packages/avadim/fast-excel-reader) - to reader Excel spreadsheets
+* [FastExcelTemplator](https://packagist.org/packages/avadim/fast-excel-templator) - to generate Excel spreadsheets from XLSX templates
+* [FastExcelLaravel](https://packagist.org/packages/avadim/fast-excel-laravel) - special **Laravel** edition
 
 ## Introduction
 
@@ -26,11 +26,6 @@ It only reads data, but it does it very quickly and with minimal memory usage.
 * Supports auto formatter and custom formatter of datetime values
 * The library can define and extract images from XLSX files
 * The library can read styling options of cells - formatting patterns, colors, borders, fonts, etc.
-
-By the way, **FastExcelWriter** also exists - https://github.com/aVadim483/fast-excel-writer
-
-And if you are Laravel-developer then you can use special **Laravel** edition -
-[FastExcelLaravel](https://packagist.org/packages/avadim/fast-excel-laravel).
 
 ## Installation
 
