@@ -981,6 +981,38 @@ class Sheet implements InterfaceSheetReader
     }
 
     /**
+     * @param string $cellAddress
+     *
+     * @return bool
+     */
+    public function isMerged(string $cellAddress): bool
+    {
+        foreach ($this->getMergedCells() as $range) {
+            if (Helper::inRange($cellAddress, $range)) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    /**
+     * @param string $cellAddress
+     *
+     * @return string|null
+     */
+    public function mergedRange(string $cellAddress): ?string
+    {
+        foreach ($this->getMergedCells() as $range) {
+            if (Helper::inRange($cellAddress, $range)) {
+                return $range;
+            }
+        }
+
+        return null;
+    }
+
+    /**
      * @return string|null
      */
     protected function drawingFilename(): ?string

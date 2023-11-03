@@ -35,11 +35,6 @@ Use `composer` to install **FastExcelReader** into your project:
 composer require avadim/fast-excel-reader
 ```
 
-Also you can download package and include autoload file of the library:
-```php
-require 'path/to/fast-excel-writer/src/autoload.php';
-```
-
 Jump to:
 * [Simple example](#simple-example)
 * [Read values row by row in loop](#read-values-row-by-row-in-loop)
