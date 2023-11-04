@@ -200,6 +200,14 @@ class Sheet implements InterfaceSheetReader
     }
 
     /**
+     * @return string
+     */
+    public function path(): string
+    {
+        return $this->path;
+    }
+
+    /**
      * @param string $name
      *
      * @return bool
