@@ -166,14 +166,12 @@ class Sheet implements InterfaceSheetReader
 
                     // Check for numeric values
                     if (is_numeric($value)) {
-                        /** @noinspection TypeUnsafeComparisonInspection */
-                        if ($value == (int)$value) {
-                            $value = (int)$value;
+                        if (false !== $castedValue = filter_var($value, FILTER_VALIDATE_INT)) {
+                            $value = $castedValue;
                             $dataType = 'number';
                         }
-                        /** @noinspection TypeUnsafeComparisonInspection */
-                        elseif ($value == (float)$value) {
-                            $value = (float)$value;
+                        elseif (strlen($value) > 2 && !($value[0] === '0' && $value[1] !== '.') && false !== $castedValue = filter_var($value, FILTER_VALIDATE_FLOAT)) {
+                            $value = $castedValue;
                             $dataType = 'number';
                         }
                     }
