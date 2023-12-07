@@ -156,7 +156,7 @@ class Excel implements InterfaceBookReader
             if ($this->xmlReader->nodeType === \XMLReader::ELEMENT && $this->xmlReader->name === 'Relationship') {
                 $type = basename($this->xmlReader->getAttribute('Type'));
                 if ($type) {
-                    $this->relations[$type][$this->xmlReader->getAttribute('Id')] = 'xl/' . $this->xmlReader->getAttribute('Target');
+                    $this->relations[$type][$this->xmlReader->getAttribute('Id')] = 'xl/' . ltrim($this->xmlReader->getAttribute('Target'), '/xl');
                 }
             }
         }
