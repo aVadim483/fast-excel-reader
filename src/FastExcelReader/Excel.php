@@ -106,24 +106,16 @@ class Excel implements InterfaceBookReader
             49 => ['pattern' => '@', 'category' => 'string'],
         ];
 
-        if (class_exists('IntlDateFormatter')) {
-            $formatter = new \IntlDateFormatter(null, \IntlDateFormatter::SHORT, \IntlDateFormatter::NONE);
-            $this->builtinFormats[14]['pattern'] = str_replace('#', 'yy', str_replace(['M', 'y'], ['m', 'yyyy'], str_replace('yy', '#', $formatter->getPattern())));
+        $formatter = new \IntlDateFormatter(null, \IntlDateFormatter::SHORT, \IntlDateFormatter::NONE);
+        $this->builtinFormats[14]['pattern'] = str_replace('#', 'yy', str_replace(['M', 'y'], ['m', 'yyyy'], str_replace('yy', '#', $formatter->getPattern())));
 
-            $formatter = new \IntlDateFormatter(null, \IntlDateFormatter::NONE, \IntlDateFormatter::SHORT);
-            $this->builtinFormats[20]['pattern'] = str_replace('H', 'h', $formatter->getPattern());
+        $formatter = new \IntlDateFormatter(null, \IntlDateFormatter::NONE, \IntlDateFormatter::SHORT);
+        $this->builtinFormats[20]['pattern'] = str_replace('H', 'h', $formatter->getPattern());
 
-            $formatter = new \IntlDateFormatter(null, \IntlDateFormatter::NONE, \IntlDateFormatter::MEDIUM);
-            $this->builtinFormats[21]['pattern'] = str_replace('H', 'h', $formatter->getPattern());
+        $formatter = new \IntlDateFormatter(null, \IntlDateFormatter::NONE, \IntlDateFormatter::MEDIUM);
+        $this->builtinFormats[21]['pattern'] = str_replace('H', 'h', $formatter->getPattern());
 
-            $this->builtinFormats[22]['pattern'] = $this->builtinFormats[14]['pattern'] . ' ' . $this->builtinFormats[20]['pattern'];
-        }
-        else {
-            $t = mktime(3, 4, 5, 2, 1, 1999);
-
-            $this->builtinFormats[14]['pattern'] = str_replace(['1999', '99', '02', '2', '01', '1'], ['yyyy', 'yy', 'mm', 'm', 'dd', 'd'], strftime('%x', $t));
-            $this->builtinFormats[22]['pattern'] = $this->builtinFormats[14]['pattern'] . ' h:mm';
-        }
+        $this->builtinFormats[22]['pattern'] = $this->builtinFormats[14]['pattern'] . ' ' . $this->builtinFormats[20]['pattern'];
 
         $this->timezone = date_default_timezone_get();
         $this->dateFormatter = function ($value, $format = null) {

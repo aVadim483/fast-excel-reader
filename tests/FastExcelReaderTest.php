@@ -345,5 +345,15 @@ final class FastExcelReaderTest extends TestCase
         $this->assertEquals(['name' => 'James Bond', 'birthday' => -2205187200, 'random_int' => 4573], $rows[2]);
     }
 
-}
 
+    public function testRefPath()
+    {
+        // =====================
+        $file = self::DEMO_DIR . 'worksheet-referenced-with-absolute-path.xlsx';
+        $excel = Excel::open($file);
+        $result = $excel->readRows(true, Excel::KEYS_ROW_ZERO_BASED);
+        $this->assertEquals('983ST13', $result[1]['code']);
+        $this->assertEquals(821, $result[1]['price']);
+    }
+
+}
