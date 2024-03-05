@@ -10,6 +10,7 @@
         "phpexcel",
         "parser",
         "reader",
+        "import",
 		"spreadsheet",
 		"ms office",
 		"office 2007"

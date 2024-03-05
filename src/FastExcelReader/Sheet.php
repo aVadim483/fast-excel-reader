@@ -134,7 +134,7 @@ class Sheet implements InterfaceSheetReader
 
             case 'd':
             case 'date':
-                if (($cellValue === null) || ($cellValue === '')) {
+                if (($cellValue === null) || (trim($cellValue) === '')) {
                     $dataType = 'date';
                 }
                 elseif ($timestamp = $this->excel->timestamp($cellValue)) {
