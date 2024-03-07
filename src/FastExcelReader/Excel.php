@@ -669,6 +669,7 @@ class Excel implements InterfaceBookReader
      */
     public function timestamp($excelDateTime): int
     {
+        $excelDateTime = trim($excelDateTime);
         if (is_numeric($excelDateTime)) {
             $d = floor($excelDateTime);
             $t = $excelDateTime - $d;
