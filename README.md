@@ -156,6 +156,29 @@ foreach ($sheet->nextRow(['A' => 'One', 'B' => 'Two'], Excel::KEYS_FIRST_ROW) as
     // ...
 }
 ```
+Alternative way to read row by row
+
+```php
+// Init internal read generator
+$sheet->reset(['A' => 'One', 'B' => 'Two'], Excel::KEYS_FIRST_ROW);
+// read the first row
+$rowData = $sheet->readNextRow();
+var_dump($rowData);
+
+// read the next 3 rows
+for ($i = 0; $i < 3; $i++) {
+    $rowData = $sheet->readNextRow();
+    var_dump($rowData);
+}
+
+// Reset internal generator and read all rows
+$sheet->reset(['A' => 'One', 'B' => 'Two'], Excel::KEYS_FIRST_ROW);
+$result = [];
+while ($rowData = $sheet->readNextRow()) {
+    $result[] = $rowData;
+}
+var_dump($result);
+```
 
 ### Keys in resulting arrays
 ```php
@@ -309,24 +332,15 @@ use \avadim\FastExcelReader\Excel;
 
 $excel = Excel::open($file);
 
-/**
- * A callback function that gets the value of each cell 
- *
- * @param int $row Row number
- * @param string $col Column char
- * @param mixed $val Cell value
- *
- * @return bool
- */
-function readCellCallback($row, $col, $val)
-{
-    // Function implementation
+$result = [];
+$excel->readCallback(function ($row, $col, $val) use(&$result) {
+    // Any manipulation here
+    $result[$row][$col] = (string)$val;
 
     // if the function returns true then data reading is interrupted  
     return false;
-}
-
-$excel->readCallback('readCellCallback');
+});
+var_dump($result);
 ```
 
 ### Date Formatter

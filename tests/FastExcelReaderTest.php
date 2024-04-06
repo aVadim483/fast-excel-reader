@@ -16,21 +16,23 @@ final class FastExcelReaderTest extends TestCase
         $file = self::DEMO_DIR . 'demo-00-test.xlsx';
         $excel = Excel::open($file);
 
-        $this->assertEquals('A1:C4', $excel->sheet()->dimension());
+        $this->assertEquals('A1:D4', $excel->sheet()->dimension());
 
         $result = $excel->readCells();
-        $this->assertTrue(isset($result['A1']) && $result['A1'] === 'name');
-        $this->assertTrue(isset($result['B3']) && $result['B3'] === 6614697600);
+        $this->assertTrue(isset($result['A1']) && $result['A1'] === '#');
+        $this->assertTrue(isset($result['B1']) && $result['B1'] === 'name');
+        $this->assertTrue(isset($result['A2']) && $result['A2'] === 1);
+        $this->assertTrue(isset($result['C3']) && $result['C3'] === 6614697600);
 
         $result = $excel->readRows();
         $this->assertEquals(count($result), $excel->sheet()->countRows());
-        $this->assertTrue(isset($result['1']['A']) && $result['1']['A'] === 'name');
-        $this->assertTrue(isset($result['3']['B']) && $result['3']['B'] === 6614697600);
+        $this->assertTrue(isset($result['1']['B']) && $result['1']['B'] === 'name');
+        $this->assertTrue(isset($result['3']['C']) && $result['3']['C'] === 6614697600);
 
         $result = $excel->readColumns();
         $this->assertEquals(count($result), $excel->sheet()->countCols());
-        $this->assertTrue(isset($result['A']['1']) && $result['A']['1'] === 'name');
-        $this->assertTrue(isset($result['B']['4']) && $result['B']['4'] === -6845212800);
+        $this->assertTrue(isset($result['B']['1']) && $result['B']['1'] === 'name');
+        $this->assertTrue(isset($result['C']['4']) && $result['C']['4'] === -6845212800);
 
         // Read rows and use the first row as column keys
         $result = $excel->readRows(true);
@@ -41,58 +43,71 @@ final class FastExcelReaderTest extends TestCase
         $this->assertTrue(isset($result['name']['3']) && $result['name']['3'] === 'Ellen Louise Ripley');
 
         $result = $excel->readRows(false, Excel::KEYS_ZERO_BASED);
-        $this->assertTrue(isset($result[3][0]) && $result[3][0] === 'Captain Jack Sparrow');
+        $this->assertTrue(isset($result[3][1]) && $result[3][1] === 'Captain Jack Sparrow');
 
         $result = $excel->readRows(false, Excel::KEYS_ONE_BASED);
-        $this->assertTrue(isset($result[1][1]) && $result[1][1] === 'name');
+        $this->assertTrue(isset($result[1][2]) && $result[1][2] === 'name');
 
-        $result = $excel->readRows(['A' => 'Hero', 'C' => 'Secret']);
+        $result = $excel->readRows(['A' => 'Number', 'B' => 'Hero', 'D' => 'Secret']);
         $this->assertFalse(isset($result[0]['Hero']));
+        $this->assertTrue(isset($result[1]['Number']) && $result[1]['Number'] === '#');
         $this->assertTrue(isset($result[1]['Hero']) && $result[1]['Hero'] === 'name');
         $this->assertTrue(isset($result[2]['Hero']) && $result[2]['Hero'] === 'James Bond');
-        $this->assertTrue(isset($result[2]['B']) && $result[2]['B'] === -2205187200);
+        $this->assertTrue(isset($result[2]['C']) && $result[2]['C'] === -2205187200);
         $this->assertTrue(isset($result[2]['Secret']) && $result[2]['Secret'] === 4573);
 
-        $result = $excel->readRows(['A' => 'Hero', 'C' => 'Secret'], Excel::KEYS_FIRST_ROW);
+        $result = $excel->readRows(['A' => 'Number', 'B' => 'Hero', 'D' => 'Secret'], Excel::KEYS_FIRST_ROW);
         $this->assertFalse(isset($result[0]['Hero']));
         $this->assertFalse(isset($result[1]['Hero']));
         $this->assertTrue(isset($result[2]['Hero']) && $result[2]['Hero'] === 'James Bond');
         $this->assertTrue(isset($result[2]['birthday']) && $result[2]['birthday'] === -2205187200);
 
-        $result = $excel->readRows(['A' => 'Hero', 'C' => 'Secret'], Excel::KEYS_FIRST_ROW | Excel::KEYS_ROW_ZERO_BASED);
+        $result = $excel->readRows(['B' => 'Hero', 'D' => 'Secret'], Excel::KEYS_FIRST_ROW | Excel::KEYS_ROW_ZERO_BASED);
         $this->assertTrue(isset($result[0]['Hero']) && $result[0]['Hero'] === 'James Bond');
         $this->assertTrue(isset($result[0]['birthday']) && $result[0]['birthday'] === -2205187200);
 
-        $result = $excel->readRows(['A' => 'Hero', 'C' => 'Secret'], Excel::KEYS_ROW_ZERO_BASED);
+        $result = $excel->readRows(['B' => 'Hero', 'D' => 'Secret'], Excel::KEYS_ROW_ZERO_BASED);
         $this->assertTrue(isset($result[0]['Hero']) && $result[0]['Hero'] === 'name');
-        $this->assertTrue(isset($result[0]['B']) && $result[0]['B'] === 'birthday');
+        $this->assertTrue(isset($result[0]['C']) && $result[0]['C'] === 'birthday');
         $this->assertTrue(isset($result[1]['Hero']) && $result[1]['Hero'] === 'James Bond');
-        $this->assertTrue(isset($result[1]['B']) && $result[1]['B'] === -2205187200);
+        $this->assertTrue(isset($result[1]['C']) && $result[1]['C'] === -2205187200);
 
-        $result = $excel->readRows([]);
-        $this->assertTrue(isset($result[1]['A']) && $result[1]['A'] === 'name');
+        $result = $excel->readRows();
+        $this->assertTrue(isset($result[1]['B']) && $result[1]['B'] === 'name');
 
         $result = $excel->readRows([], Excel::KEYS_FIRST_ROW);
         $this->assertTrue(isset($result[2]['name']) && $result[2]['name'] === 'James Bond');
 
         $result = [];
-        $sheet = $excel->setReadArea('b2');
+        $sheet = $excel->setReadArea('c2');
         foreach ($sheet->nextRow() as $row => $rowData) {
             $result[$row] = $rowData;
         }
         $this->assertCount(3, $result);
         $this->assertFalse(isset($result[1]));
         $this->assertFalse(isset($result[2]['A']));
-        $this->assertTrue(isset($result[2]['B']) && $result[2]['B'] === -2205187200);
-        $this->assertTrue(isset($result[2]['C']) && $result[2]['C'] === 4573);
-        $this->assertFalse(isset($result[2]['D']));
+        $this->assertTrue(isset($result[2]['C']) && $result[2]['C'] === -2205187200);
+        $this->assertTrue(isset($result[2]['D']) && $result[2]['D'] === 4573);
+        $this->assertFalse(isset($result[2]['E']));
+        $this->assertFalse(isset($result[5]));
+
+        $sheet->reset();
+        $result = [];
+        $sheet = $excel->setReadArea('c2');
+        while ($rowData = $sheet->readNextRow()) {
+            $result[] = $rowData;
+        }
+        $this->assertCount(3, $result);
+        $this->assertTrue(isset($result[0]['C']) && $result[0]['C'] === -2205187200);
+        $this->assertTrue(isset($result[0]['D']) && $result[0]['D'] === 4573);
+        $this->assertFalse(isset($result[2]['E']));
         $this->assertFalse(isset($result[5]));
 
         $excel->setDateFormat('Y-m-d');
         $result = $excel->readCells();
-        $this->assertEquals('1900-02-14', $result['B2']);
-        $this->assertEquals('2179-08-12', $result['B3']);
-        $this->assertEquals('1753-01-31', $result['B4']);
+        $this->assertEquals('1900-02-14', $result['C2']);
+        $this->assertEquals('2179-08-12', $result['C3']);
+        $this->assertEquals('1753-01-31', $result['C4']);
     }
 
     public function testExcelReader01()
@@ -329,20 +344,20 @@ final class FastExcelReaderTest extends TestCase
         $file = self::DEMO_DIR . 'demo-00-test.xlsx';
         $excel = Excel::open($file);
         $sheet = $excel->sheet();
-        $sheet->setReadArea('a:d');
+        $sheet->setReadArea('a:e');
         $rows = $sheet->readRows();
-        $this->assertEquals(['A' => 'name', 'B' => 'birthday', 'C' => 'random_int', 'D' => null], $rows[1]);
+        $this->assertEquals(['A' => '#', 'B' => 'name', 'C' => 'birthday', 'D' => 'random_int', 'E' => null], $rows[1]);
 
         $excel = Excel::open($file);
         $sheet = $excel->sheet();
         $rows = $sheet->readRows(Excel::KEYS_FIRST_ROW);
-        $this->assertEquals(['name' => 'James Bond', 'birthday' => -2205187200, 'random_int' => 4573], $rows[2]);
+        $this->assertEquals(['#' => 1, 'name' => 'James Bond', 'birthday' => -2205187200, 'random_int' => 4573], $rows[2]);
 
         $rows = [];
         foreach ($sheet->nextRow([], Excel::KEYS_FIRST_ROW) as $n => $rowData) {
             $rows[$n] = $rowData;
         }
-        $this->assertEquals(['name' => 'James Bond', 'birthday' => -2205187200, 'random_int' => 4573], $rows[2]);
+        $this->assertEquals(['#' => 1, 'name' => 'James Bond', 'birthday' => -2205187200, 'random_int' => 4573], $rows[2]);
     }
 
 

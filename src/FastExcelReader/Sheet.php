@@ -37,6 +37,12 @@ class Sheet implements InterfaceSheetReader
     protected $postReadFunc = null;
     protected array $readNodeFunc = [];
 
+    /**
+     * @var \Generator|null
+     */
+    protected ?\Generator $generator = null;
+
+    protected int $countReadRows = 0;
 
     public function __construct($sheetName, $sheetId, $file, $path, $excel)
     {
@@ -817,6 +823,7 @@ class Sheet implements InterfaceSheetReader
                 break;
             }
         }
+        $this->readRowNum = $this->countReadRows = 0;
 
         $xmlReader = $this->getReader();
         $xmlReader->openZip($this->path);
@@ -843,35 +850,38 @@ class Sheet implements InterfaceSheetReader
                     ($this->readNodeFunc[$xmlReader->name])($xmlReader->expand());
                 }
 
-                if ($xmlReader->nodeType === \XMLReader::END_ELEMENT && $xmlReader->name === 'row' && $rowNum >= $readArea['row_min'] && $rowNum <= $readArea['row_max']) {
-                    $this->readRowNum = $rowNum;
-                    if ($rowCnt === 0 && $firstRowKeys) {
-                        if (!$columnKeys) {
-                            if ($styleIdxInclude) {
-                                $columnKeys = array_combine(array_keys($rowData), array_column($rowData, 'v'));
+                if ($xmlReader->nodeType === \XMLReader::END_ELEMENT && $xmlReader->name === 'row') {
+                    //$this->countReadRows++;
+                    if ($rowNum >= $readArea['row_min'] && $rowNum <= $readArea['row_max']) {
+                        $this->readRowNum = $rowNum;
+                        if ($rowCnt === 0 && $firstRowKeys) {
+                            if (!$columnKeys) {
+                                if ($styleIdxInclude) {
+                                    $columnKeys = array_combine(array_keys($rowData), array_column($rowData, 'v'));
+                                }
+                                else {
+                                    $columnKeys = $rowData;
+                                }
+                                $rowTemplate = array_fill_keys(array_keys($columnKeys), null);
                             }
-                            else {
-                                $columnKeys = $rowData;
-                            }
-                            $rowTemplate = array_fill_keys(array_keys($columnKeys), null);
                         }
-                    }
-                    else {
-                        if ($resultMode & Excel::RESULT_MODE_ROW) {
-                            $rowNode = $xmlReader->expand();
-                            $rowAttributes = [];
-                            foreach ($rowNode->attributes as $key => $val) {
-                                $rowAttributes[$key] = $val->value;
+                        else {
+                            if ($resultMode & Excel::RESULT_MODE_ROW) {
+                                $rowNode = $xmlReader->expand();
+                                $rowAttributes = [];
+                                foreach ($rowNode->attributes as $key => $val) {
+                                    $rowAttributes[$key] = $val->value;
+                                }
+                                $rowData = [
+                                    '__cells' => $rowData,
+                                    '__row' => $rowAttributes,
+                                ];
                             }
-                            $rowData = [
-                                '__cells' => $rowData,
-                                '__row' => $rowAttributes,
-                            ];
+                            $row = $rowNum - $rowOffset;
+                            yield $row => $rowData;
                         }
-                        $row = $rowNum - $rowOffset;
-                        yield $row => $rowData;
+                        continue;
                     }
-                    continue;
                 }
 
                 if ($xmlReader->nodeType === \XMLReader::ELEMENT) {
@@ -966,6 +976,42 @@ class Sheet implements InterfaceSheetReader
         $xmlReader->close();
 
         return null;
+    }
+
+    /**
+     * Reset read generator
+     *
+     * @param array|bool|int|null $columnKeys
+     * @param int|null $resultMode
+     * @param bool|null $styleIdxInclude
+     * @param int|null $rowLimit
+     *
+     * @return \Generator|null
+     */
+    public function reset($columnKeys = [], int $resultMode = null, ?bool $styleIdxInclude = null, int $rowLimit = 0): ?\Generator
+    {
+        $this->generator = $this->nextRow($columnKeys, $resultMode, $styleIdxInclude, $rowLimit);
+        $this->countReadRows = 0;
+
+        return $this->generator;
+    }
+
+    /**
+     * @return mixed
+     */
+    public function readNextRow()
+    {
+        if (!$this->generator) {
+            $this->reset();
+        }
+        if ($this->countReadRows > 0) {
+            $this->generator->next();
+        }
+        if ($result = $this->generator->current()) {
+            $this->countReadRows++;
+        }
+
+        return $result;
     }
 
     /**
