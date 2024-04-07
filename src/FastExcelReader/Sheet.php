@@ -19,7 +19,7 @@ class Sheet implements InterfaceSheetReader
 
     protected string $path;
 
-    protected ?string $dimension = null;
+    protected ?array $dimension = null;
 
     protected ?bool $active = null;
     protected array $area = [];
@@ -252,12 +252,21 @@ class Sheet implements InterfaceSheetReader
 
     protected function _readHeader()
     {
-        if ($this->dimension === null) {
+        if (!isset($this->dimension['range'])) {
             $xmlReader = $this->getReader();
             $xmlReader->openZip($this->path);
             while ($xmlReader->read()) {
                 if ($xmlReader->nodeType === \XMLReader::ELEMENT && $xmlReader->name === 'dimension') {
-                    $this->dimension = (string)$xmlReader->getAttribute('ref');
+                    $range = (string)$xmlReader->getAttribute('ref');
+                    if ($range) {
+                        $this->dimension = Helper::rangeArray($range);
+                        $this->dimension['range'] = $range;
+                    }
+                    else {
+                        $this->dimension = [
+                            'range' => '',
+                        ];
+                    }
                 }
                 if ($xmlReader->nodeType === \XMLReader::ELEMENT && $xmlReader->name === 'sheetView') {
                     $this->active = (int)$xmlReader->getAttribute('sheetView');
@@ -296,14 +305,11 @@ class Sheet implements InterfaceSheetReader
      */
     public function dimension(): ?string
     {
-        if ($this->dimension === null) {
+        if (!isset($this->dimension['range'])) {
             $this->_readHeader();
-            if ($this->dimension === null) {
-                $this->dimension = '';
-            }
         }
 
-        return $this->dimension;
+        return $this->dimension['range'];
     }
 
     /**
@@ -311,8 +317,11 @@ class Sheet implements InterfaceSheetReader
      */
     public function dimensionArray(): array
     {
+        if (!isset($this->dimension['range'])) {
+            $this->_readHeader();
+        }
 
-        return Helper::rangeArray($this->dimension());
+        return $this->dimension;
     }
 
     /**
@@ -792,9 +801,7 @@ class Sheet implements InterfaceSheetReader
     {
         // <dimension ref="A1:C1"/>
         // sometimes sheets doesn't contain this tag
-        if ($this->dimension === null) {
-            $this->dimension();
-        }
+        $this->dimension();
 
         if (!$columnKeys && is_int($resultMode) && ($resultMode & Excel::KEYS_FIRST_ROW)) {
             $firstRowValues = $this->readFirstRow();
