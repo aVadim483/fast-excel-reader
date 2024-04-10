@@ -44,6 +44,8 @@ class Sheet implements InterfaceSheetReader
 
     protected int $countReadRows = 0;
 
+    protected array $sharedFormulas = [];
+
     public function __construct($sheetName, $sheetId, $file, $path, $excel)
     {
         $this->excel = $excel;
@@ -71,7 +73,7 @@ class Sheet implements InterfaceSheetReader
      *
      * @return mixed
      */
-    protected function _cellValue($cell, &$styleIdx = null, &$formula = null, &$dataType = null, &$originalValue = null)
+    protected function _cellValue($cell, &$additionalData = [])
     {
         // Determine data type and style index
         $dataType = (string)$cell->getAttribute('t');
@@ -87,10 +89,7 @@ class Sheet implements InterfaceSheetReader
             }
             foreach($cell->childNodes as $node) {
                 if ($node->nodeName === 'f') {
-                    $formula = $node->nodeValue;
-                    if ($formula && ($formula[0] !== '=')) {
-                        $formula = '=' . $formula;
-                    }
+                    $formula = $this->_cellFormula($node);
                     break;
                 }
             }
@@ -183,8 +182,34 @@ class Sheet implements InterfaceSheetReader
                     }
                 }
         }
+        $additionalData = ['v' => $value, 's' => $styleIdx, 'f' => $formula, 't' => $dataType, 'o' => $originalValue];
 
         return $value;
+    }
+
+    /**
+     * @param $node
+     *
+     * @return string
+     */
+    protected function _cellFormula($node): string
+    {
+        $shared = (string)$node->getAttribute('t') === 'shared';
+        $si = (string)$node->getAttribute('si');
+        $formula = $node->nodeValue;
+        if ($formula) {
+            if ($formula[0] !== '=') {
+                $formula = '=' . $formula;
+            }
+            if ($shared && $si > '') {
+                $this->sharedFormulas[$si] = $formula;
+            }
+        }
+        elseif ($shared && $si > '' && isset($this->sharedFormulas[$si])) {
+            $formula = $this->sharedFormulas[$si];
+        }
+
+        return $formula;
     }
 
     /**
@@ -962,9 +987,10 @@ class Sheet implements InterfaceSheetReader
                                 if (is_array($columnKeys) && isset($columnKeys[$colLetter])) {
                                     $col = $columnKeys[$colLetter];
                                 }
-                                $value = $this->_cellValue($cell, $styleIdx, $formula, $dataType, $originalValue);
+                                ///$value = $this->_cellValue($cell, $styleIdx, $formula, $dataType, $originalValue);
+                                $value = $this->_cellValue($cell, $additionalData);
                                 if ($styleIdxInclude) {
-                                    $rowData[$col] = ['v' => $value, 's' => $styleIdx, 'f' => $formula, 't' => $dataType, 'o' => $originalValue];
+                                    $rowData[$col] = $additionalData;
                                 }
                                 else {
                                     $rowData[$col] = $value;
