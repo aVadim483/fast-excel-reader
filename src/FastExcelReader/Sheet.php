@@ -66,10 +66,7 @@ class Sheet implements InterfaceSheetReader
 
     /**
      * @param $cell
-     * @param $styleIdx
-     * @param $formula
-     * @param $dataType
-     * @param $originalValue
+     * @param array|null $additionalData
      *
      * @return mixed
      */
@@ -78,6 +75,7 @@ class Sheet implements InterfaceSheetReader
         // Determine data type and style index
         $dataType = (string)$cell->getAttribute('t');
         $styleIdx = (int)$cell->getAttribute('s');
+        $address = $cell->attributes['r']->value;
 
         $cellValue = $formula = null;
         if ($cell->hasChildNodes()) {
@@ -89,7 +87,7 @@ class Sheet implements InterfaceSheetReader
             }
             foreach($cell->childNodes as $node) {
                 if ($node->nodeName === 'f') {
-                    $formula = $this->_cellFormula($node);
+                    $formula = $this->_cellFormula($node, $address);
                     break;
                 }
             }
@@ -189,10 +187,11 @@ class Sheet implements InterfaceSheetReader
 
     /**
      * @param $node
+     * @param string $address
      *
      * @return string
      */
-    protected function _cellFormula($node): string
+    protected function _cellFormula($node, string $address): string
     {
         $shared = (string)$node->getAttribute('t') === 'shared';
         $si = (string)$node->getAttribute('si');
