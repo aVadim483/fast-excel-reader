@@ -683,7 +683,7 @@ class Excel implements InterfaceBookReader
             }
             $t = (abs($d) > 0) ? ($d - 25569) * 86400 + round($t * 86400) : round($t * 86400);
         }
-        else {
+        elseif (preg_match('/^[\d\.\-\/:\s]+$/', $excelDateTime)) {
             if ($this->timezone !== 'UTC') {
                 date_default_timezone_set('UTC');
             }
@@ -691,6 +691,10 @@ class Excel implements InterfaceBookReader
             if ($this->timezone !== 'UTC') {
                 date_default_timezone_set($this->timezone);
             }
+        }
+        else {
+            // string is not a date
+            $t = 0;
         }
 
         return (int)$t;
