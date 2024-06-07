@@ -21,6 +21,8 @@ class Sheet implements InterfaceSheetReader
 
     protected ?array $dimension = null;
 
+    protected ?array $cols = null;
+
     protected ?bool $active = null;
     protected array $area = [];
 
@@ -45,6 +47,7 @@ class Sheet implements InterfaceSheetReader
     protected int $countReadRows = 0;
 
     protected array $sharedFormulas = [];
+
 
     public function __construct($sheetName, $sheetId, $file, $path, $excel)
     {
@@ -295,6 +298,21 @@ class Sheet implements InterfaceSheetReader
                 if ($xmlReader->nodeType === \XMLReader::ELEMENT && $xmlReader->name === 'sheetView') {
                     $this->active = (int)$xmlReader->getAttribute('sheetView');
                 }
+                if ($xmlReader->nodeType === \XMLReader::ELEMENT && $xmlReader->name === 'col') {
+                    $this->active = (int)$xmlReader->getAttribute('sheetView');
+                    if ($xmlReader->hasAttributes) {
+                        $colAttributes = [];
+                        while ($xmlReader->moveToNextAttribute()) {
+                            $colAttributes[$xmlReader->name] = $xmlReader->value;
+                        }
+                        $this->cols[] = $colAttributes;
+                        $xmlReader->moveToElement();
+                    }
+
+                }
+                if ($xmlReader->name === 'sheetData') {
+                    break;
+                }
             }
             $xmlReader->close();
         }
@@ -392,6 +410,27 @@ class Sheet implements InterfaceSheetReader
     public function countCols(?string $range = null): int
     {
         return $this->countColumns($range);
+    }
+
+    /**
+     * @return array
+     */
+    public function getColAttributes(): array
+    {
+        $result = [];
+        if ($this->cols) {
+            foreach ($this->cols as $colAttributes) {
+                if (isset($colAttributes['min'])) {
+                    $col = Helper::colLetter($colAttributes['min']);
+                    $result[$col] = $colAttributes;
+                }
+                else {
+                    $result[] = $colAttributes;
+                }
+            }
+        }
+
+        return $result;
     }
 
     /**
