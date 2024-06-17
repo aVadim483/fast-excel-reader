@@ -393,6 +393,32 @@ $excel->dateFormatter(function($value, $format, $styleIdx) use($excel) {
     return $result;
 });
 ```
+Sometimes, if a cell's format is specified as a date but does not contain a date, the library may misinterpret this value. To avoid this, you can disable date formatting
+
+![demo date](demo/files/img3.jpg)
+
+Here, cell B1 contains the string "3.2" and cell B2 contains the date 2024-02-03, but both cells are set to the date format
+
+```php
+$excel = Excel::open($file);
+// default mode
+$cells = $sheet->readCells();
+echo $cell['B1']; // -2208798720 - the library tries to interpret the number 3.2 as a timestamp
+echo $cell['B2']; // 1706918400 - timestamp of 2024-02-03
+
+// date formatter is on
+$excel->dateFormatter(true);
+$cells = $sheet->readCells();
+echo $cell['B1']; // '03.01.1900'
+echo $cell['B2']; // '3.2'
+
+// date formatter is off
+$excel->dateFormatter(false);
+$cells = $sheet->readCells();
+echo $cell['B1']; // '3.2'
+echo $cell['B2']; // 1706918400 - timestamp of 2024-02-03
+
+```
 
 ### Images functions
 ```php

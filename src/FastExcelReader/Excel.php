@@ -52,7 +52,7 @@ class Excel implements InterfaceBookReader
 
     protected ?string $dateFormat = null;
 
-    /** @var \Closure|callable|null  */
+    /** @var \Closure|callable|bool|null  */
     protected $dateFormatter = null;
 
     protected bool $date1904 = false;
@@ -107,13 +107,20 @@ class Excel implements InterfaceBookReader
         ];
 
         $formatter = new \IntlDateFormatter(null, \IntlDateFormatter::SHORT, \IntlDateFormatter::NONE);
-        $this->builtinFormats[14]['pattern'] = str_replace('#', 'yy', str_replace(['M', 'y'], ['m', 'yyyy'], str_replace('yy', '#', $formatter->getPattern())));
+        $pattern = $formatter->getPattern();
+        $this->builtinFormats[14]['pattern'] = str_replace('#', 'yy', str_replace(['M', 'y'], ['m', 'yyyy'], str_replace('yy', '#', $pattern)));
+        if (preg_match('/([^a-z])/i', $pattern, $m)) {
+            $dateDelim = $m[1];
+            $this->builtinFormats[15]['pattern'] = str_replace('-', $dateDelim, $this->builtinFormats[15]['pattern']);
+            $this->builtinFormats[16]['pattern'] = str_replace('-', $dateDelim, $this->builtinFormats[16]['pattern']);
+            $this->builtinFormats[17]['pattern'] = str_replace('-', $dateDelim, $this->builtinFormats[17]['pattern']);
+        }
 
         $formatter = new \IntlDateFormatter(null, \IntlDateFormatter::NONE, \IntlDateFormatter::SHORT);
-        $this->builtinFormats[20]['pattern'] = str_replace('H', 'h', $formatter->getPattern());
+        $this->builtinFormats[20]['pattern'] = str_replace('HH', 'h', $formatter->getPattern());
 
         $formatter = new \IntlDateFormatter(null, \IntlDateFormatter::NONE, \IntlDateFormatter::MEDIUM);
-        $this->builtinFormats[21]['pattern'] = str_replace('H', 'h', $formatter->getPattern());
+        $this->builtinFormats[21]['pattern'] = str_replace('HH', 'h', $formatter->getPattern());
 
         $this->builtinFormats[22]['pattern'] = $this->builtinFormats[14]['pattern'] . ' ' . $this->builtinFormats[20]['pattern'];
 
@@ -723,12 +730,13 @@ class Excel implements InterfaceBookReader
     /**
      * @param $value
      * @param $format
+     * @param $styleIdx
      *
      * @return false|mixed|string
      */
     public function formatDate($value, $format = null, $styleIdx = null)
     {
-        if ($this->dateFormatter) {
+        if ($this->dateFormatter && $this->dateFormatter !== true) {
             return ($this->dateFormatter)($value, $format, $styleIdx);
         }
 
@@ -744,8 +752,8 @@ class Excel implements InterfaceBookReader
      */
     public function dateFormatter($formatter): Excel
     {
-        if ($formatter === false) {
-            $this->dateFormatter = null;
+        if ($formatter === false || $formatter === null) {
+            $this->dateFormatter = $formatter;
         }
         elseif ($formatter === true) {
             $this->dateFormatter = function ($value, $format = null, $styleIdx = null) {
@@ -772,6 +780,14 @@ class Excel implements InterfaceBookReader
         }
 
         return $this;
+    }
+
+    /**
+     * @return callable|\Closure|bool|null
+     */
+    public function getDateFormatter()
+    {
+        return $this->dateFormatter;
     }
 
     /**
@@ -1314,6 +1330,8 @@ class Excel implements InterfaceBookReader
             else {
                 $pattern = str_replace('d', 'j', $pattern);
             }
+            $pattern = str_replace('mmmm', 'F', $pattern);
+            $pattern = str_replace('mmm', 'M', $pattern);
             if (strpos($pattern, 'mm') !== false) {
                 $pattern = str_replace('mm', 'm', $pattern);
             }

@@ -76,7 +76,7 @@ class Sheet implements InterfaceSheetReader
     protected function _cellValue($cell, &$additionalData = [])
     {
         // Determine data type and style index
-        $dataType = (string)$cell->getAttribute('t');
+        $attributeT = $dataType = (string)$cell->getAttribute('t');
         $styleIdx = (int)$cell->getAttribute('s');
         $address = $cell->attributes['r']->value;
 
@@ -143,7 +143,15 @@ class Sheet implements InterfaceSheetReader
                 if (($cellValue === null) || (trim($cellValue) === '')) {
                     $dataType = 'date';
                 }
-                elseif ($timestamp = $this->excel->timestamp($cellValue)) {
+                elseif ($this->excel->getDateFormatter() === false) {
+                    if ($attributeT !== 's' && is_numeric($cellValue)) {
+                        $value = $this->excel->timestamp($cellValue);
+                    }
+                    else {
+                        $value = $originalValue;
+                    }
+                }
+                elseif (($timestamp = $this->excel->timestamp($cellValue))) {
                     // Value is a date and non-empty
                     $value = $this->excel->formatDate($timestamp, null, $styleIdx);
                     $dataType = 'date';
@@ -770,16 +778,27 @@ class Sheet implements InterfaceSheetReader
     }
 
     /**
-     * Returns values and styles of cells as array ['v' => _value_, 's' => _styles_]
+     * Returns values and styles of cells as array:
+     *      'v' => _value_
+     *      's' => _styles_
+     *      'f' => _formula_
+     *      't' => _type_
+     *      'o' => _original_value_
      *
      * @return array
      */
-    public function readCellsWithStyles(): array
+    public function readCellsWithStyles($styleKey = null): array
     {
         $data = $this->readCells(true);
         foreach ($data as $cell => $cellData) {
             if (isset($cellData['s'])) {
-                $data[$cell]['s'] = $this->excel->getCompleteStyleByIdx($cellData['s']);
+                $style = $this->excel->getCompleteStyleByIdx($cellData['s']);
+                if ($styleKey && isset($style[$styleKey])) {
+                    $data[$cell]['s'] = [$styleKey => $style[$styleKey]];
+                }
+                else {
+                    $data[$cell]['s'] = $style;
+                }
             }
         }
 
