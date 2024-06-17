@@ -975,6 +975,16 @@ class Excel implements InterfaceBookReader
     }
 
     /**
+     * Array of all sheets
+     *
+     * @return Sheet[]
+     */
+    public function sheets(): array
+    {
+        return $this->sheets;
+    }
+
+    /**
      * @param string $areaRange
      * @param bool|null $firstRowKeys
      *
