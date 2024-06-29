@@ -73,7 +73,7 @@ class Sheet implements InterfaceSheetReader
      *
      * @return mixed
      */
-    protected function _cellValue($cell, &$additionalData = [])
+    protected function _cellValue($cell, ?array &$additionalData = [])
     {
         // Determine data type and style index
         $attributeT = $dataType = (string)$cell->getAttribute('t');
@@ -108,10 +108,14 @@ class Sheet implements InterfaceSheetReader
                 $cellValue = $str;
             }
         }
+        $formatCode = null;
         if (($cellValue !== null) && ($cellValue !== '') && ($dataType === '' || $dataType === 'n'  || $dataType === 's')) { // number or date as string
             if ($styleIdx > 0 && ($style = $this->excel->styleByIdx($styleIdx))) {
                 if (isset($style['formatType'])) {
                     $dataType = $style['formatType'];
+                }
+                if (isset($style['format'])) {
+                    $formatCode = $style['format'];
                 }
             }
         }
@@ -165,10 +169,10 @@ class Sheet implements InterfaceSheetReader
                 break;
 
             default:
-                if ($dataType === 'n') {
+                if ($dataType === 'n' || $dataType === 'number') {
                     $dataType = 'number';
                 }
-                elseif ($dataType === 's') {
+                elseif ($dataType === 's' || $dataType === 'string') {
                     $dataType = 'string';
                 }
                 if ($cellValue === null) {
@@ -179,7 +183,7 @@ class Sheet implements InterfaceSheetReader
                     $value = (string)$cellValue;
 
                     // Check for numeric values
-                    if (is_numeric($value)) {
+                    if ($dataType !== 'string' && is_numeric($value)) {
                         if (false !== $castedValue = filter_var($value, FILTER_VALIDATE_INT)) {
                             $value = $castedValue;
                             $dataType = 'number';
@@ -188,6 +192,11 @@ class Sheet implements InterfaceSheetReader
                             $value = $castedValue;
                             $dataType = 'number';
                         }
+                        /*
+                        if ($formatCode && preg_match('/\.(0+)$/', $formatCode, $m)) {
+                            $value = round($value, strlen($m[1]));
+                        }
+                        */
                     }
                 }
         }
@@ -265,7 +274,7 @@ class Sheet implements InterfaceSheetReader
             $this->_readHeader();
         }
 
-        return $this->active === 1;
+        return $this->active;
     }
 
     /**
@@ -304,10 +313,9 @@ class Sheet implements InterfaceSheetReader
                     }
                 }
                 if ($xmlReader->nodeType === \XMLReader::ELEMENT && $xmlReader->name === 'sheetView') {
-                    $this->active = (int)$xmlReader->getAttribute('sheetView');
+                    $this->active = (int)$xmlReader->getAttribute('tabSelected');
                 }
                 if ($xmlReader->nodeType === \XMLReader::ELEMENT && $xmlReader->name === 'col') {
-                    $this->active = (int)$xmlReader->getAttribute('sheetView');
                     if ($xmlReader->hasAttributes) {
                         $colAttributes = [];
                         while ($xmlReader->moveToNextAttribute()) {

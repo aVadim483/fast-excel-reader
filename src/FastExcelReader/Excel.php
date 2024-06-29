@@ -71,10 +71,6 @@ class Excel implements InterfaceBookReader
      */
     public function __construct(string $file = null)
     {
-        if ($file) {
-            $this->file = $file;
-            $this->_prepare($file);
-        }
         $this->builtinFormats = [
             0 => ['pattern' => 'General', 'category' => 'general'],
             1 => ['pattern' => '0', 'category' => 'number'],
@@ -131,6 +127,11 @@ class Excel implements InterfaceBookReader
             }
             return $value;
         };
+
+        if ($file) {
+            $this->file = $file;
+            $this->_prepare($file);
+        }
     }
 
     /**
@@ -290,23 +291,32 @@ class Excel implements InterfaceBookReader
         $styleType = '';
         while ($this->xmlReader->read()) {
             if ($this->xmlReader->nodeType === \XMLReader::ELEMENT) {
-                if ($this->xmlReader->name === 'cellStyleXfs' || $this->xmlReader->name === 'cellXfs') {
-                    $styleType = $this->xmlReader->name;
+                $nodeName = $this->xmlReader->name;
+                if ($nodeName === 'cellStyleXfs' || $nodeName === 'cellXfs') {
+                    $styleType = $nodeName;
                     continue;
                 }
-                if ($this->xmlReader->name === 'numFmt') {
+                if ($nodeName === 'numFmt') {
                     $numFmtId = (int)$this->xmlReader->getAttribute('numFmtId');
                     $formatCode = $this->xmlReader->getAttribute('formatCode');
                     $numFmts[$numFmtId] = $formatCode;
                 }
-                elseif ($this->xmlReader->name === 'xf') {
+                elseif ($nodeName === 'xf') {
                     $numFmtId = (int)$this->xmlReader->getAttribute('numFmtId');
                     $formatCode = $numFmts[$numFmtId] ?? '';
                     if ($this->_isDatePattern($numFmtId, $formatCode)) {
                         $this->styles[$styleType][] = ['format' => $formatCode, 'formatType' => 'd'];
                     }
                     elseif ($formatCode) {
-                        $this->styles[$styleType][] = ['format' => $formatCode];
+                        if ($this->_isNumberPattern($numFmtId, $formatCode)) {
+                            $this->styles[$styleType][] = ['format' => $formatCode, 'formatType' => 'n'];
+                        }
+                        else {
+                            $this->styles[$styleType][] = ['format' => $formatCode];
+                        }
+                    }
+                    elseif ($numFmtId > 0 && isset($this->builtinFormats[$numFmtId]['category'])) {
+                        $this->styles[$styleType][] = ['formatType' => $this->builtinFormats[$numFmtId]['category']];
                     }
                     else {
                         $this->styles[$styleType][] = null;
@@ -339,6 +349,21 @@ class Excel implements InterfaceBookReader
                 return true;
             }
             return (bool)preg_match('/yy|mm|dd|h|MM|ss|[\/\.][dm](;.+)?/', $pattern);
+        }
+
+        return false;
+    }
+
+    /**
+     * @param int|null $numFmtId
+     * @param string $pattern
+     *
+     * @return bool
+     */
+    protected function _isNumberPattern(?int $numFmtId, string $pattern): bool
+    {
+        if (preg_match('/^0+(\.0+)?$/', $pattern)) {
+            return true;
         }
 
         return false;
