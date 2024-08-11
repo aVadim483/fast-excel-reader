@@ -17,6 +17,8 @@ class Sheet implements InterfaceSheetReader
 
     protected string $name;
 
+    protected string $state = '';
+
     protected string $path;
 
     protected ?array $dimension = null;
@@ -256,6 +258,8 @@ class Sheet implements InterfaceSheetReader
     }
 
     /**
+     * Case-insensitive name checking
+     *
      * @param string $name
      *
      * @return bool
@@ -275,6 +279,42 @@ class Sheet implements InterfaceSheetReader
         }
 
         return $this->active;
+    }
+
+    /**
+     * @param string $state
+     *
+     * @return $this
+     */
+    public function setState(string $state): Sheet
+    {
+        $this->state = $state;
+
+        return $this;
+    }
+
+    /**
+     * @return string
+     */
+    public function state(): string
+    {
+        return $this->state;
+    }
+
+    /**
+     * @return bool
+     */
+    public function isVisible(): bool
+    {
+        return !$this->state || $this->state === 'visible';
+    }
+
+    /**
+     * @return bool
+     */
+    public function isHidden(): bool
+    {
+        return $this->state === 'hidden' || $this->state === 'veryHidden';
     }
 
     /**

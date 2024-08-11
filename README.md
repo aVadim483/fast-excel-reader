@@ -1,7 +1,7 @@
-[![Latest Stable Version](http://poser.pugx.org/avadim/fast-excel-reader/v)](https://packagist.org/packages/avadim/fast-excel-reader)
-[![Total Downloads](http://poser.pugx.org/avadim/fast-excel-reader/downloads)](https://packagist.org/packages/avadim/fast-excel-reader)
-[![License](http://poser.pugx.org/avadim/fast-excel-reader/license)](https://packagist.org/packages/avadim/fast-excel-reader)
-[![PHP Version Require](http://poser.pugx.org/avadim/fast-excel-reader/require/php)](https://packagist.org/packages/avadim/fast-excel-reader)
+[![GitHub Release](https://img.shields.io/github/v/release/aVadim483/fast-excel-reader)](https://packagist.org/packages/avadim/fast-excel-reader)
+[![Packagist Downloads](https://img.shields.io/packagist/dt/avadim/fast-excel-reader?color=%23aa00aa)](https://packagist.org/packages/avadim/fast-excel-reader)
+[![GitHub License](https://img.shields.io/github/license/aVadim483/fast-excel-reader)](https://packagist.org/packages/avadim/fast-excel-reader)
+[![Static Badge](https://img.shields.io/badge/php-%3E%3D7.4-005fc7)](https://packagist.org/packages/avadim/fast-excel-reader)
 
 # FastExcelReader
 
@@ -573,6 +573,10 @@ But we do not recommend using these methods with large files
 
 ### Sheet object
 * ```name()``` -- Returns name of string
+* ```isActive()``` -- Active worksheet
+* ```isHidden()``` -- If worksheet is hidden
+* ```isVisible()``` -- If worksheet is visible
+* ```state()``` -- Returns string state of worksheet (used in ```isHidden()``` and ```isVisible()```)
 * ```dimension()``` -- Returns dimension of default work area from sheet properties
 * ```countRows()``` -- Count rows from dimension
 * ```countColumns()``` -- Count columns from dimension

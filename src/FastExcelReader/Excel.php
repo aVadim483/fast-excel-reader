@@ -210,6 +210,9 @@ class Excel implements InterfaceBookReader
                         if ($this->sheets[$sheetId]->isActive()) {
                             $this->defaultSheetId = $sheetId;
                         }
+                        if ($state = $this->xmlReader->getAttribute('state')) {
+                            $this->sheets[$sheetId]->setState($state);
+                        }
                     }
                 }
                 elseif ($this->xmlReader->name === 'definedName') {
