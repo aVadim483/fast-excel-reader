@@ -337,6 +337,9 @@ class Sheet implements InterfaceSheetReader
     protected function _readHeader()
     {
         if (!isset($this->dimension['range'])) {
+            $this->dimension = [
+                'range' => '',
+            ];
             $xmlReader = $this->getReader();
             $xmlReader->openZip($this->path);
             while ($xmlReader->read()) {
@@ -345,11 +348,6 @@ class Sheet implements InterfaceSheetReader
                     if ($range) {
                         $this->dimension = Helper::rangeArray($range);
                         $this->dimension['range'] = $range;
-                    }
-                    else {
-                        $this->dimension = [
-                            'range' => '',
-                        ];
                     }
                 }
                 if ($xmlReader->nodeType === \XMLReader::ELEMENT && $xmlReader->name === 'sheetView') {
