@@ -628,17 +628,19 @@ class Excel implements InterfaceBookReader
         $result = true;
         $xmlReader = self::createReader($file, [\XMLReader::VALIDATE => true]);
 
-        $fileList = $xmlReader->fileList();
-        \libxml_use_internal_errors(true);
-        foreach ($fileList as $innerFile) {
-            $ext = pathinfo($innerFile, PATHINFO_EXTENSION);
-            if (in_array($ext, ['xml', 'rels', 'vml'])) {
-                $zipFile = 'zip://' . $file . '#' . $innerFile;
-                $dom = new \DOMDocument;
-                $dom->load($zipFile);
-                $errors = \libxml_get_errors();
-                if ($errors) {
-                    $result = false;
+        if (extension_loaded('dom') && extension_loaded('libxml') && function_exists('libxml_use_internal_errors')) {
+            $fileList = $xmlReader->fileList();
+            \libxml_use_internal_errors(true);
+            foreach ($fileList as $innerFile) {
+                $ext = pathinfo($innerFile, PATHINFO_EXTENSION);
+                if (in_array($ext, ['xml', 'rels', 'vml'])) {
+                    $zipFile = 'zip://' . $file . '#' . $innerFile;
+                    $dom = new \DOMDocument;
+                    $dom->load($zipFile);
+                    $errors = \libxml_get_errors();
+                    if ($errors) {
+                        $result = false;
+                    }
                 }
             }
         }
@@ -698,6 +700,8 @@ class Excel implements InterfaceBookReader
     }
 
     /**
+     * Convert date to timestamp
+     *
      * @param $excelDateTime
      *
      * @return int
@@ -1186,6 +1190,8 @@ class Excel implements InterfaceBookReader
     }
 
     /**
+     * Returns the total count of images in the workbook
+     *
      * @return int
      */
     public function countImages(): int
@@ -1201,6 +1207,8 @@ class Excel implements InterfaceBookReader
     }
 
     /**
+     * Returns the list of images from the workbook
+     *
      * @return array
      */
     public function getImageList(): array
@@ -1215,6 +1223,9 @@ class Excel implements InterfaceBookReader
         return $result;
     }
 
+    /**
+     * @return array
+     */
     public function readStyles(): array
     {
         if (!isset($this->styles['_'])) {

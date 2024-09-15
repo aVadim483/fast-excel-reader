@@ -135,6 +135,9 @@ class Sheet implements InterfaceSheetReader
             case 'inlineStr':
                 // Value is rich text inline
                 $value = $cell->textContent;
+                if ($value && $originalValue === null) {
+                    $originalValue = $value;
+                }
                 $dataType = 'string';
                 break;
 
@@ -830,6 +833,8 @@ class Sheet implements InterfaceSheetReader
      *      'f' => _formula_
      *      't' => _type_
      *      'o' => _original_value_
+     *
+     * @param $styleKey
      *
      * @return array
      */
