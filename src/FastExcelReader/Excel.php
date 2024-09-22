@@ -102,23 +102,25 @@ class Excel implements InterfaceBookReader
             49 => ['pattern' => '@', 'category' => 'string'],
         ];
 
-        $formatter = new \IntlDateFormatter(null, \IntlDateFormatter::SHORT, \IntlDateFormatter::NONE);
-        $pattern = $formatter->getPattern();
-        $this->builtinFormats[14]['pattern'] = str_replace('#', 'yy', str_replace(['M', 'y'], ['m', 'yyyy'], str_replace('yy', '#', $pattern)));
-        if (preg_match('/([^a-z])/i', $pattern, $m)) {
-            $dateDelim = $m[1];
-            $this->builtinFormats[15]['pattern'] = str_replace('-', $dateDelim, $this->builtinFormats[15]['pattern']);
-            $this->builtinFormats[16]['pattern'] = str_replace('-', $dateDelim, $this->builtinFormats[16]['pattern']);
-            $this->builtinFormats[17]['pattern'] = str_replace('-', $dateDelim, $this->builtinFormats[17]['pattern']);
+        if (class_exists('IntlDateFormatter', false)) {
+            $formatter = new \IntlDateFormatter(null, \IntlDateFormatter::SHORT, \IntlDateFormatter::NONE);
+            $pattern = $formatter->getPattern();
+            $this->builtinFormats[14]['pattern'] = str_replace('#', 'yy', str_replace(['M', 'y'], ['m', 'yyyy'], str_replace('yy', '#', $pattern)));
+            if (preg_match('/([^a-z])/i', $pattern, $m)) {
+                $dateDelim = $m[1];
+                $this->builtinFormats[15]['pattern'] = str_replace('-', $dateDelim, $this->builtinFormats[15]['pattern']);
+                $this->builtinFormats[16]['pattern'] = str_replace('-', $dateDelim, $this->builtinFormats[16]['pattern']);
+                $this->builtinFormats[17]['pattern'] = str_replace('-', $dateDelim, $this->builtinFormats[17]['pattern']);
+            }
+
+            $formatter = new \IntlDateFormatter(null, \IntlDateFormatter::NONE, \IntlDateFormatter::SHORT);
+            $this->builtinFormats[20]['pattern'] = str_replace('HH', 'h', $formatter->getPattern());
+
+            $formatter = new \IntlDateFormatter(null, \IntlDateFormatter::NONE, \IntlDateFormatter::MEDIUM);
+            $this->builtinFormats[21]['pattern'] = str_replace('HH', 'h', $formatter->getPattern());
+
+            $this->builtinFormats[22]['pattern'] = $this->builtinFormats[14]['pattern'] . ' ' . $this->builtinFormats[20]['pattern'];
         }
-
-        $formatter = new \IntlDateFormatter(null, \IntlDateFormatter::NONE, \IntlDateFormatter::SHORT);
-        $this->builtinFormats[20]['pattern'] = str_replace('HH', 'h', $formatter->getPattern());
-
-        $formatter = new \IntlDateFormatter(null, \IntlDateFormatter::NONE, \IntlDateFormatter::MEDIUM);
-        $this->builtinFormats[21]['pattern'] = str_replace('HH', 'h', $formatter->getPattern());
-
-        $this->builtinFormats[22]['pattern'] = $this->builtinFormats[14]['pattern'] . ' ' . $this->builtinFormats[20]['pattern'];
 
         $this->timezone = date_default_timezone_get();
         $this->dateFormatter = function ($value, $format = null) {
