@@ -212,6 +212,16 @@ final class FastExcelReaderTest extends TestCase
         $this->assertEquals('image1.jpeg', $result['Sheet1']['C2']['file_name']);
     }
 
+    public function testExcelReader03Excel365()
+    {
+        $file = self::DEMO_DIR . 'demo-03-images-excel-365.xlsx';
+        $excel = Excel::open($file);
+        $this->assertEquals(2, $excel->countImages());
+
+        $this->assertFalse($excel->sheet()->hasImage('c1'));
+        $this->assertTrue($excel->sheet()->hasImage('c2'));
+    }
+
     public function testExcelReader04()
     {
         $file = self::DEMO_DIR . 'demo-04-styles.xlsx';
