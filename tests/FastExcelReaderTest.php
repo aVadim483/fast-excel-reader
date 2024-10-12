@@ -220,6 +220,7 @@ final class FastExcelReaderTest extends TestCase
 
         $this->assertFalse($excel->sheet()->hasImage('c1'));
         $this->assertTrue($excel->sheet()->hasImage('c2'));
+        $this->assertTrue($excel->sheet()->hasImage('C3'));
     }
 
     public function testExcelReader04()

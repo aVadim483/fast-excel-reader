@@ -19,7 +19,7 @@ class Sheet implements InterfaceSheetReader
 
     protected string $state = '';
 
-    protected string $path;
+    protected string $pathInZip;
 
     protected ?array $dimension = null;
 
@@ -30,6 +30,8 @@ class Sheet implements InterfaceSheetReader
 
     protected array $props = [];
 
+    protected array $images = [];
+
     protected ?array $mergedCells = null;
 
     /** @var Reader */
@@ -37,8 +39,12 @@ class Sheet implements InterfaceSheetReader
 
     protected int $readRowNum = 0;
 
+    /** @var mixed */
     protected $preReadFunc = null;
+
+    /** @var mixed */
     protected $postReadFunc = null;
+
     protected array $readNodeFunc = [];
 
     /**
@@ -50,6 +56,8 @@ class Sheet implements InterfaceSheetReader
 
     protected array $sharedFormulas = [];
 
+    protected int $countImages = -1; // -1 - unknown
+
 
     public function __construct($sheetName, $sheetId, $file, $path, $excel)
     {
@@ -57,7 +65,7 @@ class Sheet implements InterfaceSheetReader
         $this->name = $sheetName;
         $this->sheetId = $sheetId;
         $this->zipFilename = $file;
-        $this->path = $path;
+        $this->pathInZip = $path;
 
         $this->area = [
             'row_min' => 1,
@@ -257,7 +265,7 @@ class Sheet implements InterfaceSheetReader
      */
     public function path(): string
     {
-        return $this->path;
+        return $this->pathInZip;
     }
 
     /**
@@ -344,7 +352,7 @@ class Sheet implements InterfaceSheetReader
                 'range' => '',
             ];
             $xmlReader = $this->getReader();
-            $xmlReader->openZip($this->path);
+            $xmlReader->openZip($this->pathInZip);
             while ($xmlReader->read()) {
                 if ($xmlReader->nodeType === \XMLReader::ELEMENT && $xmlReader->name === 'dimension') {
                     $range = (string)$xmlReader->getAttribute('ref');
@@ -379,7 +387,7 @@ class Sheet implements InterfaceSheetReader
     {
         if ($this->mergedCells === null) {
             $xmlReader = $this->getReader();
-            $xmlReader->openZip($this->path);
+            $xmlReader->openZip($this->pathInZip);
             while ($xmlReader->read()) {
                 if ($xmlReader->nodeType === \XMLReader::END_ELEMENT && $xmlReader->name === 'sheetData') {
                     break;
@@ -966,7 +974,7 @@ class Sheet implements InterfaceSheetReader
         $this->readRowNum = $this->countReadRows = 0;
 
         $xmlReader = $this->getReader();
-        $xmlReader->openZip($this->path);
+        $xmlReader->openZip($this->pathInZip);
 
         $rowData = $rowTemplate;
         $rowNum = 0;
@@ -1210,9 +1218,24 @@ class Sheet implements InterfaceSheetReader
      */
     protected function drawingFilename(): ?string
     {
-        $findName = str_replace('/worksheets/sheet', '/drawings/drawing', $this->path);
+        $findName = str_replace('/worksheets/sheet', '/drawings/drawing', $this->pathInZip);
 
         return in_array($findName, $this->excel->innerFileList(), true) ? $findName : null;
+    }
+
+    /**
+     * @param string $cell
+     * @param string $fileName
+     * @param string|null $imageName
+     *
+     * @return void
+     */
+    protected function addImage(string $cell, string $fileName, ?string $imageName = null)
+    {
+        $this->images[$cell] = [
+            'image_name' => $imageName,
+            'file_name' => $fileName,
+        ];
     }
 
     /**
@@ -1293,10 +1316,36 @@ class Sheet implements InterfaceSheetReader
                 }
                 $result['images'][$addr] = $media;
                 $result['rows'][$media['row']][] = $addr;
+                $this->addImage($addr, basename($media['target']), $media['name']);
             }
         }
 
         return $result;
+    }
+
+    protected function extractRichValueImages()
+    {
+        $xmlReader = $this->getReader();
+        $xmlReader->openZip($this->pathInZip);
+        while ($xmlReader->read()) {
+            // seek <sheetData>
+            if ($xmlReader->name === 'sheetData') {
+                break;
+            }
+        }
+        while ($xmlReader->read()) {
+            // loop until </sheetData>
+            if ($xmlReader->name === 'sheetData' && $xmlReader->nodeType === \XMLReader::END_ELEMENT) {
+                break;
+            }
+            if ($xmlReader->name === 'c' && $xmlReader->nodeType === \XMLReader::ELEMENT) {
+                $vm = (string)$xmlReader->getAttribute('vm');
+                $cell = (string)$xmlReader->getAttribute('r');
+                if ($vm && ($imageFile = $this->excel->metadataImage($vm))) {
+                    $this->addImage($cell, basename($imageFile));
+                }
+            }
+        }
     }
 
     /**
@@ -1308,9 +1357,29 @@ class Sheet implements InterfaceSheetReader
     }
 
     /**
+     * Count images of the sheet
+     *
      * @return int
      */
     public function countImages(): int
+    {
+        if ($this->countImages === -1) {
+            $this->_countDrawingsImages();
+            if ($this->excel->hasExtraImages()) {
+                $this->extractRichValueImages();
+            }
+            $this->countImages = count($this->images);
+        }
+
+        return $this->countImages;
+    }
+
+    /**
+     * Count images form drawings of the sheet
+     *
+     * @return int
+     */
+    public function _countDrawingsImages(): int
     {
         $result = 0;
         if ($this->hasDrawings()) {
@@ -1333,19 +1402,26 @@ class Sheet implements InterfaceSheetReader
     /**
      * @return array
      */
-    public function getImageList(): array
+    public function _getDrawingsImageFiles(): array
     {
         $result = [];
-        if ($this->countImages()) {
-            foreach ($this->props['drawings']['images'] as $addr => $image) {
-                $result[$addr] = [
-                    'image_name' => $image['name'],
-                    'file_name' => basename($image['target']),
-                ];
-            }
+        if ($this->_countDrawingsImages()) {
+            $result = array_column($this->props['drawings']['images'], 'target');
         }
 
         return $result;
+    }
+
+    /**
+     * @return array
+     */
+    public function getImageList(): array
+    {
+        if ($this->countImages()) {
+            return $this->images;
+        }
+
+        return [];
     }
 
     /**
@@ -1380,8 +1456,7 @@ class Sheet implements InterfaceSheetReader
     public function hasImage(string $cell): bool
     {
         if ($this->countImages()) {
-
-            return isset($this->props['drawings']['images'][strtoupper($cell)]);
+            return isset($this->images[strtoupper($cell)]);
         }
 
         return false;

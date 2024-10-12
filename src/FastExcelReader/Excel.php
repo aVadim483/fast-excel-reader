@@ -45,6 +45,8 @@ class Excel implements InterfaceBookReader
 
     protected array $styles = [];
 
+    protected array $valueMetadataImages = [];
+
     /** @var Sheet[] */
     protected array $sheets = [];
 
@@ -63,6 +65,9 @@ class Excel implements InterfaceBookReader
     protected array $names = [];
 
     protected ?array $themeColors = null;
+
+    protected int $countImages = -1; // -1 - unknown
+
 
     /**
      * Excel constructor
@@ -175,6 +180,9 @@ class Excel implements InterfaceBookReader
         }
         if (isset($this->relations['styles'])) {
             $this->_loadStyles(reset($this->relations['styles']));
+        }
+        if (isset($this->relations['sheetMetadata'], $this->relations['richValueRel'])) {
+            $this->_loadMetadataImages(reset($this->relations['sheetMetadata']), reset($this->relations['richValueRel']));
         }
 
         if ($this->sheets) {
@@ -330,6 +338,99 @@ class Excel implements InterfaceBookReader
             }
         }
         $this->xmlReader->close();
+    }
+
+    /**
+     * @param string|null $metadataFile
+     */
+    protected function _loadMetadataImages(string $metadataFile, string $richValueRelFile)
+    {
+        $this->xmlReader->openZip($metadataFile);
+        $metadataTypesCount = 0;
+        $metadataTypes = [];
+        while ($this->xmlReader->read()) {
+            if ($this->xmlReader->name === 'metadataType') {
+                if ($this->xmlReader->nodeType === \XMLReader::ELEMENT) {
+                    $metadataTypesCount++;
+                    if ((string)$this->xmlReader->getAttribute('name') === 'XLRICHVALUE') {
+                        // we need only <metadataType name="XLRICHVALUE" ...>
+                        $metadataTypes[$metadataTypesCount] = 'XLRICHVALUE';
+                    }
+                }
+                else {
+                    break;
+                }
+            }
+        }
+        $futureMetadata = [];
+        while ($this->xmlReader->read()) {
+            if ($this->xmlReader->name === 'futureMetadata') {
+                if ($this->xmlReader->nodeType === \XMLReader::ELEMENT && (string)$this->xmlReader->getAttribute('name') === 'XLRICHVALUE') {
+                    while ($this->xmlReader->read()) {
+                        if ($this->xmlReader->name === 'xlrd:rvb') {
+                            $futureMetadata[] = (int)$this->xmlReader->getAttribute('i');
+                        }
+                        elseif ($this->xmlReader->name === 'futureMetadata' && $this->xmlReader->nodeType === \XMLReader::END_ELEMENT) {
+                            break 2;
+                        }
+                    }
+                }
+                elseif ($this->xmlReader->nodeType === \XMLReader::END_ELEMENT) {
+                    break;
+                }
+            }
+        }
+
+        while ($this->xmlReader->read()) {
+            if ($this->xmlReader->name === 'rc') {
+                $type = (int)$this->xmlReader->getAttribute('t');
+                $value = (int)$this->xmlReader->getAttribute('v');
+                if (isset($metadataTypes[$type])) { // metadataType name="XLRICHVALUE"
+                    if (isset($futureMetadata[$value])) {
+                        $this->valueMetadataImages[] = ['i' => $futureMetadata[$value]];
+                    }
+                }
+            }
+        }
+        $this->xmlReader->close();
+
+        $this->xmlReader->openZip($richValueRelFile);
+        $count = 0;
+        while ($this->xmlReader->read()) {
+            if ($this->xmlReader->name === 'rel' && ($rId = $this->xmlReader->getAttribute('r:id'))) {
+                $this->valueMetadataImages[$count++]['r_id'] = $rId;
+            }
+        }
+        $this->xmlReader->close();
+
+        $images = [];
+        $xmlRels = 'xl/richData/_rels/richValueRel.xml.rels';
+        $this->xmlReader->openZip($xmlRels);
+        while ($this->xmlReader->read()) {
+            if ($this->xmlReader->name === 'Relationship' && $this->xmlReader->nodeType === \XMLReader::ELEMENT && ($Id = (string)$this->xmlReader->getAttribute('Id'))) {
+                if (substr((string)$this->xmlReader->getAttribute('Type'), -6) === '/image') {
+                    $images[$Id] = (string)$this->xmlReader->getAttribute('Target');
+                }
+            }
+        }
+        $this->xmlReader->close();
+
+        foreach ($this->valueMetadataImages as $index => $metadataImage) {
+            $rId = $this->valueMetadataImages[$index]['r_id'];
+            if (isset($images[$rId])) {
+                $this->valueMetadataImages[$index]['file_name'] = str_replace('../media/', 'xl/media/', $images[$rId]);
+            }
+        }
+    }
+
+    /**
+     * @param int $vmIndex
+     *
+     * @return string|null
+     */
+    public function metadataImage(int $vmIndex): ?string
+    {
+        return $this->valueMetadataImages[$vmIndex - 1]['file_name'] ?? null;
     }
 
     /**
@@ -1192,20 +1293,40 @@ class Excel implements InterfaceBookReader
     }
 
     /**
+     * @return array
+     */
+    public function mediaImageFiles(): array
+    {
+        $result = [];
+        if (!empty($this->relations['media'])) {
+            foreach ($this->relations['media'] as $mediaFile) {
+                $extension = strtolower(pathinfo($mediaFile, PATHINFO_EXTENSION));
+                if (in_array($extension, ['jpg', 'jpeg', 'png', 'bmp', 'ico', 'webp', 'tif', 'tiff', 'gif'])) {
+                    $result[] = basename($mediaFile);
+                }
+            }
+        }
+
+        return $result;
+    }
+
+    /**
      * Returns the total count of images in the workbook
      *
      * @return int
      */
     public function countImages(): int
     {
-        $result = 0;
-        if ($this->hasDrawings()) {
-            foreach ($this->sheets as $sheet) {
-                $result += $sheet->countImages();
+        if ($this->countImages === -1) {
+            $this->countImages = 0;
+            if ($this->hasDrawings() || $this->mediaImageFiles()) {
+                foreach ($this->sheets as $sheet) {
+                    $this->countImages += $sheet->countImages();
+                }
             }
         }
 
-        return $result;
+        return $this->countImages;
     }
 
     /**
@@ -1216,13 +1337,32 @@ class Excel implements InterfaceBookReader
     public function getImageList(): array
     {
         $result = [];
-        if ($this->hasDrawings()) {
+        if ($this->countImages()) {
             foreach ($this->sheets as $sheet) {
                 $result[$sheet->name()] = $sheet->getImageList();
             }
         }
 
         return $result;
+    }
+
+    /**
+     * @return bool
+     */
+    public function hasExtraImages(): bool
+    {
+        $drawingImageFiles = [];
+        if ($this->hasDrawings()) {
+            foreach ($this->sheets as $sheet) {
+                $imageFiles = $sheet->_getDrawingsImageFiles();
+                if ($imageFiles) {
+                    $drawingImageFiles += $imageFiles;
+                }
+            }
+        }
+        $imageFiles = $this->mediaImageFiles();
+
+        return (count($imageFiles) !== count($drawingImageFiles));
     }
 
     /**
