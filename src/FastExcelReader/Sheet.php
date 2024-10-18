@@ -1604,7 +1604,7 @@ class Sheet implements InterfaceSheetReader
     public function extractDataValidations(): void
     {
         $validations = [];
-        $xmlReader = new \XMLReader();
+        $xmlReader = $this->getReader();
         $xmlReader->openZip($this->pathInZip);
 
         while ($xmlReader->read()) {
@@ -1635,7 +1635,7 @@ class Sheet implements InterfaceSheetReader
     /**
      * Parse standard <dataValidation>
      *
-     * @param \XMLReader $xmlReader
+     * @param InterfaceXmlReader $xmlReader
      *
      * @return array{
      *    type: string,
@@ -1644,7 +1644,7 @@ class Sheet implements InterfaceSheetReader
      *    formula2: ?string,
      *  }
      */
-    protected function parseDataValidation(\XMLReader $xmlReader): ?array
+    protected function parseDataValidation(InterfaceXmlReader $xmlReader): ?array
     {
         $type = $xmlReader->getAttribute('type');
         $sqref = $xmlReader->getAttribute('sqref');
@@ -1676,7 +1676,7 @@ class Sheet implements InterfaceSheetReader
     /**
      * Parse extended <x14:dataValidation>
      *
-     * @param \XMLReader $xmlReader
+     * @param InterfaceXmlReader $xmlReader
      *
      * @return array{
      *    type: string,
@@ -1685,7 +1685,7 @@ class Sheet implements InterfaceSheetReader
      *    formula2: ?string,
      *  }
      */
-    protected function parseExtendedDataValidation(\XMLReader $xmlReader): array
+    protected function parseExtendedDataValidation(InterfaceXmlReader $xmlReader): array
     {
         $type = $xmlReader->getAttribute('type');
         $sqref = null;

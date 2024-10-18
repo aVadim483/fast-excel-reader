@@ -263,6 +263,36 @@ final class FastExcelReaderTest extends TestCase
         $this->assertEquals('#000000', $cells['A6']['border-top-color']);
     }
 
+    public function testExcelReader06(): void
+    {
+        $file = self::DEMO_DIR . 'demo-06-data-validation.xlsx';
+        $excel = Excel::open($file);
+        $sheet = $excel->getSheet('report');
+
+        $validations = $sheet->getDataValidations();
+
+        $expected = [
+            [
+                'type' => 'decimal',
+                'sqref' => 'G2:G527',
+                'formula1' => '0.0',
+                'formula2' => '999999.0',
+            ], [
+                'type' => 'list',
+                'sqref' => 'E2:E527',
+                'formula1' => '"Berlin,Cape Town,Mexico City,Moscow,Sydney,Tokyo"',
+                'formula2' => null,
+            ], [
+                'type' => 'custom',
+                'sqref' => 'D2:D527',
+                'formula1' => 'OR(NOT(ISERROR(DATEVALUE(D2))), AND(ISNUMBER(D2), LEFT(CELL("format", D2))="D"))',
+                'formula2' => null,
+            ],
+        ];
+
+        $this->assertEquals($expected, $validations);
+    }
+
     public function testDateFormatter()
     {
         // =====================
