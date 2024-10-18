@@ -58,6 +58,15 @@ class Sheet implements InterfaceSheetReader
 
     protected int $countImages = -1; // -1 - unknown
 
+    /**
+     * @var array<array{
+     *  type: string,
+     *  sqref: string,
+     *  formula1: ?string,
+     *  formula2: ?string,
+     * }>|null
+     */
+    protected ?array $validations = null;
 
     public function __construct($sheetName, $sheetId, $file, $path, $excel)
     {
@@ -1570,5 +1579,160 @@ class Sheet implements InterfaceSheetReader
         $filename = basename($this->props['drawings']['images'][strtoupper($cell)]['target']);
 
         return $this->saveImage($cell, str_replace(['\\', '/'], '', $dirname) . DIRECTORY_SEPARATOR . $filename);
+    }
+
+    /**
+     * Returns an array of data validation rules found in the sheet
+     *
+     * @return array<array{
+     *   type: string,
+     *   sqref: string,
+     *   formula1: ?string,
+     *   formula2: ?string,
+     *  }>
+     */
+    public function getDataValidations(): array
+    {
+        if ($this->validations === null) {
+            $this->extractDataValidations();
+        }
+
+        return $this->validations;
+    }
+
+    /** Extracts data validation rules from the sheet */
+    public function extractDataValidations(): void
+    {
+        $validations = [];
+        $xmlReader = $this->getReader();
+        $xmlReader->openZip($this->pathInZip);
+
+        while ($xmlReader->read()) {
+            if ($xmlReader->nodeType === \XMLReader::ELEMENT) {
+                // Standard data validation
+                if ($xmlReader->name === 'dataValidation') {
+                    $validation = $this->parseDataValidation($xmlReader);
+                    if ($validation) {
+                        $validations[] = $validation;
+                    }
+                }
+
+                // Extended data validation
+                if ($xmlReader->name === 'x14:dataValidation') {
+                    $validation = $this->parseExtendedDataValidation($xmlReader);
+                    if ($validation) {
+                        $validations[] = $validation;
+                    }
+                }
+            }
+        }
+
+        $xmlReader->close();
+
+        $this->validations = $validations;
+    }
+
+    /**
+     * Parse standard <dataValidation>
+     *
+     * @param InterfaceXmlReader $xmlReader
+     *
+     * @return array{
+     *    type: string,
+     *    sqref: string,
+     *    formula1: ?string,
+     *    formula2: ?string,
+     *  }
+     */
+    protected function parseDataValidation(InterfaceXmlReader $xmlReader): ?array
+    {
+        $type = $xmlReader->getAttribute('type');
+        $sqref = $xmlReader->getAttribute('sqref');
+        $formula1 = null;
+        $formula2 = null;
+
+        // Handle child nodes like formula1 and formula2
+        while ($xmlReader->read()) {
+            if ($xmlReader->nodeType === \XMLReader::ELEMENT && $xmlReader->name === 'formula1') {
+                $xmlReader->read();
+                $formula1 = $xmlReader->value;
+            } elseif ($xmlReader->nodeType === \XMLReader::ELEMENT && $xmlReader->name === 'formula2') {
+                $xmlReader->read();
+                $formula2 = $xmlReader->value;
+            }
+            if ($xmlReader->nodeType === \XMLReader::END_ELEMENT && $xmlReader->name === 'dataValidation') {
+                break;
+            }
+        }
+
+        return [
+            'type' => $type,
+            'sqref' => $sqref,
+            'formula1' => $formula1,
+            'formula2' => $formula2
+        ];
+    }
+
+    /**
+     * Parse extended <x14:dataValidation>
+     *
+     * @param InterfaceXmlReader $xmlReader
+     *
+     * @return array{
+     *    type: string,
+     *    sqref: string,
+     *    formula1: ?string,
+     *    formula2: ?string,
+     *  }
+     */
+    protected function parseExtendedDataValidation(InterfaceXmlReader $xmlReader): array
+    {
+        $type = $xmlReader->getAttribute('type');
+        $sqref = null;
+        $formula1 = null;
+        $formula2 = null;
+
+        // Parse the attributes within the <x14:dataValidation> tag
+        while ($xmlReader->read()) {
+            // Parse the sqref (cell range)
+            if ($xmlReader->nodeType === \XMLReader::ELEMENT && $xmlReader->name === 'xm:sqref') {
+                $xmlReader->read();
+                $sqref = $xmlReader->value;
+            }
+
+            // Capture formula1 and extract inner <xm:f> value
+            if ($xmlReader->nodeType === \XMLReader::ELEMENT && $xmlReader->name === 'x14:formula1') {
+                while ($xmlReader->read()) {
+                    if ($xmlReader->nodeType === \XMLReader::ELEMENT && $xmlReader->name === 'xm:f') {
+                        $xmlReader->read();
+                        $formula1 = $xmlReader->value;
+                        break;
+                    }
+                }
+            }
+
+            // Capture formula2 and extract inner <xm:f> value
+            if ($xmlReader->nodeType === \XMLReader::ELEMENT && $xmlReader->name === 'x14:formula2') {
+                while ($xmlReader->read()) {
+                    if ($xmlReader->nodeType === \XMLReader::ELEMENT && $xmlReader->name === 'xm:f') {
+                        $xmlReader->read();
+                        $formula2 = $xmlReader->value;
+                        break;
+                    }
+                }
+            }
+
+            // Break when reaching the end of <x14:dataValidation>
+            if ($xmlReader->nodeType === \XMLReader::END_ELEMENT && $xmlReader->name === 'x14:dataValidation') {
+                break;
+            }
+        }
+
+        return [
+            'type' => $type,
+            'sqref' => $sqref,
+            'formula1' => $formula1,
+            'formula2' => $formula2
+        ];
     }
 }

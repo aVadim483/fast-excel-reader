@@ -44,6 +44,7 @@ Jump to:
 * [Images functions](#images-functions)
 * [Cell value types](#cell-value-types)
 * [How to get complete info about the cell style](#how-to-get-complete-info-about-the-cell-style)
+* [Retrieve data validation rules](#retrieve-data-validation-rules)
 * [Some useful methods](#some-useful-methods)
 
 ## Usage
@@ -558,6 +559,32 @@ array (
  */
 ```
 But we do not recommend using these methods with large files
+
+## Retrieve data validation rules
+Every sheet in your XLSX file can contain a set of data validation rules. To retrieve them, you can imply call `getDataValidations` on your sheet
+
+```php
+$excel = Excel::open($file);
+
+$sheet = $excel->sheet();
+
+$validations = $sheet->getDataValidations();
+/*
+[
+  [
+    'type' => 'list',
+    'sqref' => 'E2:E527',
+    'formula1' => '"Berlin,Cape Town,Mexico City,Moscow,Sydney,Tokyo"',
+    'formula2' => null, 
+  ], [
+    'type' => 'decimal',
+    'sqref' => 'G2:G527',
+    'formula1' => '0.0',
+    'formula2' => '999999.0',
+  ],
+]
+*/
+```
 
 ## Some useful methods
 ### Excel object
