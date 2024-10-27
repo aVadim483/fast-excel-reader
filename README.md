@@ -39,6 +39,7 @@ Jump to:
 * [Simple example](#simple-example)
 * [Read values row by row in loop](#read-values-row-by-row-in-loop)
 * [Keys in resulting arrays](#keys-in-resulting-arrays)
+* [Empty cells & rows](#empty-cells--rows)
 * [Advanced example](#advanced-example)
 * [Date Formatter](#date-formatter)
 * [Images functions](#images-functions)
