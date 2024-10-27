@@ -32,6 +32,11 @@ class Excel implements InterfaceBookReader
     // ['__cells' => [...], '__row' => [...]]
     public const RESULT_MODE_ROW = 1024;
 
+    public const TRIM_STRINGS = 2048;
+    public const TREAT_EMPTY_STRING_AS_EMPTY_CELL = 4096;
+
+
+
     protected string $file;
 
     /** @var Reader */
@@ -172,17 +177,32 @@ class Excel implements InterfaceBookReader
         if (isset($this->relations['worksheet'])) {
             $this->_loadSheets();
         }
+
         if (isset($this->relations['sharedStrings'])) {
-            $this->_loadSharedStrings(reset($this->relations['sharedStrings']));
+            $innerFile = $this->checkInnerFile(reset($this->relations['sharedStrings']));
+            if ($innerFile) {
+                $this->_loadSharedStrings($innerFile);
+            }
         }
+
         if (isset($this->relations['theme'])) {
-            $this->_loadThemes(reset($this->relations['theme']));
+            $innerFile = $this->checkInnerFile(reset($this->relations['theme']));
+            if ($innerFile) {
+                $this->_loadThemes($innerFile);
+            }
         }
+
         if (isset($this->relations['styles'])) {
-            $this->_loadStyles(reset($this->relations['styles']));
+            $innerFile = $this->checkInnerFile(reset($this->relations['styles']));
+            if ($innerFile) {
+                $this->_loadStyles($innerFile);
+            }
         }
+
         if (isset($this->relations['sheetMetadata'], $this->relations['richValueRel'])) {
-            $this->_loadMetadataImages(reset($this->relations['sheetMetadata']), reset($this->relations['richValueRel']));
+            $metadataFile = $this->checkInnerFile(reset($this->relations['sheetMetadata']));
+            $richValueRelFile = $this->checkInnerFile(reset($this->relations['richValueRel']));
+            $this->_loadMetadataImages($metadataFile, $richValueRelFile);
         }
 
         if ($this->sheets) {
@@ -192,13 +212,23 @@ class Excel implements InterfaceBookReader
     }
 
     /**
-     * @param string|null $innerFile
+     * @param string $innerFile
+     *
+     * @return null|string
      */
-    protected function _loadSheets(string $innerFile = null)
+    protected function checkInnerFile(string $innerFile): ?string
     {
-        if (!$innerFile) {
-            $innerFile = 'xl/workbook.xml';
+        foreach ($this->fileList as $filename) {
+            if (strcasecmp($innerFile, $filename) === 0) {
+                return $filename;
+            }
         }
+        return null;
+    }
+
+    protected function _loadSheets()
+    {
+        $innerFile = $this->checkInnerFile('xl/workbook.xml');
         $this->xmlReader->openZip($innerFile);
 
         while ($this->xmlReader->read()) {
@@ -236,13 +266,10 @@ class Excel implements InterfaceBookReader
     }
 
     /**
-     * @param string|null $innerFile
+     * @param string $innerFile
      */
-    protected function _loadSharedStrings(string $innerFile = null)
+    protected function _loadSharedStrings(string $innerFile)
     {
-        if (!$innerFile) {
-            $innerFile = 'xl/sharedStrings.xml';
-        }
         $this->xmlReader->openZip($innerFile);
         while ($this->xmlReader->read()) {
             if ($this->xmlReader->nodeType === \XMLReader::ELEMENT && $this->xmlReader->name === 'si' && $node = $this->xmlReader->expand()) {
@@ -259,9 +286,7 @@ class Excel implements InterfaceBookReader
      */
     protected function _loadThemes(string $innerFile = null)
     {
-        if (!$innerFile) {
-            $innerFile = 'xl/theme/theme1.xml';
-        }
+        $innerFile = $this->checkInnerFile($innerFile ?: 'xl/theme/theme1.xml');
         $this->xmlReader->openZip($innerFile);
         while ($this->xmlReader->read()) {
             if ($this->xmlReader->nodeType === \XMLReader::ELEMENT && $this->xmlReader->localName === 'clrScheme') {
@@ -297,9 +322,7 @@ class Excel implements InterfaceBookReader
      */
     protected function _loadStyles(string $innerFile = null)
     {
-        if (!$innerFile) {
-            $innerFile = 'xl/styles.xml';
-        }
+        $innerFile = $this->checkInnerFile($innerFile ?: 'xl/styles.xml');
         $this->xmlReader->openZip($innerFile);
         $styleType = '';
         while ($this->xmlReader->read()) {

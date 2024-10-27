@@ -273,6 +273,43 @@ Array
 )
 ```
 
+### Empty cells & rows
+
+The library already skips empty cells and empty rows by default. Empty cells are cells where nothing is written, 
+and empty rows are rows where all cells are empty. If a cell contains an empty string, it is not considered empty. 
+But you can change this behavior and skip cells with empty strings.
+
+```php
+$sheet = $excel->sheet();
+
+// Skip empty cells and empty rows
+foreach ($sheet->nextRow() as $rowNum => $rowData) {
+    // handle $rowData
+}
+
+// Skip empty cells and cells with empty strings
+foreach ($sheet->nextRow([], Excel::TREAT_EMPTY_STRING_AS_EMPTY_CELL) as $rowNum => $rowData) {
+    // handle $rowData
+}
+
+// Skip empty cells and empty rows (rows containing only whitespace characters are also considered empty)
+foreach ($sheet->nextRow([], Excel::TRIM_STRINGS | Excel::TREAT_EMPTY_STRING_AS_EMPTY_CELL) as $rowNum => $rowData) {
+    // handle $rowData
+}
+```
+Other way
+```php
+$sheet->reset([], Excel::TRIM_STRINGS | Excel::TREAT_EMPTY_STRING_AS_EMPTY_CELL);
+$rowData = $sheet->readNextRow();
+// do something
+
+$rowData = $sheet->readNextRow();
+// handle next row
+
+// ...
+```
+
+
 ### Advanced example
 ```php
 use \avadim\FastExcelReader\Excel;
@@ -584,6 +621,21 @@ $validations = $sheet->getDataValidations();
   ],
 ]
 */
+```
+
+## Support merged cells
+
+You can use the following methods:
+
+* ```Sheet::getMergedCells()``` -- Returns all merged ranges
+* ```Sheet::isMerged(string $cellAddress)``` -- Checks if a cell is merged
+* ```Sheet::mergedRange(string $cellAddress)``` -- Returns merge range of specified cell
+
+For example
+```php
+if ($sheet->isMerged('B3')) {
+    $range = $sheet->mergedRange('B3');
+}
 ```
 
 ## Some useful methods

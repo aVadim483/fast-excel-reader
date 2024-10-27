@@ -660,7 +660,15 @@ class Sheet implements InterfaceSheetReader
     }
 
     /**
-     * Returns values and styles of cells as array ['v' => _value_, 's' => _styles_]
+     * Returns values, styles and other info of cells as array
+     *
+     * [
+     *      'v' => _value_,
+     *      's' => _styles_,
+     *      'f' => _formula_,
+     *      't' => _type_,
+     *      'o' => '_original_value_
+     * ]
      *
      * @param array|bool|int|null $columnKeys
      * @param int|null $resultMode
@@ -1118,7 +1126,12 @@ class Sheet implements InterfaceSheetReader
                                     $rowData[$col] = $additionalData;
                                 }
                                 else {
-                                    $rowData[$col] = $value;
+                                    if (is_string($value) && ($resultMode & Excel::TRIM_STRINGS)) {
+                                        $value = trim($value);
+                                    }
+                                    if (!($value === '' && ($resultMode & Excel::TREAT_EMPTY_STRING_AS_EMPTY_CELL))) {
+                                        $rowData[$col] = $value;
+                                    }
                                 }
                             }
                         }
@@ -1180,7 +1193,11 @@ class Sheet implements InterfaceSheetReader
         return $this->readRowNum;
     }
 
-
+    /**
+     * Returns all merged ranges
+     *
+     * @return array|null
+     */
     public function getMergedCells(): ?array
     {
         if ($this->mergedCells === null) {
@@ -1191,6 +1208,8 @@ class Sheet implements InterfaceSheetReader
     }
 
     /**
+     * Checks if a cell is merged
+     *
      * @param string $cellAddress
      *
      * @return bool
@@ -1207,6 +1226,8 @@ class Sheet implements InterfaceSheetReader
     }
 
     /**
+     * Returns merge range of specified cell
+     *
      * @param string $cellAddress
      *
      * @return string|null
