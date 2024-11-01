@@ -1376,6 +1376,7 @@ class Sheet implements InterfaceSheetReader
                 }
             }
         }
+        $xmlReader->close();
     }
 
     /**
