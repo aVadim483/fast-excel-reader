@@ -296,6 +296,10 @@ class Sheet implements InterfaceSheetReader
     {
         if ($this->active === null) {
             $this->_readHeader();
+
+            if ($this->active === null) {
+                $this->active = false;
+            }
         }
 
         return $this->active;
