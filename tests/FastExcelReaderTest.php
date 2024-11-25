@@ -406,6 +406,52 @@ final class FastExcelReaderTest extends TestCase
         $this->assertEquals(['#' => 1, 'name' => 'James Bond', 'birthday' => -2205187200, 'random_int' => 4573], $rows[2]);
     }
 
+    public function testGetColumnWidth(): void
+    {
+        $file = self::DEMO_DIR . 'demo-07-size-freeze-tabs.xlsx';
+        $excel = Excel::open($file);
+        $width_1 = $excel->selectSheet('report')->getColumnWidth(1);
+        $width_3 = $excel->selectSheet('report')->getColumnWidth(3);
+
+        $this->assertEquals(11.85546875, $width_1);
+        $this->assertEquals(27.85546875, $width_3);
+    }
+
+    public function testGetRowHeight(): void
+    {
+        $file = self::DEMO_DIR . 'demo-07-size-freeze-tabs.xlsx';
+        $excel = Excel::open($file);
+        $height_1 = $excel->selectSheet('report')->getRowHeight(1);
+        $height_3 = $excel->selectSheet('report')->getRowHeight(3);
+
+        $this->assertEquals(15, $height_1);
+        $this->assertEquals(35.25, $height_3);
+    }
+
+    public function testGetFreezePane(): void
+    {
+        $file = self::DEMO_DIR . 'demo-07-size-freeze-tabs.xlsx';
+        $excel = Excel::open($file);
+        $freezePane = $excel->selectSheet('report')->getFreezePaneConfig();
+
+        $this->assertEquals([
+            'xSplit' => 0,
+            'ySplit' => 1,
+            'topLeftCell' => 'A2'
+        ], $freezePane);
+    }
+
+    public function testGetTabColorConfig(): void
+    {
+        $file = self::DEMO_DIR . 'demo-07-size-freeze-tabs.xlsx';
+        $excel = Excel::open($file);
+        $config = $excel->selectSheet('report')->getTabColorConfiguration();
+
+        $this->assertEquals([
+            'theme' => '2',
+            'tint' => '-0.499984740745262'
+        ], $config);
+    }
 
     public function testRefPath()
     {

@@ -68,6 +68,14 @@ class Sheet implements InterfaceSheetReader
      */
     protected ?array $validations = null;
 
+    protected ?array $rowHeights = null;
+
+    protected ?array $colWidths = null;
+
+    protected float $defaultRowHeight = 15.0;
+
+    protected ?array $tabProperties = null;
+
     public function __construct($sheetName, $sheetId, $file, $path, $excel)
     {
         $this->excel = $excel;
@@ -1760,5 +1768,167 @@ class Sheet implements InterfaceSheetReader
             'formula1' => $formula1,
             'formula2' => $formula2
         ];
+    }
+
+    public function setDefaultRowHeight(float $rowHeight): void
+    {
+        $this->defaultRowHeight = $rowHeight;
+    }
+
+    /**
+     * Parses and retrieves column widths and row heights from the sheet XML.
+     *
+     * @return void
+     */
+    protected function extractColumnWidthsAndRowHeights(): void
+    {
+        $this->colWidths = [];
+        $this->rowHeights = [];
+
+        $xmlReader = $this->getReader();
+        $xmlReader->openZip($this->pathInZip);
+
+        while ($xmlReader->read()) {
+            if ($xmlReader->nodeType === \XMLReader::ELEMENT) {
+                // Extract column width
+                if ($xmlReader->name === 'col') {
+                    $min = (int)$xmlReader->getAttribute('min');
+                    $max = (int)$xmlReader->getAttribute('max');
+                    $width = (float)$xmlReader->getAttribute('width');
+
+                    for ($i = $min; $i <= $max; $i++) {
+                        $this->colWidths[$i] = $width;
+                    }
+                }
+                // Extract row height
+                elseif ($xmlReader->name === 'row') {
+                    $rowIndex = (int)$xmlReader->getAttribute('r');
+                    $height = $xmlReader->getAttribute('ht') ? (float)$xmlReader->getAttribute('ht') : $this->defaultRowHeight;
+                    $this->rowHeights[$rowIndex] = $height;
+                }
+            }
+        }
+
+        $xmlReader->close();
+    }
+
+    /**
+     * Returns column width for a specific column number.
+     *
+     * @param int $colNumber
+     * @return float|null
+     */
+    public function getColumnWidth(int $colNumber): ?float
+    {
+        if ($this->colWidths === null) {
+            $this->extractColumnWidthsAndRowHeights();
+        }
+        return $this->colWidths[$colNumber] ?? null;
+    }
+
+    /**
+     * Returns row height for a specific row number.
+     *
+     * @param int $rowNumber
+     * @return float|null
+     */
+    public function getRowHeight(int $rowNumber): ?float
+    {
+        if ($this->rowHeights === null) {
+            $this->extractColumnWidthsAndRowHeights();
+        }
+        return $this->rowHeights[$rowNumber] ?? null;
+    }
+
+    /**
+     * Parses and retrieves frozen pane configuration from the sheet XML.
+     *
+     * @return array|null
+     */
+    public function getFreezePaneConfig(): ?array
+    {
+        $xmlReader = $this->getReader();
+        $xmlReader->openZip($this->pathInZip);
+
+        $freezePane = null;
+
+        while ($xmlReader->read()) {
+            if ($xmlReader->nodeType === \XMLReader::ELEMENT && $xmlReader->name === 'pane') {
+                $xSplit = (int)$xmlReader->getAttribute('xSplit');
+                $ySplit = (int)$xmlReader->getAttribute('ySplit');
+                $topLeftCell = $xmlReader->getAttribute('topLeftCell');
+
+                $freezePane = [
+                    'xSplit' => $xSplit,
+                    'ySplit' => $ySplit,
+                    'topLeftCell' => $topLeftCell,
+                ];
+                break;
+            }
+        }
+
+        $xmlReader->close();
+        return $freezePane;
+    }
+
+    /**
+     * Extracts the tab properties from the sheet XML
+     *
+     * @return void
+     */
+    protected function _readTabProperties(): void
+    {
+        if ($this->tabProperties !== null) {
+            return;
+        }
+
+        $this->tabProperties = [
+            'color' => null,
+        ];
+
+        $xmlReader = $this->getReader();
+        $xmlReader->openZip($this->pathInZip);
+
+        while ($xmlReader->read()) {
+            if ($xmlReader->nodeType === \XMLReader::ELEMENT && $xmlReader->name === 'sheetPr') {
+                while ($xmlReader->read()) {
+                    if ($xmlReader->nodeType === \XMLReader::ELEMENT && $xmlReader->name === 'tabColor') {
+                        $this->tabProperties['color'] = [
+                            'rgb' => $xmlReader->getAttribute('rgb'),
+                            'theme' => $xmlReader->getAttribute('theme'),
+                            'tint' => $xmlReader->getAttribute('tint'),
+                            'indexed' => $xmlReader->getAttribute('indexed'),
+                        ];
+
+                        $this->tabProperties['color'] = array_filter(
+                            $this->tabProperties['color'],
+                            static fn($value) => $value !== null
+                        );
+                        break;
+                    }
+                    if ($xmlReader->nodeType === \XMLReader::END_ELEMENT && $xmlReader->name === 'sheetPr') {
+                        break;
+                    }
+                }
+                break;
+            }
+        }
+
+        $xmlReader->close();
+    }
+
+    /**
+     * Returns the tab color configuration of the sheet
+     * Contains any of: rgb, theme, tint, indexed
+     *
+     * @return array|null
+     */
+    public function getTabColorConfiguration(): ?array
+    {
+        if ($this->tabProperties === null) {
+            $this->_readTabProperties();
+        }
+
+        return $this->tabProperties['color'];
     }
 }
