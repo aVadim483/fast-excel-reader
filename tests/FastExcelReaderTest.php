@@ -432,7 +432,7 @@ final class FastExcelReaderTest extends TestCase
     {
         $file = self::DEMO_DIR . 'demo-07-size-freeze-tabs.xlsx';
         $excel = Excel::open($file);
-        $freezePane = $excel->selectSheet('report')->getFreezePaneConfig();
+        $freezePane = $excel->selectSheet('report')->getFreezePaneInfo();
 
         $this->assertEquals([
             'xSplit' => 0,
@@ -441,11 +441,11 @@ final class FastExcelReaderTest extends TestCase
         ], $freezePane);
     }
 
-    public function testGetTabColorConfig(): void
+    public function testGetTabColorInfo(): void
     {
         $file = self::DEMO_DIR . 'demo-07-size-freeze-tabs.xlsx';
         $excel = Excel::open($file);
-        $config = $excel->selectSheet('report')->getTabColorConfiguration();
+        $config = $excel->selectSheet('report')->getTabColorInfo();
 
         $this->assertEquals([
             'theme' => '2',

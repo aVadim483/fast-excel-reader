@@ -46,6 +46,11 @@ Jump to:
 * [Cell value types](#cell-value-types)
 * [How to get complete info about the cell style](#how-to-get-complete-info-about-the-cell-style)
 * [Retrieve data validation rules](#retrieve-data-validation-rules)
+* [Column Widths](#column-widths)
+* [Row Heights](#row-heights)
+* [Freeze Pane Info](#freeze-pane-info)
+* [Tab Color Info](#tab-color-info)
+* [Info about merged cells](#info-about-merged-cells)
 * [Some useful methods](#some-useful-methods)
 
 ## Usage
@@ -528,7 +533,7 @@ Array
 )
 ```
 
-## How to get complete info about the cell style 
+## How to get complete info about the cell style
 
 Usually read functions return just cell values, but you can read the values with styles.
 In this case, for each cell, not a scalar value will be returned, but an array 
@@ -650,15 +655,15 @@ $rowHeight = $sheet->getRowHeight(1);
 echo $rowHeight; // Example: 15
 ```
 
-## Freeze Pane Configuration
-Retrieve the freeze pane configuration for a sheet:
+## Freeze Pane Info
+Retrieve the freeze pane info for a sheet:
 
 ```php
 $excel = Excel::open($file);
 $sheet = $excel->selectSheet('SheetName');
 
 // Get the freeze pane configuration
-$freezePaneConfig = $sheet->getFreezePaneConfig();
+$freezePaneConfig = $sheet->getFreezePaneInfo();
 
 print_r($freezePaneConfig);
 /*
@@ -672,8 +677,8 @@ Array
 */
 ```
 
-## Tab Color Configuration
-Retrieve the tab color settings for a sheet:
+## Tab Color Info
+Retrieve the tab color info for a sheet:
 
 ```php
 Copy code
@@ -681,7 +686,7 @@ $excel = Excel::open($file);
 $sheet = $excel->selectSheet('SheetName');
 
 // Get the tab color configuration
-$tabColorConfig = $sheet->getTabColorConfiguration();
+$tabColorConfig = $sheet->getTabColorInfo();
 
 print_r($tabColorConfig);
 /*
@@ -694,7 +699,7 @@ Array
 */
 ```
 
-## Support merged cells
+## Info about merged cells
 
 You can use the following methods:
 

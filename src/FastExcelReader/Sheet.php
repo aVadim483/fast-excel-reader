@@ -76,6 +76,7 @@ class Sheet implements InterfaceSheetReader
 
     protected ?array $tabProperties = null;
 
+
     public function __construct($sheetName, $sheetId, $file, $path, $excel)
     {
         $this->excel = $excel;
@@ -1830,6 +1831,7 @@ class Sheet implements InterfaceSheetReader
      * Returns row height for a specific row number.
      *
      * @param int $rowNumber
+     *
      * @return float|null
      */
     public function getRowHeight(int $rowNumber): ?float
@@ -1841,11 +1843,11 @@ class Sheet implements InterfaceSheetReader
     }
 
     /**
-     * Parses and retrieves frozen pane configuration from the sheet XML.
+     * Parses and retrieves frozen pane info from the sheet XML
      *
      * @return array|null
      */
-    public function getFreezePaneConfig(): ?array
+    public function getFreezePaneInfo(): ?array
     {
         $xmlReader = $this->getReader();
         $xmlReader->openZip($this->pathInZip);
@@ -1866,9 +1868,19 @@ class Sheet implements InterfaceSheetReader
                 break;
             }
         }
-
         $xmlReader->close();
+
         return $freezePane;
+    }
+
+    /**
+     * Alias of getFreezePaneInfo()
+     *
+     * @return array|null
+     */
+    public function getFreezePaneConfig0(): ?array
+    {
+        return $this->readCells();
     }
 
     /**
@@ -1918,17 +1930,27 @@ class Sheet implements InterfaceSheetReader
     }
 
     /**
-     * Returns the tab color configuration of the sheet
+     * Returns the tab color info of the sheet
      * Contains any of: rgb, theme, tint, indexed
      *
      * @return array|null
      */
-    public function getTabColorConfiguration(): ?array
+    public function getTabColorInfo(): ?array
     {
         if ($this->tabProperties === null) {
             $this->_readTabProperties();
         }
 
-        return $this->tabProperties['color'];
+        return $this->tabProperties['color'] ?? null;
+    }
+
+    /**
+     * Alias of getTabColorConfig()
+     *
+     * @return array|null
+     */
+    public function getTabColorConfiguration(): ?array
+    {
+        return $this->getTabColorInfo();
     }
 }
