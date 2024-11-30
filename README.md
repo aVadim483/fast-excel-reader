@@ -624,6 +624,76 @@ $validations = $sheet->getDataValidations();
 */
 ```
 
+## Column Widths
+Retrieve the width of a specific column in a sheet:
+
+```php
+$excel = Excel::open($file);
+$sheet = $excel->selectSheet('SheetName');
+
+// Get the width of column 1 (column 'A')
+$columnWidth = $sheet->getColumnWidth(1);
+
+echo $columnWidth; // Example: 11.85
+```
+
+## Row Heights
+Retrieve the height of a specific row in a sheet:
+
+```php
+$excel = Excel::open($file);
+$sheet = $excel->selectSheet('SheetName');
+
+// Get the height of row 1
+$rowHeight = $sheet->getRowHeight(1);
+
+echo $rowHeight; // Example: 15
+```
+
+## Freeze Pane Configuration
+Retrieve the freeze pane configuration for a sheet:
+
+```php
+$excel = Excel::open($file);
+$sheet = $excel->selectSheet('SheetName');
+
+// Get the freeze pane configuration
+$freezePaneConfig = $sheet->getFreezePaneConfig();
+
+print_r($freezePaneConfig);
+/*
+Example Output:
+Array
+(
+    [xSplit] => 0
+    [ySplit] => 1
+    [topLeftCell] => 'A2'
+)
+*/
+```
+
+## Tab Color Configuration
+Retrieve the tab color settings for a sheet:
+
+```php
+Copy code
+$excel = Excel::open($file);
+$sheet = $excel->selectSheet('SheetName');
+
+// Get the tab color configuration
+$tabColorConfig = $sheet->getTabColorConfiguration();
+
+print_r($tabColorConfig);
+/*
+Example Output:
+Array
+(
+    [theme] => '2'
+    [tint] => '-0.499984740745262'
+)
+*/
+```
+
 ## Support merged cells
 
 You can use the following methods:
@@ -664,6 +734,9 @@ if ($sheet->isMerged('B3')) {
 * ```firstCol()``` -- The first column letter
 * ```readFirstRow()``` -- Returns values of cells of 1st row as array
 * ```readFirstRowWithStyles()``` -- Returns values and styles of cells of 1st row as array
+* ```getColumnWidth(int)``` -- Returns the width of a given column number
+* ```getFreezePaneConfig()``` -- Returns an array containing freeze pane configuration
+* ```getTabColorConfiguration()``` -- Returns an array containing tab color configuration
 
 ## Do you want to support FastExcelReader?
 
