@@ -106,13 +106,14 @@ class Reader extends \XMLReader implements InterfaceXmlReader
     public function openZip(string $innerFile, string $encoding = null, ?int $options = 0): bool
     {
         $this->innerFile = $innerFile;
-
         $result = $this->open('zip://' . $this->zipFile . '#' . $innerFile, $encoding, $options);
-        foreach ($this->xmlParserProperties as $property => $value) {
-            $this->setParserProperty($property, $value);
+        if ($result) {
+            foreach ($this->xmlParserProperties as $property => $value) {
+                $this->setParserProperty($property, $value);
+            }
         }
 
-        return $result;
+        return (bool)$result;
     }
 
     /**
