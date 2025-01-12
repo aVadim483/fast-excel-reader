@@ -68,6 +68,8 @@ class Sheet implements InterfaceSheetReader
      */
     protected ?array $validations = null;
 
+    protected ?array $conditionals = null;
+
     protected ?array $rowHeights = null;
 
     protected ?array $colWidths = null;
@@ -1768,6 +1770,81 @@ class Sheet implements InterfaceSheetReader
             'sqref' => $sqref,
             'formula1' => $formula1,
             'formula2' => $formula2
+        ];
+    }
+
+    /**
+     * Returns an array of data validation rules found in the sheet
+     *
+     * @return array<array{
+     *   type: string,
+     *   sqref: string,
+     *   attributes: array
+     * }>
+     */
+    public function getConditionalFormatting(): array
+    {
+        if ($this->conditionals === null) {
+            $this->extractConditionalFormatting();
+        }
+
+        return $this->conditionals;
+    }
+
+    /** Extracts conditional formatting rules from the sheet */
+    public function extractConditionalFormatting(): void
+    {
+        $conditionals = [];
+        $xmlReader = $this->getReader();
+        $xmlReader->openZip($this->pathInZip);
+
+        while ($xmlReader->read()) {
+            if ($xmlReader->nodeType === \XMLReader::ELEMENT && $xmlReader->name === 'conditionalFormatting') {
+                $conditional = $this->parseConditionalFormatting($xmlReader);
+                if ($conditional) {
+                    $conditionals[] = $conditional;
+                }
+            }
+        }
+
+        $xmlReader->close();
+
+        $this->conditionals = $conditionals;
+    }
+
+    /**
+     * Parse <conditionalFormatting>
+     *
+     * @param InterfaceXmlReader $xmlReader
+     *
+     * @return array{
+     *    type: string,
+     *    sqref: string,
+     *    attributes: []
+     *  }
+     */
+    protected function parseConditionalFormatting(InterfaceXmlReader $xmlReader): ?array
+    {
+        $sqref = $xmlReader->getAttribute('sqref');
+        $attributes = [];
+
+        // Handle child nodes like formula1 and formula2
+        while ($xmlReader->read()) {
+            if ($xmlReader->nodeType === \XMLReader::ELEMENT && $xmlReader->name === 'cfRule') {
+                $node = $xmlReader->expand();
+                foreach ($node->attributes as $key => $val) {
+                    $attributes[$key] = $val->value;
+                }
+            }
+            if ($xmlReader->nodeType === \XMLReader::END_ELEMENT && $xmlReader->name === 'conditionalFormatting') {
+                break;
+            }
+        }
+
+        return [
+            'type' => $attributes['type'] ?? null,
+            'sqref' => $sqref,
+            'attributes' => $attributes,
         ];
     }
 
