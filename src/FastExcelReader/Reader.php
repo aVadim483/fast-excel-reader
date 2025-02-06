@@ -17,7 +17,12 @@ class Reader extends \XMLReader implements InterfaceXmlReader
 
     protected array $xmlParserProperties = [];
 
-    public function __construct($file, ?array $parserProperties = [])
+
+    /**
+     * @param string $file
+     * @param array|null $parserProperties
+     */
+    public function __construct(string $file, ?array $parserProperties = [])
     {
         $this->zipFile = $file;
         if ($parserProperties) {
@@ -30,6 +35,9 @@ class Reader extends \XMLReader implements InterfaceXmlReader
         $this->close();
     }
 
+    /**
+     * @return array
+     */
     public function entryList(): array
     {
         $result = [];
@@ -84,6 +92,9 @@ class Reader extends \XMLReader implements InterfaceXmlReader
         return $result;
     }
 
+    /**
+     * @return array
+     */
     public function fileList(): array
     {
         $result = [];
@@ -103,7 +114,7 @@ class Reader extends \XMLReader implements InterfaceXmlReader
      *
      * @return bool
      */
-    public function openZip(string $innerFile, string $encoding = null, ?int $options = 0): bool
+    public function openZip(string $innerFile, ?string $encoding = null, ?int $options = 0): bool
     {
         $this->innerFile = $innerFile;
         $result = $this->open('zip://' . $this->zipFile . '#' . $innerFile, $encoding, $options);
@@ -119,6 +130,7 @@ class Reader extends \XMLReader implements InterfaceXmlReader
     /**
      * @return bool
      */
+    #[\ReturnTypeWillChange]
     public function close(): bool
     {
         if ($this->innerFile) {

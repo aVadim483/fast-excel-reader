@@ -78,8 +78,14 @@ class Sheet implements InterfaceSheetReader
 
     protected ?array $tabProperties = null;
 
-
-    public function __construct($sheetName, $sheetId, $file, $path, $excel)
+    /**
+     * @param string $sheetName
+     * @param string $sheetId
+     * @param string $file
+     * @param string $path
+     * @param $excel
+     */
+    public function __construct(string $sheetName, string $sheetId, string $file, string $path, $excel)
     {
         $this->excel = $excel;
         $this->name = $sheetName;
@@ -357,7 +363,7 @@ class Sheet implements InterfaceSheetReader
      *
      * @return Reader
      */
-    protected function getReader(string $file = null): InterfaceXmlReader
+    protected function getReader(?string $file = null): InterfaceXmlReader
     {
         if (empty($this->xmlReader)) {
             if (!$file) {
@@ -641,7 +647,7 @@ class Sheet implements InterfaceSheetReader
      *
      * @return array
      */
-    public function readRows($columnKeys = [], int $resultMode = null, ?bool $styleIdxInclude = null): array
+    public function readRows($columnKeys = [], ?int $resultMode = null, ?bool $styleIdxInclude = null): array
     {
         $data = [];
         if (is_int($columnKeys) && !is_int($resultMode)) {
@@ -690,7 +696,7 @@ class Sheet implements InterfaceSheetReader
      *
      * @return array
      */
-    public function readRowsWithStyles($columnKeys = [], int $resultMode = null): array
+    public function readRowsWithStyles($columnKeys = [], ?int $resultMode = null): array
     {
         $data = $this->readRows($columnKeys, $resultMode, true);
 
@@ -813,7 +819,7 @@ class Sheet implements InterfaceSheetReader
      *
      * @return array
      */
-    public function readColumns($columnKeys = null, int $resultMode = null, ?bool $styleIdxInclude = null): array
+    public function readColumns($columnKeys = null, ?int $resultMode = null, ?bool $styleIdxInclude = null): array
     {
         if (is_int($columnKeys) && $columnKeys > 1 && $resultMode === null) {
             $resultMode = $columnKeys | Excel::KEYS_RELATIVE;
@@ -834,7 +840,7 @@ class Sheet implements InterfaceSheetReader
      *
      * @return array
      */
-    public function readColumnsWithStyles($columnKeys = null, int $resultMode = null): array
+    public function readColumnsWithStyles($columnKeys = null, ?int $resultMode = null): array
     {
         $data = $this->readColumns($columnKeys, $resultMode, true);
 
@@ -935,7 +941,7 @@ class Sheet implements InterfaceSheetReader
      * @param int|null $resultMode
      * @param bool|null $styleIdxInclude
      */
-    public function readCallback(callable $callback, $columnKeys = [], int $resultMode = null, ?bool $styleIdxInclude = null)
+    public function readCallback(callable $callback, $columnKeys = [], ?int $resultMode = null, ?bool $styleIdxInclude = null)
     {
         foreach ($this->nextRow($columnKeys, $resultMode, $styleIdxInclude) as $row => $rowData) {
             if (isset($rowData['__cells'], $rowData['__row'])) {
@@ -970,7 +976,7 @@ class Sheet implements InterfaceSheetReader
      *
      * @return \Generator|null
      */
-    public function nextRow($columnKeys = [], int $resultMode = null, ?bool $styleIdxInclude = null, int $rowLimit = 0): ?\Generator
+    public function nextRow($columnKeys = [], ?int $resultMode = null, ?bool $styleIdxInclude = null, ?int $rowLimit = 0): ?\Generator
     {
         // <dimension ref="A1:C1"/>
         // sometimes sheets doesn't contain this tag
@@ -1174,7 +1180,7 @@ class Sheet implements InterfaceSheetReader
      *
      * @return \Generator|null
      */
-    public function reset($columnKeys = [], int $resultMode = null, ?bool $styleIdxInclude = null, int $rowLimit = 0): ?\Generator
+    public function reset($columnKeys = [], ?int $resultMode = null, ?bool $styleIdxInclude = null, ?int $rowLimit = 0): ?\Generator
     {
         $this->generator = $this->nextRow($columnKeys, $resultMode, $styleIdxInclude, $rowLimit);
         $this->countReadRows = 0;

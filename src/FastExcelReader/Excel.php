@@ -79,7 +79,7 @@ class Excel implements InterfaceBookReader
      *
      * @param string|null $file
      */
-    public function __construct(string $file = null)
+    public function __construct(?string $file = null)
     {
         $this->builtinFormats = [
             0 => ['pattern' => 'General', 'category' => 'general'],
@@ -284,7 +284,7 @@ class Excel implements InterfaceBookReader
      *
      * @return void
      */
-    protected function _loadThemes(string $innerFile = null)
+    protected function _loadThemes(?string $innerFile = null)
     {
         $innerFile = $this->checkInnerFile($innerFile ?: 'xl/theme/theme1.xml');
         $this->xmlReader->openZip($innerFile);
@@ -320,7 +320,7 @@ class Excel implements InterfaceBookReader
     /**
      * @param string|null $innerFile
      */
-    protected function _loadStyles(string $innerFile = null)
+    protected function _loadStyles(?string $innerFile = null)
     {
         $innerFile = $this->checkInnerFile($innerFile ?: 'xl/styles.xml');
         $this->xmlReader->openZip($innerFile);
@@ -692,7 +692,7 @@ class Excel implements InterfaceBookReader
     /**
      * @param string|null $innerFile
      */
-    protected function _loadCompleteStyles(string $innerFile = null)
+    protected function _loadCompleteStyles(?string $innerFile = null)
     {
         if (!$innerFile) {
             $innerFile = 'xl/styles.xml';
@@ -1067,7 +1067,7 @@ class Excel implements InterfaceBookReader
      *
      * @return Sheet
      */
-    public function getSheetById(int $sheetId, string $areaRange = null, ?bool $firstRowKeys = false): Sheet
+    public function getSheetById(int $sheetId, ?string $areaRange = null, ?bool $firstRowKeys = false): Sheet
     {
         if (!isset($this->sheets[$sheetId])) {
             throw new Exception('Sheet ID "' . $sheetId . '" not found');
@@ -1087,7 +1087,7 @@ class Excel implements InterfaceBookReader
      *
      * @return Sheet
      */
-    public function getFirstSheet(string $areaRange = null, ?bool $firstRowKeys = false): Sheet
+    public function getFirstSheet(?string $areaRange = null, ?bool $firstRowKeys = false): Sheet
     {
         $sheetId = array_key_first($this->sheets);
         $sheet = $this->sheets[$sheetId];
@@ -1107,7 +1107,7 @@ class Excel implements InterfaceBookReader
      *
      * @return Sheet
      */
-    public function selectSheet(string $name, string $areaRange = null, ?bool $firstRowKeys = false): Sheet
+    public function selectSheet(string $name, ?string $areaRange = null, ?bool $firstRowKeys = false): Sheet
     {
         $sheet = $this->getSheet($name, $areaRange, $firstRowKeys);
         $this->defaultSheetId = $sheet->id();
@@ -1124,7 +1124,7 @@ class Excel implements InterfaceBookReader
      *
      * @return Sheet
      */
-    public function selectSheetById(int $sheetId, string $areaRange = null, ?bool $firstRowKeys = false): Sheet
+    public function selectSheetById(int $sheetId, ?string $areaRange = null, ?bool $firstRowKeys = false): Sheet
     {
         $sheet = $this->getSheetById($sheetId, $areaRange, $firstRowKeys);
         $this->defaultSheetId = $sheet->id();
@@ -1140,7 +1140,7 @@ class Excel implements InterfaceBookReader
      *
      * @return Sheet
      */
-    public function selectFirstSheet(string $areaRange = null, ?bool $firstRowKeys = false): Sheet
+    public function selectFirstSheet(?string $areaRange = null, ?bool $firstRowKeys = false): Sheet
     {
         $sheet = $this->getFirstSheet($areaRange, $firstRowKeys);
         $this->defaultSheetId = $sheet->id();
@@ -1187,7 +1187,7 @@ class Excel implements InterfaceBookReader
      * @param callback $callback
      * @param int|null $resultMode
      */
-    public function readCallback(callable $callback, int $resultMode = null, ?bool $styleIdxInclude = null)
+    public function readCallback(callable $callback, ?int $resultMode = null, ?bool $styleIdxInclude = null)
     {
         $this->sheets[$this->defaultSheetId]->readCallback($callback, $resultMode);
     }
@@ -1206,7 +1206,7 @@ class Excel implements InterfaceBookReader
      *
      * @return array
      */
-    public function readRows($columnKeys = [], int $resultMode = null, ?bool $styleIdxInclude = null): array
+    public function readRows($columnKeys = [], ?int $resultMode = null, ?bool $styleIdxInclude = null): array
     {
         return $this->sheets[$this->defaultSheetId]->readRows($columnKeys, $resultMode, $styleIdxInclude);
     }
@@ -1219,7 +1219,7 @@ class Excel implements InterfaceBookReader
      *
      * @return array
      */
-    public function readRowsWithStyles($columnKeys = [], int $resultMode = null): array
+    public function readRowsWithStyles($columnKeys = [], ?int $resultMode = null): array
     {
         return $this->sheets[$this->defaultSheetId]->readRowsWithStyles($columnKeys, $resultMode);
     }
@@ -1232,7 +1232,7 @@ class Excel implements InterfaceBookReader
      *
      * @return array
      */
-    public function readColumns($columnKeys = null, int $resultMode = null): array
+    public function readColumns($columnKeys = null, ?int $resultMode = null): array
     {
         return $this->sheets[$this->defaultSheetId]->readColumns($columnKeys, $resultMode);
     }
@@ -1245,7 +1245,7 @@ class Excel implements InterfaceBookReader
      *
      * @return array
      */
-    public function readColumnsWithStyles($columnKeys = null, int $resultMode = null): array
+    public function readColumnsWithStyles($columnKeys = null, ?int $resultMode = null): array
     {
         return $this->sheets[$this->defaultSheetId]->readColumnsWithStyles($columnKeys, $resultMode);
     }
@@ -1499,7 +1499,12 @@ class Excel implements InterfaceBookReader
         return $style['format']['format-pattern'] ?? '';
     }
 
-    public function _convertDateFormatPattern($pattern)
+    /**
+     * @param $pattern
+     *
+     * @return string|null
+     */
+    public function _convertDateFormatPattern($pattern): ?string
     {
         static $patterns = [];
 
