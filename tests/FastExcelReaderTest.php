@@ -8,9 +8,9 @@ use PHPUnit\Framework\TestCase;
 
 final class FastExcelReaderTest extends TestCase
 {
-    const DEMO_DIR = __DIR__ . '/../demo/files/';
+    public const DEMO_DIR = __DIR__ . '/../demo/files/';
 
-    public function testExcelReader00()
+    public function testExcelReader00(): void
     {
         // =====================
         $file = self::DEMO_DIR . 'demo-00-test.xlsx';
@@ -115,7 +115,7 @@ final class FastExcelReaderTest extends TestCase
         $this->assertEquals(['A1' => 1706918400, 'A2' => 1706918400, 'A3' => '3', 'A4' => '3.2', 'A5' => '3.2.24', 'A6' => '3.2.24.7', 'A7' => '3.2.24.d', ], $result);
     }
 
-    public function testExcelReader01()
+    public function testExcelReader01(): void
     {
         // =====================
         $file = self::DEMO_DIR . 'demo-01-base.xlsx';
@@ -198,7 +198,7 @@ final class FastExcelReaderTest extends TestCase
         $excel->getSheet('Demo2')->setReadArea('Values');
     }
 
-    public function testExcelReader03()
+    public function testExcelReader03(): void
     {
         $file = self::DEMO_DIR . 'demo-03-images.xlsx';
         $excel = Excel::open($file);
@@ -212,7 +212,7 @@ final class FastExcelReaderTest extends TestCase
         $this->assertEquals('image1.jpeg', $result['Sheet1']['C2']['file_name']);
     }
 
-    public function testExcelReader03Excel365()
+    public function testExcelReader03Excel365(): void
     {
         $file = self::DEMO_DIR . 'demo-03-images-excel-365.xlsx';
         $excel = Excel::open($file);
@@ -223,7 +223,7 @@ final class FastExcelReaderTest extends TestCase
         $this->assertTrue($excel->sheet()->hasImage('C3'));
     }
 
-    public function testExcelReader04()
+    public function testExcelReader04(): void
     {
         $file = self::DEMO_DIR . 'demo-04-styles.xlsx';
         $excel = Excel::open($file);
@@ -293,7 +293,7 @@ final class FastExcelReaderTest extends TestCase
         $this->assertEquals($expected, $validations);
     }
 
-    public function testDateFormatter()
+    public function testDateFormatter(): void
     {
         // =====================
         $file = self::DEMO_DIR . 'demo-02-advanced.xlsx';
@@ -346,7 +346,7 @@ final class FastExcelReaderTest extends TestCase
         $this->assertEquals('31/12/83', $cells['B2']);
     }
 
-    public function testFillRow()
+    public function testFillRow(): void
     {
         // =====================
         $file = self::DEMO_DIR . 'demo-02-advanced.xlsx';
@@ -453,7 +453,7 @@ final class FastExcelReaderTest extends TestCase
         ], $config);
     }
 
-    public function testRefPath()
+    public function testRefPath(): void
     {
         // =====================
         $file = self::DEMO_DIR . 'worksheet-referenced-with-absolute-path.xlsx';
