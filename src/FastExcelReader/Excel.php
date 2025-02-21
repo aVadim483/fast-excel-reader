@@ -149,7 +149,7 @@ class Excel implements InterfaceBookReader
     /**
      * @param string $file
      */
-    protected function _prepare(string $file)
+    protected function _prepare(string $file): void
     {
         $this->xmlReader = static::createReader($file);
         $this->fileList = $this->xmlReader->fileList();
@@ -226,20 +226,21 @@ class Excel implements InterfaceBookReader
         return null;
     }
 
-    protected function _loadSheets()
+    protected function _loadSheets(): void
     {
         $innerFile = $this->checkInnerFile('xl/workbook.xml');
         $this->xmlReader->openZip($innerFile);
 
         while ($this->xmlReader->read()) {
             if ($this->xmlReader->nodeType === \XMLReader::ELEMENT) {
-                if ($this->xmlReader->name === 'workbookPr') {
+                $xmlReaderName = $this->xmlReader->name;
+                if ($xmlReaderName === 'workbookPr') {
                     $date1904 = (string)$this->xmlReader->getAttribute('date1904');
                     if ($date1904 === '1' || $date1904 === 'true') {
                         $this->date1904 = true;
                     }
                 }
-                elseif ($this->xmlReader->name === 'sheet') {
+                elseif ($xmlReaderName === 'sheet' || $xmlReaderName === 'x:sheet') {
                     $rId = $this->xmlReader->getAttribute('r:id');
                     $sheetId = $this->xmlReader->getAttribute('sheetId');
                     $path = $this->relations['worksheet'][$rId];
@@ -255,7 +256,7 @@ class Excel implements InterfaceBookReader
                         }
                     }
                 }
-                elseif ($this->xmlReader->name === 'definedName') {
+                elseif ($xmlReaderName === 'definedName') {
                     $name = $this->xmlReader->getAttribute('name');
                     $address = $this->xmlReader->readString();
                     $this->names[$name] = $address;
