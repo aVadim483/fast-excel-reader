@@ -1690,7 +1690,7 @@ class Sheet implements InterfaceSheetReader
     {
         $filename = basename($this->props['drawings']['images'][strtoupper($cell)]['target']);
 
-        return $this->saveImage($cell, str_replace(['\\', '/'], '', $dirname) . DIRECTORY_SEPARATOR . $filename);
+        return $this->saveImage($cell, str_replace(['\\', '/'], DIRECTORY_SEPARATOR, $dirname) . DIRECTORY_SEPARATOR . $filename);
     }
 
     /**

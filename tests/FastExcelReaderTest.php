@@ -210,6 +210,15 @@ final class FastExcelReaderTest extends TestCase
         $result = $excel->getImageList();
         $this->assertTrue(isset($result['Sheet1']['C2']));
         $this->assertEquals('image1.jpeg', $result['Sheet1']['C2']['file_name']);
+
+        $sheet = $excel->sheet();
+        $images = $sheet->getImageList();
+        $this->assertEquals('image1.jpeg', $images['C2']['file_name']);
+        $dir = __DIR__ . '/Files';
+        $file = $sheet->saveImageTo('C2', $dir);
+        $this->assertNotNull($file);
+        $this->assertTrue(is_file($file));
+        unlink($file);
     }
 
     public function testExcelReader03Excel365(): void
