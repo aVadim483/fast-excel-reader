@@ -1258,6 +1258,22 @@ class Sheet implements InterfaceSheetReader
     }
 
     /**
+     * Rewind read generator, alias of reset()
+     *
+     * @param array|bool|int|null $columnKeys
+     * @param int|null $resultMode
+     * @param bool|null $styleIdxInclude
+     * @param int|null $rowLimit
+     *
+     * @return \Generator|null
+     */
+    public function rewind($columnKeys = [], ?int $resultMode = null, ?bool $styleIdxInclude = null, ?int $rowLimit = 0): ?\Generator
+    {
+
+        return $this->reset($columnKeys = [], $resultMode, $styleIdxInclude, $rowLimit);
+    }
+
+    /**
      * @return mixed
      */
     public function readNextRow()

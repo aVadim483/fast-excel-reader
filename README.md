@@ -163,22 +163,29 @@ foreach ($sheet->nextRow(['A' => 'One', 'B' => 'Two'], Excel::KEYS_FIRST_ROW) as
     // ...
 }
 ```
-Alternative way to read row by row
+NOTE: Every time you call the ```foreach ($sheet->nextRow() as $rowIndex => $row)``` loop, 
+reading data starts from the first row.
+
+But there is an alternative way to read row by row - using the readNextRow() method. 
+In this case, you first need to call the ```$sheet->reset(...)``` method with the required reading parameters, 
+and then you can call `````$sheet-readNextRow()`````. If at some point you need to start reading data from the beginning, 
+you need to call ```$sheet->reset(...)``` again.
 
 ```php
-// Init internal read generator
+// Init the internal read generator
 $sheet->reset(['A' => 'One', 'B' => 'Two'], Excel::KEYS_FIRST_ROW);
+
 // read the first row
 $rowData = $sheet->readNextRow();
 var_dump($rowData);
 
-// read the next 3 rows
+// Read the next 3 rows
 for ($i = 0; $i < 3; $i++) {
     $rowData = $sheet->readNextRow();
     var_dump($rowData);
 }
 
-// Reset internal generator and read all rows
+// Reset the internal generator and read all rows starting from the first one
 $sheet->reset(['A' => 'One', 'B' => 'Two'], Excel::KEYS_FIRST_ROW);
 $result = [];
 while ($rowData = $sheet->readNextRow()) {
