@@ -470,9 +470,10 @@ class Sheet implements InterfaceSheetReader
      */
     public function countRows(?string $range = null): int
     {
+        // A1:C3 || A1
         $areaRange = $range ?: $this->dimension();
         if ($areaRange && preg_match('/^([A-Za-z]+)(\d+)(:([A-Za-z]+)(\d+))?$/', $areaRange, $matches)) {
-            return (int)$matches[5] - (int)$matches[2] + 1;
+            return count($matches) === 6 ? ((int)$matches[5] - (int)$matches[2] + 1) : 1;
         }
 
         return 0;
@@ -490,6 +491,74 @@ class Sheet implements InterfaceSheetReader
         $areaRange = $range ?: $this->dimension();
         if ($areaRange && preg_match('/^([A-Za-z]+)(\d+)(:([A-Za-z]+)(\d+))?$/', $areaRange, $matches)) {
             return Excel::colNum($matches[4]) - Excel::colNum($matches[1]) + 1;
+        }
+
+        return 0;
+    }
+
+    /**
+     * Min row number from dimension value
+     *
+     * @param string|null $range
+     *
+     * @return int
+     */
+    public function minRow(?string $range = null): int
+    {
+        $areaRange = $range ?: $this->dimension();
+        if ($areaRange && preg_match('/^([A-Za-z]+)(\d+)(:([A-Za-z]+)(\d+))?$/', $areaRange, $matches)) {
+            return (int)$matches[2];
+        }
+
+        return 0;
+    }
+
+    /**
+     * Max row number from dimension value
+     *
+     * @param string|null $range
+     *
+     * @return int
+     */
+    public function maxRow(?string $range = null): int
+    {
+        $areaRange = $range ?: $this->dimension();
+        if ($areaRange && preg_match('/^([A-Za-z]+)(\d+)(:([A-Za-z]+)(\d+))?$/', $areaRange, $matches)) {
+            return count($matches) === 6 ? (int)$matches[5] : (int)$matches[2];
+        }
+
+        return 0;
+    }
+
+    /**
+     * Min column from dimension value
+     *
+     * @param string|null $range
+     *
+     * @return string
+     */
+    public function minColumn(?string $range = null): string
+    {
+        $areaRange = $range ?: $this->dimension();
+        if ($areaRange && preg_match('/^([A-Za-z]+)(\d+)(:([A-Za-z]+)(\d+))?$/', $areaRange, $matches)) {
+            return $matches[1] ?? '';
+        }
+
+        return '';
+    }
+
+    /**
+     * Max column from dimension value
+     *
+     * @param string|null $range
+     *
+     * @return string
+     */
+    public function maxColumn(?string $range = null): string
+    {
+        $areaRange = $range ?: $this->dimension();
+        if ($areaRange && preg_match('/^([A-Za-z]+)(\d+)(:([A-Za-z]+)(\d+))?$/', $areaRange, $matches)) {
+            return $matches[4] ?? '';
         }
 
         return 0;

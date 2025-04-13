@@ -463,4 +463,31 @@ final class FastExcelReaderTest extends TestCase
         $this->assertEquals(821, $result[1]['price']);
     }
 
+    public function testExcelReaderDimension(): void
+    {
+        // =====================
+        $file = self::DEMO_DIR . 'demo-00-test.xlsx';
+        $excel = Excel::open($file);
+
+        $this->assertEquals('A1:D4', $excel->sheet()->dimension());
+
+        $result = $excel->readRows();
+        $this->assertEquals(count($result), $excel->sheet()->countRows());
+
+        $this->assertEquals(4, $excel->sheet()->countRows('C3:E6'));
+        $this->assertEquals(3, $excel->sheet()->minRow('C3:E6'));
+        $this->assertEquals(6, $excel->sheet()->maxRow('C3:E6'));
+
+        $this->assertEquals(1, $excel->sheet()->countRows('C3'));
+        $this->assertEquals(6, $excel->sheet()->minRow('E6'));
+        $this->assertEquals(3, $excel->sheet()->maxRow('C3'));
+
+        $result = $excel->readColumns();
+        $this->assertEquals(count($result), $excel->sheet()->countCols());
+
+        $this->assertEquals(3, $excel->sheet()->countColumns('C3:E6'));
+        $this->assertEquals('C', $excel->sheet()->minColumn('C3:E6'));
+        $this->assertEquals('E', $excel->sheet()->maxColumn('C3:E6'));
+    }
+
 }

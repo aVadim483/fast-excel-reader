@@ -735,8 +735,12 @@ if ($sheet->isMerged('B3')) {
 * ```dimension()``` -- Returns dimension of default work area from sheet properties
 * ```countRows()``` -- Count rows from dimension
 * ```countColumns()``` -- Count columns from dimension
-* ```firstRow()``` -- The first row number
-* ```firstCol()``` -- The first column letter
+* ```minRow()``` -- The minimal row number from sheet properties
+* ```maxRows()``` -- The maximal row number from sheet properties
+* ```minColumn()``` -- The minimal column letter from sheet properties
+* ```maxColumn()``` -- The maximal column letter from sheet properties
+* ```firstRow()``` -- The actual number of the first row from the sheet data area (may not match the value from ```minRow()```)
+* ```firstCol()``` -- The actual letter of the first column from the sheet data area (may not match the value from ```minColumn()```)
 * ```readFirstRow()``` -- Returns values of cells of 1st row as array
 * ```readFirstRowWithStyles()``` -- Returns values and styles of cells of 1st row as array
 * ```getColumnWidth(int)``` -- Returns the width of a given column number
