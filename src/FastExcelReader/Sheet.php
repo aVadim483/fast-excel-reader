@@ -58,6 +58,10 @@ class Sheet implements InterfaceSheetReader
 
     protected int $countImages = -1; // -1 - unknown
 
+    protected array $actualRows = [];
+
+    protected array $actualCols = [];
+
     /**
      * @var array<array{
      *  type: string,
@@ -490,7 +494,7 @@ class Sheet implements InterfaceSheetReader
     {
         $areaRange = $range ?: $this->dimension();
         if ($areaRange && preg_match('/^([A-Za-z]+)(\d+)(:([A-Za-z]+)(\d+))?$/', $areaRange, $matches)) {
-            return Excel::colNum($matches[4]) - Excel::colNum($matches[1]) + 1;
+            return !empty($matches[4]) ? (Excel::colNum($matches[4]) - Excel::colNum($matches[1]) + 1) : 1;
         }
 
         return 0;
@@ -558,10 +562,10 @@ class Sheet implements InterfaceSheetReader
     {
         $areaRange = $range ?: $this->dimension();
         if ($areaRange && preg_match('/^([A-Za-z]+)(\d+)(:([A-Za-z]+)(\d+))?$/', $areaRange, $matches)) {
-            return $matches[4] ?? '';
+            return $matches[4] ?? $this->minColumn($range);
         }
 
-        return 0;
+        return $this->minColumn($range);
     }
 
     /**
@@ -574,6 +578,188 @@ class Sheet implements InterfaceSheetReader
     public function countCols(?string $range = null): int
     {
         return $this->countColumns($range);
+    }
+
+    /**
+     * @param bool $countColumns
+     * @param bool $countRows
+     * @param int $blockSize
+     *
+     * @return array
+     */
+    public function countActualDimension(bool $countColumns = true, bool $countRows = true, int $blockSize = 4096): array
+    {
+        $block1 = $block2 = null;
+        $fp = fopen('zip://' . $this->zipFilename . '#' . $this->pathInZip, 'r');
+        $minRow = $maxRow = 0;
+        $columns = [];
+        $cntBlocks = 0;
+        while (!feof($fp)) {
+            $str = fread($fp, $blockSize);
+            if ($str === false) {
+                break;
+            }
+
+            if ($block1 === null) {
+                $block1 = $str;
+                $block2 = (string)fread($fp, $blockSize);
+            }
+            else {
+                $block2 = $str;
+            }
+
+            $txt = $block1 . $block2;
+            if (!$txt) {
+                break;
+            }
+
+            if ($countRows && !$this->actualRows) {
+                if (preg_match_all('/<row\s+([^>]+)/', $txt, $matches)) {
+                    if ($minRow === 0) {
+                        $attr = reset($matches[1]);
+                        if ($attr && preg_match('/r\s*=\s*"?(\d+)"?/', $attr, $m)) {
+                            $minRow = (int)$m[1];
+                        }
+                    }
+                    $attr = end($matches[1]);
+                    if ($attr && preg_match('/r\s*=\s*"?(\d+)"?/', $attr, $m)) {
+                        $rowNum = (int)$m[1];
+                        if ($maxRow === 0 || $rowNum >= $maxRow) {
+                            $maxRow = $rowNum;
+                        }
+                    }
+                }
+            }
+
+            if ($countColumns && !$this->actualCols) {
+                if (preg_match_all('/<c\s+([^>]+)/', $txt, $matches)) {
+                    foreach ($matches[1] as $attr) {
+                        if (preg_match('/r\s*=\s*"?([A-Z]+)(\d+)"?/', $attr, $m) && !empty($m[1]) && !isset($columns[$m[1]])) {
+                            $columns[$m[1]] = \avadim\FastExcelHelper\Helper::colNumber($m[1]);
+                        }
+                    }
+                }
+            }
+
+            $block1 = $block2;
+        }
+        fclose($fp);
+
+        if ($countColumns && !$this->actualCols) {
+            asort($columns);
+            $this->actualCols['min'] = array_key_first($columns);
+            $this->actualCols['max'] = array_key_last($columns);
+            $this->actualCols['count'] = $columns[$this->actualCols['max']] - $columns[$this->actualCols['min']] + 1;
+        }
+        if ($countRows && !$this->actualRows) {
+            $this->actualRows['min'] = $minRow;
+            $this->actualRows['max'] = $maxRow;
+            $this->actualRows['count'] = $maxRow - $minRow + 1;
+        }
+
+        return [
+            'rows' => $this->actualRows,
+            'cols' => $this->actualCols,
+        ];
+    }
+
+    /**
+     * Returns the actual number of rows from the sheet data area
+     *
+     * @return int
+     */
+    public function countActualRows(): int
+    {
+        if (!$this->actualRows) {
+            $this->countActualDimension(false);
+        }
+
+        return $this->actualRows['count'] ?? 0;
+    }
+
+    /**
+     * @return int
+     */
+    public function minActualRow(): int
+    {
+        if (!$this->actualRows) {
+            $this->countActualDimension(false);
+        }
+
+        return $this->actualRows['min'] ?? 0;
+    }
+
+    /**
+     * @return int
+     */
+    public function maxActualRow(): int
+    {
+        if (!$this->actualRows) {
+            $this->countActualDimension(false);
+        }
+
+        return $this->actualRows['max'] ?? 0;
+    }
+
+    /**
+     * Returns the actual number of columns from the sheet data area
+     *
+     * @return int
+     */
+    public function countActualColumns(): int
+    {
+        if (!$this->actualCols) {
+            $this->countActualDimension(true, false);
+        }
+
+        return $this->actualCols['count'] ?? 0;
+    }
+
+    /**
+     * @return string
+     */
+    public function minActualColumn(): string
+    {
+        if (!$this->actualCols) {
+            $this->countActualDimension(true, false);
+        }
+
+        return $this->actualCols['min'] ?? '';
+    }
+
+    /**
+     * @return string
+     */
+    public function maxActualColumn(): string
+    {
+        if (!$this->actualCols) {
+            $this->countActualDimension(true, false);
+        }
+
+        return $this->actualCols['max'] ?? '';
+    }
+
+    /**
+     * @return string
+     */
+    public function actualDimension(): string
+    {
+        $minCell = $maxCell = '';
+        $dim = $this->countActualDimension();
+        if (isset($dim['rows']['min'], $dim['cols']['min'])) {
+            $minCell = $dim['cols']['min'] . $dim['rows']['min'];
+        }
+        if (isset($dim['rows']['max'], $dim['cols']['max'])) {
+            $maxCell = $dim['cols']['max'] . $dim['rows']['max'];
+        }
+        if ($minCell && !$maxCell) {
+            return $minCell;
+        }
+        if (!$minCell && $maxCell) {
+            return $maxCell;
+        }
+
+        return $minCell . ':' . $maxCell;
     }
 
     /**

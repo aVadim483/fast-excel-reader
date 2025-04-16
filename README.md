@@ -721,6 +721,35 @@ if ($sheet->isMerged('B3')) {
 }
 ```
 
+## Count rows and columns
+
+Each sheet contains the ```dimension``` property with the range of the area in which the data is written. 
+If only one cell is filled on the sheet, then there should be an address of only this cell of the form "B2", 
+otherwise it is a range of the form "B2:E10".
+
+There are several methods that get data from this property:
+* ```dimension()``` -- Returns dimension of default work area from sheet properties
+* ```countRows()``` -- Count rows from dimension
+* ```countColumns()``` -- Count columns from dimension
+* ```minRow()``` -- The minimal row number from sheet properties
+* ```maxRows()``` -- The maximal row number from sheet properties
+* ```minColumn()``` -- The minimal column letter from sheet properties
+* ```maxColumn()``` -- The maximal column letter from sheet properties
+
+But sometimes the ```dimension``` property contains incorrect information. 
+For example, it may contain the address of only the first cell of the data range or the address of only the last cell. 
+In such cases, you can use methods that scan the entire sheet and count the actual number of rows and columns with data on the sheet.
+
+IMPORTANT: these methods are slower than methods using the ```dimension``` property
+
+* ```actualDimension()``` -- Returns dimension of the actual work area
+* ```countActualRows()``` -- Count actual rows from the sheet
+* ```minActualRow()``` -- The minimal actual row number
+* ```maxActualRow()``` -- The maximal actual row number
+* ```countActualColumns()``` -- Count actual columns from the sheet
+* ```minActualColumn()``` -- The minimal actual column letter
+* ```maxActualColumn()``` -- The maximal actual column letter
+
 ## Some useful methods
 ### Excel object
 * ```getSheetNames()``` -- Returns names array of all sheets
@@ -739,12 +768,6 @@ if ($sheet->isMerged('B3')) {
 * ```isHidden()``` -- If worksheet is hidden
 * ```isVisible()``` -- If worksheet is visible
 * ```state()``` -- Returns string state of worksheet (used in ```isHidden()``` and ```isVisible()```)
-* ```dimension()``` -- Returns dimension of default work area from sheet properties
-* ```countRows()``` -- Count rows from dimension
-* ```countColumns()``` -- Count columns from dimension
-* ```minRow()``` -- The minimal row number from sheet properties
-* ```maxRows()``` -- The maximal row number from sheet properties
-* ```minColumn()``` -- The minimal column letter from sheet properties
 * ```maxColumn()``` -- The maximal column letter from sheet properties
 * ```firstRow()``` -- The actual number of the first row from the sheet data area (may not match the value from ```minRow()```)
 * ```firstCol()``` -- The actual letter of the first column from the sheet data area (may not match the value from ```minColumn()```)
