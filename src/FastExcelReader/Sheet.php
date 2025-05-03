@@ -1965,6 +1965,16 @@ class Sheet implements InterfaceSheetReader
         $formula1 = null;
         $formula2 = null;
 
+        // Check if it's a self-closing tag
+        if ($xmlReader->isEmptyElement) {
+            return [
+                'type' => $type,
+                'sqref' => $sqref,
+                'formula1' => $formula1,
+                'formula2' => $formula2
+            ];
+        }
+
         // Handle child nodes like formula1 and formula2
         while ($xmlReader->read()) {
             if ($xmlReader->nodeType === \XMLReader::ELEMENT && $xmlReader->name === 'formula1') {
@@ -2005,6 +2015,16 @@ class Sheet implements InterfaceSheetReader
         $sqref = null;
         $formula1 = null;
         $formula2 = null;
+
+        // Check if it's a self-closing tag
+        if ($xmlReader->isEmptyElement) {
+            return [
+                'type' => $type,
+                'sqref' => $sqref,
+                'formula1' => $formula1,
+                'formula2' => $formula2
+            ];
+        }
 
         // Parse the attributes within the <x14:dataValidation> tag
         while ($xmlReader->read()) {
