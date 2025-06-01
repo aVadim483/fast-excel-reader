@@ -295,7 +295,7 @@ But you can change this behavior and skip cells with empty strings.
 ```php
 $sheet = $excel->sheet();
 
-// Skip empty cells and empty rows
+// Skip empty cells and empty rows by default
 foreach ($sheet->nextRow() as $rowNum => $rowData) {
     // handle $rowData
 }

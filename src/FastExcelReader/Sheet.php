@@ -243,6 +243,9 @@ class Sheet implements InterfaceSheetReader
                     }
                 }
         }
+        if ($dataType === 'string') {
+            $value = Helper::unescapeString($value);
+        }
         $additionalData = ['v' => $value, 's' => $styleIdx, 'f' => $formula, 't' => $dataType, 'o' => $originalValue];
 
         return $value;
@@ -836,6 +839,8 @@ class Sheet implements InterfaceSheetReader
     }
 
     /**
+     * Set reading area
+     *
      * setReadArea('C3:AZ28') - set top left and right bottom of read area
      * setReadArea('C3') - set top left only
      *
@@ -1219,7 +1224,7 @@ class Sheet implements InterfaceSheetReader
     }
 
     /**
-     * Read cell values row by row, returns either an array of values or an array of arrays
+     * Read cell values row by row, returns either an array of values or an array of arrays. Used inside a loop
      *
      *      nextRow(..., ...) : <rowNum> => [<colNum1> => <value1>, <colNum2> => <value2>, ...]
      *      nextRow(..., ..., true) : <rowNum> => [<colNum1> => ['v' => <value1>, 's' => <style1>], <colNum2> => ['v' => <value2>, 's' => <style2>], ...]
@@ -1230,8 +1235,20 @@ class Sheet implements InterfaceSheetReader
      * @param int|null $rowLimit
      *
      * @return \Generator|null
+     *
+     * @example
+     * $sheet = $excel->sheet();
+     * foreach ($sheet->nextRow() as $rowNum => $rowData) {
+     *      // Reads only cell values
+     *      // $rowData is an array ['A' => <value1>, 'B' => <value2>, ...]
+     * }
+     *
+     * foreach ($sheet->nextRow(..., ..., true) as $rowNum => $rowData) {
+     *      // Read values and styles
+     *      // $rowData is an array ['A' => ['v' => <value>, 's' => <styleIdx>, 'f' => <formula>, 't' => <dataType>, 'o' => <originalValue>], ...]
+     *  }
      */
-    public function nextRow($columnKeys = [], ?int $resultMode = null, ?bool $styleIdxInclude = null, ?int $rowLimit = 0): ?\Generator
+    public function nextRow($columnKeys = [], ?int $resultMode = null, ?bool $styleIdxInclude = null, ?int $rowLimit = 0, ?int $rowSkip = 0): ?\Generator
     {
         // <dimension ref="A1:C1"/>
         // sometimes sheets doesn't contain this tag
@@ -1280,6 +1297,11 @@ class Sheet implements InterfaceSheetReader
         }
 
         if ($xmlReader->seekOpenTag('sheetData')) {
+            if ($rowSkip > 0 && $xmlReader->seekOpenTag('row')) {
+                while (--$rowSkip > 0) {
+                    $xmlReader->next('row');
+                }
+            }
             while ($xmlReader->read()) {
                 if ($rowLimit > 0 && $rowCnt >= $rowLimit) {
                     break;
@@ -1435,9 +1457,9 @@ class Sheet implements InterfaceSheetReader
      *
      * @return \Generator|null
      */
-    public function reset($columnKeys = [], ?int $resultMode = null, ?bool $styleIdxInclude = null, ?int $rowLimit = 0): ?\Generator
+    public function reset($columnKeys = [], ?int $resultMode = null, ?bool $styleIdxInclude = null, ?int $rowLimit = 0, ?int $rowSkip = 0): ?\Generator
     {
-        $this->generator = $this->nextRow($columnKeys, $resultMode, $styleIdxInclude, $rowLimit);
+        $this->generator = $this->nextRow($columnKeys, $resultMode, $styleIdxInclude, $rowLimit, $rowSkip);
         $this->countReadRows = 0;
 
         return $this->generator;
@@ -1460,6 +1482,8 @@ class Sheet implements InterfaceSheetReader
     }
 
     /**
+     * Reads the next row, can be used outside a loop
+     *
      * @return mixed
      */
     public function readNextRow()
@@ -1475,6 +1499,21 @@ class Sheet implements InterfaceSheetReader
         }
 
         return $result;
+    }
+
+
+    public function skipRows(int $count = 1)
+    {
+        if (!$this->generator) {
+            $this->reset();
+        }
+        $skipped = 0;
+        while ($skipped < $count && $this->generator->valid()) {
+            $this->generator->next();
+            $skipped++;
+        }
+
+        return $skipped;
     }
 
     /**
