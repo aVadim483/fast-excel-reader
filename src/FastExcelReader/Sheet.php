@@ -243,6 +243,9 @@ class Sheet implements InterfaceSheetReader
                     }
                 }
         }
+        if ($value && $dataType === 'string') {
+            $value = Helper::unescapeString($value);
+        }
         $additionalData = ['v' => $value, 's' => $styleIdx, 'f' => $formula, 't' => $dataType, 'o' => $originalValue];
 
         return $value;

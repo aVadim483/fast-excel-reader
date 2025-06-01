@@ -109,6 +109,10 @@ final class FastExcelReaderTest extends TestCase
         $this->assertEquals('2179-08-12', $result['C3']);
         $this->assertEquals('1753-01-31', $result['C4']);
 
+        $sheet = $excel->sheet('Sheet2');
+        $result = $sheet->readCells();
+        $this->assertEquals('_x1000_', $result['B11']);
+
         $excel->dateFormatter(false);
         $sheet = $excel->sheet('Sheet3');
         $result = $sheet->readCells();
