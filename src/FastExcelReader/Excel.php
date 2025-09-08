@@ -1425,14 +1425,19 @@ class Excel implements InterfaceBookReader
             }
             $styles = $this->readStyles();
             if (isset($styles['cellXfs'][$styleIdx])) {
-                $result = array_replace_recursive($result, $styles['cellXfs'][$styleIdx]);
-            }
-
-            if (isset($result['xfId']) && isset($styles['cellStyleXfs'][$result['xfId']])) {
-                if ($styleIdx === 0 || ($styleIdx > 0 && $result['xfId'])) {
-                    $result = array_replace_recursive($result, $styles['cellStyleXfs'][$result['xfId']]);
+                // Excel first takes the style settings with the xfId number from <cellStyleXfs>
+                // and then applies the changes specified directly in <xf>
+                $baseStyleId = $styles['cellXfs'][$styleIdx]['xfId'] ?? -1;
+                if ($baseStyleId >= 0 && isset($styles['cellStyleXfs'][$baseStyleId])) {
+                    $baseStyle = $styles['cellStyleXfs'][$baseStyleId];
                 }
-                unset($result['xfId']);
+                else {
+                    $baseStyle = [];
+                }
+                $result = array_replace_recursive($result, $baseStyle, $styles['cellXfs'][$styleIdx]);
+                if (isset($result['xfId'])) {
+                    unset($result['xfId']);
+                }
             }
 
             if (isset($result['numFmtId']) && isset($styles['numFmts'][$result['numFmtId']])) {
