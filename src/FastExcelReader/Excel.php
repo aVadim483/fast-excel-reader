@@ -614,9 +614,38 @@ class Excel implements InterfaceBookReader
         if ($theme !== null && $theme !== '') {
             $color = $this->themeColors[(int)$theme] ?? '';
             if ($color) {
-                $tint = $node->getAttribute('tint');
+                $tint = (float)$node->getAttribute('tint');
+/*
                 if (!empty($tint)) {
-                    $color = Helper::correctColor($color, $tint);
+                    $color0 = Helper::correctColor($color, $tint);
+                }
+*/
+                if ($tint !== 0.0) {
+                    if ($tint === 1.0) {
+                        $color = '#FFFFFF';
+                    }
+                    elseif ($tint === -1.0) {
+                        $color = '#000000';
+                    }
+                    else {
+                        $r = hexdec(substr($color, 1, 2));
+                        $g = hexdec(substr($color, 3, 2));
+                        $b = hexdec(substr($color, 5, 2));
+                        if ($tint > 0) {
+                            $r = round($r + (255 - $r) * $tint);
+                            $g = round($g + (255 - $g) * $tint);
+                            $b = round($b + (255 - $b) * $tint);
+                        }
+                        else {
+                            $r = round($r * (1 + $tint));
+                            $g = round($g * (1 + $tint));
+                            $b = round($b * (1 + $tint));
+                        }
+                        $color = '#'
+                            . strtoupper(str_pad(dechex($r), 2, '0', STR_PAD_LEFT))
+                            . strtoupper(str_pad(dechex($g), 2, '0', STR_PAD_LEFT))
+                            . strtoupper(str_pad(dechex($b), 2, '0', STR_PAD_LEFT));
+                    }
                 }
             }
             return $color;
