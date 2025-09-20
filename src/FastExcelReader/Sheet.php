@@ -267,11 +267,33 @@ class Sheet implements InterfaceSheetReader
                 $formula = '=' . $formula;
             }
             if ($shared && $si > '') {
-                $this->sharedFormulas[$si] = $formula;
+                $ref = (string)$node->getAttribute('ref');
+                if ($ref && preg_match('/^([a-z]+)\$?(\d+)(:\$?([a-z]+)\$?(\d+))?$/i', $ref, $m)) {
+                    $ref = ['col_num' => Helper::colNumber($m[1]), 'row_num' => (int)$m[2]];
+                }
+                else {
+                    $ref = ['col_num' => 0, 'row_num' => 0];
+                }
+                $this->sharedFormulas[$si] = ['ref' => $ref, 'formula' => $formula];
             }
         }
         elseif ($shared && $si > '' && isset($this->sharedFormulas[$si])) {
-            $formula = $this->sharedFormulas[$si];
+            $formula = $this->sharedFormulas[$si]['formula'];
+            $ref = $this->sharedFormulas[$si]['ref'];
+            if (preg_match('/^\$?([a-z]+)\$?(\d+)(:\$?([a-z]+)\$?(\d+))?$/i', $address, $m)) {
+                $addressNum = [
+                    'col_num' => Helper::colNumber($m[1]),
+                    'row_num' => (int)$m[2],
+                ];
+                $formula = preg_replace_callback('/([A-Z]+)([0-9]+)/', function ($matches) use ($addressNum, $ref) {
+                    $colNum = Helper::colNumber($matches[1]);
+                    $rowNum = (int)$matches[2];
+                    $colOffset = $addressNum['col_num'] - $ref['col_num'];
+                    $rowOffset = $addressNum['row_num'] - $ref['row_num'];
+
+                    return Helper::colLetter($colNum + $colOffset) . ($rowNum + $rowOffset);
+                }, $formula);
+            }
         }
 
         return $formula;
