@@ -1400,9 +1400,9 @@ class Excel implements InterfaceBookReader
     }
 
     /**
-     * @return bool
+     * @return int
      */
-    public function hasExtraImages(): bool
+    public function countExtraImages(): int
     {
         $drawingImageFiles = [];
         if ($this->hasDrawings()) {
@@ -1415,7 +1415,15 @@ class Excel implements InterfaceBookReader
         }
         $imageFiles = $this->mediaImageFiles();
 
-        return (count($imageFiles) !== count($drawingImageFiles));
+        return (count($imageFiles) - count($drawingImageFiles));
+    }
+
+    /**
+     * @return bool
+     */
+    public function hasExtraImages(): bool
+    {
+        return $this->countExtraImages() > 0;
     }
 
     /**

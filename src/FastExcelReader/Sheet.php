@@ -1555,11 +1555,12 @@ class Sheet implements InterfaceSheetReader
      *
      * @return void
      */
-    protected function addImage(string $cell, string $fileName, ?string $imageName = null)
+    protected function addImage(string $cell, string $fileName, ?string $imageName = null, ?array $meta = [])
     {
         $this->images[$cell] = [
             'image_name' => $imageName,
             'file_name' => $fileName,
+            'meta' => $meta,
         ];
     }
 
@@ -1648,7 +1649,12 @@ class Sheet implements InterfaceSheetReader
         return $result;
     }
 
-    protected function extractRichValueImages()
+    /**
+     * @param int $numImages
+     *
+     * @return void
+     */
+    protected function extractRichValueImages(int $numImages)
     {
         $xmlReader = $this->getReader();
         $xmlReader->openZip($this->pathInZip);
@@ -1658,7 +1664,8 @@ class Sheet implements InterfaceSheetReader
                 break;
             }
         }
-        while ($xmlReader->read()) {
+        $count = 0;
+        while ($xmlReader->read() && $numImages > $count) {
             // loop until </sheetData>
             if ($xmlReader->name === 'sheetData' && $xmlReader->nodeType === \XMLReader::END_ELEMENT) {
                 break;
@@ -1667,7 +1674,8 @@ class Sheet implements InterfaceSheetReader
                 $vm = (string)$xmlReader->getAttribute('vm');
                 $cell = (string)$xmlReader->getAttribute('r');
                 if ($vm && ($imageFile = $this->excel->metadataImage($vm))) {
-                    $this->addImage($cell, basename($imageFile));
+                    $this->addImage($cell, basename($imageFile), null, ['r' => $cell, 'vm' => $vm]);
+                    $count++;
                 }
             }
         }
@@ -1691,8 +1699,8 @@ class Sheet implements InterfaceSheetReader
     {
         if ($this->countImages === -1) {
             $this->_countDrawingsImages();
-            if ($this->excel->hasExtraImages()) {
-                $this->extractRichValueImages();
+            if ($cnt = $this->excel->countExtraImages()) {
+                $this->extractRichValueImages($cnt);
             }
             $this->countImages = count($this->images);
         }
@@ -1743,11 +1751,15 @@ class Sheet implements InterfaceSheetReader
      */
     public function getImageList(): array
     {
+        $result = [];
         if ($this->countImages()) {
-            return $this->images;
+            foreach ($this->images as $cell => $image) {
+                $result[$cell]['image_name'] = $image['image_name'];
+                $result[$cell]['file_name'] = $image['file_name'];
+            }
         }
 
-        return [];
+        return $result;
     }
 
     /**
@@ -2248,16 +2260,6 @@ class Sheet implements InterfaceSheetReader
         $xmlReader->close();
 
         return $freezePane;
-    }
-
-    /**
-     * Alias of getFreezePaneInfo()
-     *
-     * @return array|null
-     */
-    public function getFreezePaneConfig0(): ?array
-    {
-        return $this->readCells();
     }
 
     /**
