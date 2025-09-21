@@ -404,14 +404,39 @@ class Sheet implements InterfaceSheetReader
         return $this->xmlReader;
     }
 
+    /**
+     * @param string $pathInZip
+     *
+     * @return InterfaceXmlReader|Reader
+     */
+    protected function xmlReaderOpenZip(string $pathInZip)
+    {
+        $xmlReader = $this->getReader();
+        $xmlReader->openZip($pathInZip);
+
+        return $xmlReader;
+    }
+
+    /**
+     * @param $xmlReader
+     *
+     * @return void
+     */
+    protected function xmlReaderClose(&$xmlReader)
+    {
+        $xmlReader->close();
+        $xmlReader = null;
+    }
+
     protected function _readHeader()
     {
         if (!isset($this->dimension['range'])) {
             $this->dimension = [
                 'range' => '',
             ];
-            $xmlReader = $this->getReader();
-            $xmlReader->openZip($this->pathInZip);
+            //$xmlReader = $this->getReader();
+            //$xmlReader->openZip($this->pathInZip);
+            $xmlReader = $this->xmlReaderOpenZip($this->pathInZip);
             while ($xmlReader->read()) {
                 if ($xmlReader->nodeType === \XMLReader::ELEMENT && $xmlReader->name === 'dimension') {
                     $range = (string)$xmlReader->getAttribute('ref');
@@ -438,15 +463,17 @@ class Sheet implements InterfaceSheetReader
                     break;
                 }
             }
-            $xmlReader->close();
+            //$xmlReader->close();
+            $this->xmlReaderClose($xmlReader);;
         }
     }
 
     protected function _readBottom()
     {
         if ($this->mergedCells === null) {
-            $xmlReader = $this->getReader();
-            $xmlReader->openZip($this->pathInZip);
+            //$xmlReader = $this->getReader();
+            //$xmlReader->openZip($this->pathInZip);
+            $xmlReader = $this->xmlReaderOpenZip($this->pathInZip);
             while ($xmlReader->read()) {
                 if ($xmlReader->nodeType === \XMLReader::END_ELEMENT && $xmlReader->name === 'sheetData') {
                     break;
@@ -462,7 +489,8 @@ class Sheet implements InterfaceSheetReader
                     }
                 }
             }
-            $xmlReader->close();
+            //$xmlReader->close();
+            $this->xmlReaderClose($xmlReader);;
         }
     }
 
@@ -1291,8 +1319,9 @@ class Sheet implements InterfaceSheetReader
         }
         $this->readRowNum = $this->countReadRows = 0;
 
-        $xmlReader = $this->getReader();
-        $xmlReader->openZip($this->pathInZip);
+        //$xmlReader = $this->getReader();
+        //$xmlReader->openZip($this->pathInZip);
+        $xmlReader = $this->xmlReaderOpenZip($this->pathInZip);
 
         $rowData = $rowTemplate;
         $rowNum = 0;
@@ -1445,7 +1474,8 @@ class Sheet implements InterfaceSheetReader
             ($this->postReadFunc)($xmlReader);
         }
 
-        $xmlReader->close();
+        //$xmlReader->close();
+        $this->xmlReaderClose($xmlReader);;
 
         return null;
     }
@@ -1678,8 +1708,9 @@ class Sheet implements InterfaceSheetReader
      */
     protected function extractRichValueImages(int $numImages)
     {
-        $xmlReader = $this->getReader();
-        $xmlReader->openZip($this->pathInZip);
+        //$xmlReader = $this->getReader();
+        //$xmlReader->openZip($this->pathInZip);
+        $xmlReader = $this->xmlReaderOpenZip($this->pathInZip);
         while ($xmlReader->read()) {
             // seek <sheetData>
             if ($xmlReader->name === 'sheetData') {
@@ -1701,7 +1732,8 @@ class Sheet implements InterfaceSheetReader
                 }
             }
         }
-        $xmlReader->close();
+        //$xmlReader->close();
+        $this->xmlReaderClose($xmlReader);;
     }
 
     /**
@@ -1955,8 +1987,9 @@ class Sheet implements InterfaceSheetReader
     public function extractDataValidations(): void
     {
         $validations = [];
-        $xmlReader = $this->getReader();
-        $xmlReader->openZip($this->pathInZip);
+        //$xmlReader = $this->getReader();
+        //$xmlReader->openZip($this->pathInZip);
+        $xmlReader = $this->xmlReaderOpenZip($this->pathInZip);
 
         while ($xmlReader->read()) {
             if ($xmlReader->nodeType === \XMLReader::ELEMENT) {
@@ -1978,7 +2011,8 @@ class Sheet implements InterfaceSheetReader
             }
         }
 
-        $xmlReader->close();
+        //$xmlReader->close();
+        $this->xmlReaderClose($xmlReader);;
 
         $this->validations = $validations;
     }
@@ -2129,8 +2163,9 @@ class Sheet implements InterfaceSheetReader
     public function extractConditionalFormatting(): void
     {
         $conditionals = [];
-        $xmlReader = $this->getReader();
-        $xmlReader->openZip($this->pathInZip);
+        //$xmlReader = $this->getReader();
+        //$xmlReader->openZip($this->pathInZip);
+        $xmlReader = $this->xmlReaderOpenZip($this->pathInZip);
 
         while ($xmlReader->read()) {
             if ($xmlReader->nodeType === \XMLReader::ELEMENT && $xmlReader->name === 'conditionalFormatting') {
@@ -2141,7 +2176,8 @@ class Sheet implements InterfaceSheetReader
             }
         }
 
-        $xmlReader->close();
+        //$xmlReader->close();
+        $this->xmlReaderClose($xmlReader);;
 
         $this->conditionals = $conditionals;
     }
@@ -2197,8 +2233,9 @@ class Sheet implements InterfaceSheetReader
         $this->colWidths = [];
         $this->rowHeights = [];
 
-        $xmlReader = $this->getReader();
-        $xmlReader->openZip($this->pathInZip);
+        //$xmlReader = $this->getReader();
+        //$xmlReader->openZip($this->pathInZip);
+        $xmlReader = $this->xmlReaderOpenZip($this->pathInZip);
 
         while ($xmlReader->read()) {
             if ($xmlReader->nodeType === \XMLReader::ELEMENT) {
@@ -2221,7 +2258,8 @@ class Sheet implements InterfaceSheetReader
             }
         }
 
-        $xmlReader->close();
+        //$xmlReader->close();
+        $this->xmlReaderClose($xmlReader);;
     }
 
     /**
@@ -2260,8 +2298,9 @@ class Sheet implements InterfaceSheetReader
      */
     public function getFreezePaneInfo(): ?array
     {
-        $xmlReader = $this->getReader();
-        $xmlReader->openZip($this->pathInZip);
+        //$xmlReader = $this->getReader();
+        //$xmlReader->openZip($this->pathInZip);
+        $xmlReader = $this->xmlReaderOpenZip($this->pathInZip);
 
         $freezePane = null;
 
@@ -2279,7 +2318,8 @@ class Sheet implements InterfaceSheetReader
                 break;
             }
         }
-        $xmlReader->close();
+        //$xmlReader->close();
+        $this->xmlReaderClose($xmlReader);;
 
         return $freezePane;
     }
@@ -2299,8 +2339,9 @@ class Sheet implements InterfaceSheetReader
             'color' => null,
         ];
 
-        $xmlReader = $this->getReader();
-        $xmlReader->openZip($this->pathInZip);
+        //$xmlReader = $this->getReader();
+        //$xmlReader->openZip($this->pathInZip);
+        $xmlReader = $this->xmlReaderOpenZip($this->pathInZip);
 
         while ($xmlReader->read()) {
             if ($xmlReader->nodeType === \XMLReader::ELEMENT && $xmlReader->name === 'sheetPr') {
@@ -2327,7 +2368,8 @@ class Sheet implements InterfaceSheetReader
             }
         }
 
-        $xmlReader->close();
+        //$xmlReader->close();
+        $this->xmlReaderClose($xmlReader);
     }
 
     /**
