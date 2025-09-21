@@ -503,4 +503,31 @@ final class FastExcelReaderTest extends TestCase
         $this->assertEquals('E', $excel->sheet()->maxColumn('C3:E6'));
     }
 
+    public function testExcelReaderFormulas(): void
+    {
+        // =====================
+        $file = __DIR__ . '/Files/formulas.xlsx';;
+        $excel = Excel::open($file);
+        $sheet = $excel->sheet();
+
+        $cells = $sheet->readCellsWithStyles();
+
+        $this->assertEquals(null, $cells['A2']['f']);
+        $this->assertEquals('=A2+1', $cells['B2']['f']);
+        $this->assertEquals('=B2+1', $cells['C2']['f']);
+        $this->assertEquals('=C2+1', $cells['D2']['f']);
+        $this->assertEquals('=SUM(A2:D2)', $cells['E2']['f']);
+
+        $this->assertEquals('=B3+1', $cells['A4']['f']);
+        $this->assertEquals('=A4+1', $cells['B4']['f']);
+        $this->assertEquals('=B4+1', $cells['C4']['f']);
+        $this->assertEquals('=C4+1', $cells['D4']['f']);
+        $this->assertEquals('=SUM(A4:D4)', $cells['E4']['f']);
+
+        $this->assertEquals('=B8+1', $cells['A9']['f']);
+        $this->assertEquals('=A9+1', $cells['B9']['f']);
+        $this->assertEquals('=B9+1', $cells['C9']['f']);
+        $this->assertEquals('=C9+1', $cells['D9']['f']);
+        $this->assertEquals('=SUM(A9:D9)', $cells['E9']['f']);
+    }
 }
