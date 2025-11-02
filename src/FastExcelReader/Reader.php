@@ -108,6 +108,32 @@ class Reader extends \XMLReader implements InterfaceXmlReader
     }
 
     /**
+     * Generates a valid URI for zip://, taking into account all special characters and differences between Linux and Windows.
+     *
+     * @param string $zipPath Full path to the ZIP file
+     * @param string $innerPath Path to the file inside the archive
+     *
+     * @return string
+     */
+    protected function makeZipUri(string $zipPath, string $innerPath): string
+    {
+        // Заменяем только проблемные символы, не трогая слэши
+        $encoded = strtr($zipPath, [
+            '#' => '%23',  // разделитель URI
+            ':' => '%3A',  // буква диска под Windows
+            ' ' => '%20',  // пробелы
+            '%' => '%25',  // уже закодированные пути
+        ]);
+
+        // For Linux, add a third slash if the path is absolute
+        if (DIRECTORY_SEPARATOR === '/' && strpos($zipPath, '/') === 0) {
+            return "zip:///$encoded#$innerPath";
+        }
+
+        return "zip://$encoded#$innerPath";
+    }
+
+    /**
      * @param string $innerFile
      * @param string|null $encoding
      * @param int|null $options
@@ -117,7 +143,9 @@ class Reader extends \XMLReader implements InterfaceXmlReader
     public function openZip(string $innerFile, ?string $encoding = null, ?int $options = 0): bool
     {
         $this->innerFile = $innerFile;
-        $result = $this->open('zip://' . $this->zipFile . '#' . $innerFile, $encoding, $options);
+        //$result = $this->open('zip://' . $this->zipFile . '#' . $innerFile, $encoding, $options);
+        $uri = $this->makeZipUri($this->zipFile, $innerFile);
+        $result = $this->open($uri, $encoding, $options);
         if ($result) {
             foreach ($this->xmlParserProperties as $property => $value) {
                 $this->setParserProperty($property, $value);
