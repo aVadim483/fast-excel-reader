@@ -19,5 +19,13 @@ class NonstandardFileHandlingTest extends TestCase
         $nonStandardExcel = Excel::open($nonStandardFilePath);
         $nonStandardSheet = $nonStandardExcel->sheet();
         self::assertNotNull($nonStandardSheet);
+
+        $specSymbolFilePath = __DIR__ . '/Files/spec#name%sym _.xlsx';
+        self::assertFileExists($specSymbolFilePath);
+        $excel = Excel::open($specSymbolFilePath);
+        $sheet = $excel->sheet();
+
+        $cells = $sheet->readCells();
+        self::assertEquals('qwerty string', $cells['B2']);
     }
 }

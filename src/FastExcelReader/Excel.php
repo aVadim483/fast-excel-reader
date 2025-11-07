@@ -78,8 +78,9 @@ class Excel implements InterfaceBookReader
      * Excel constructor
      *
      * @param string|null $file
+     * @param string|null $tempDir
      */
-    public function __construct(?string $file = null)
+    public function __construct(?string $file = null, ?string $tempDir = '')
     {
         $this->builtinFormats = [
             0 => ['pattern' => 'General', 'category' => 'general'],
@@ -140,11 +141,26 @@ class Excel implements InterfaceBookReader
             return $value;
         };
 
+        if (!empty($tempDir)) {
+            self::setTempDir($tempDir);
+        }
+
         if ($file) {
             $this->file = $file;
             $this->_prepare($file);
         }
     }
+
+    /**
+     * Set dir for temporary files
+     *
+     * @param $tempDir
+     */
+    public static function setTempDir($tempDir)
+    {
+        Reader::setTempDir($tempDir);
+    }
+
 
     /**
      * @param string $file
@@ -979,7 +995,7 @@ class Excel implements InterfaceBookReader
     }
 
     /**
-     * Returns style array by style Idx
+     * Returns a style array by style Idx
      *
      * @param $styleIdx
      *
@@ -991,7 +1007,7 @@ class Excel implements InterfaceBookReader
     }
 
     /**
-     * Returns string array by index
+     * Returns string by index
      *
      * @param $stringId
      *

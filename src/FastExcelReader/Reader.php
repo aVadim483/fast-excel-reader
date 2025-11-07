@@ -11,11 +11,21 @@ use avadim\FastExcelReader\Interfaces\InterfaceXmlReader;
  */
 class Reader extends \XMLReader implements InterfaceXmlReader
 {
-    protected string $zipFile;
+    protected bool $alterMode = false;
+
+    protected string $xlsxFile;
 
     protected ?string $innerFile = null;
 
+    protected ?\ZipArchive $zip;
+
     protected array $xmlParserProperties = [];
+
+    /** @var string[] */
+    protected array $tmpFiles = [];
+
+    /** @var string|null */
+    protected static string $tempDir = '';
 
 
     /**
@@ -24,7 +34,8 @@ class Reader extends \XMLReader implements InterfaceXmlReader
      */
     public function __construct(string $file, ?array $parserProperties = [])
     {
-        $this->zipFile = $file;
+        $this->xlsxFile = $file;
+        $this->zip = new \ZipArchive();
         if ($parserProperties) {
             $this->xmlParserProperties = $parserProperties;
         }
@@ -36,6 +47,56 @@ class Reader extends \XMLReader implements InterfaceXmlReader
     }
 
     /**
+     * @param string|null $tempDir
+     */
+    public static function setTempDir(?string $tempDir = '')
+    {
+        if ($tempDir) {
+            self::$tempDir = $tempDir;
+            if (!is_dir($tempDir)) {
+                $res = @mkdir($tempDir, 0755, true);
+                if (!$res) {
+                    throw new Exception('Cannot create directory "' . $tempDir . '"');
+                }
+            }
+            self::$tempDir = realpath($tempDir);
+        }
+        else {
+            self::$tempDir = '';
+        }
+    }
+
+    /**
+     * @return bool|string
+     */
+    protected function makeTempFile()
+    {
+        $name = uniqid('xlsx_reader_', true);
+        if (!self::$tempDir) {
+            $tempDir = sys_get_temp_dir();
+            if (!is_writable($tempDir)) {
+                $tempDir = getcwd();
+            }
+        }
+        else {
+            $tempDir = self::$tempDir;
+        }
+        $filename = $tempDir . '/' . $name . '.tmp';
+        if (touch($filename, time(), time()) && is_writable($filename)) {
+            $filename = realpath($filename);
+            $this->tmpFiles[] = $filename;
+            return $filename;
+        }
+        else {
+            $error = 'Warning: tempdir ' . $tempDir . ' is not writeable';
+            if (!self::$tempDir) {
+                $error .= ', use ->setTempDir()';
+            }
+            throw new Exception($error);
+        }
+    }
+
+    /**
      * @return array
      */
     public function entryList(): array
@@ -44,10 +105,10 @@ class Reader extends \XMLReader implements InterfaceXmlReader
 
         $zip = new \ZipArchive();
         if (defined('\ZipArchive::RDONLY')) {
-            $res = $zip->open($this->zipFile, \ZipArchive::RDONLY);
+            $res = $zip->open($this->xlsxFile, \ZipArchive::RDONLY);
         }
         else {
-            $res = $zip->open($this->zipFile);
+            $res = $zip->open($this->xlsxFile);
         }
         if ($res === true) {
             for ($i = 0; $i < $zip->numFiles; $i++) {
@@ -85,7 +146,7 @@ class Reader extends \XMLReader implements InterfaceXmlReader
                     $error = 'Unknown error';
                     $code = -1;
             }
-            $error = 'Error reading file "' . $this->zipFile . '" - ' . $error;
+            $error = 'Error reading file "' . $this->xlsxFile . '" - ' . $error;
             throw new Exception($error, $code);
         }
 
@@ -108,29 +169,30 @@ class Reader extends \XMLReader implements InterfaceXmlReader
     }
 
     /**
-     * Generates a valid URI for zip://, taking into account all special characters and differences between Linux and Windows.
+     * @param string $innerFile
+     * @param string|null $encoding
+     * @param int|null $options
      *
-     * @param string $zipPath Full path to the ZIP file
-     * @param string $innerPath Path to the file inside the archive
-     *
-     * @return string
+     * @return bool
      */
-    protected function makeZipUri(string $zipPath, string $innerPath): string
+    public function openZip(string $innerFile, ?string $encoding = null, ?int $options = null): bool
     {
-        // Заменяем только проблемные символы, не трогая слэши
-        $encoded = strtr($zipPath, [
-            '#' => '%23',  // разделитель URI
-            ':' => '%3A',  // буква диска под Windows
-            ' ' => '%20',  // пробелы
-            '%' => '%25',  // уже закодированные пути
-        ]);
-
-        // For Linux, add a third slash if the path is absolute
-        if (DIRECTORY_SEPARATOR === '/' && strpos($zipPath, '/') === 0) {
-            return "zip:///$encoded#$innerPath";
+        if ($options === null) {
+            $options = 0;
+            if (defined('LIBXML_NONET')) {
+                $options = $options | LIBXML_NONET;
+            }
+            if (defined('LIBXML_COMPACT')) {
+                $options = $options | LIBXML_COMPACT;
+            }
+        }
+        $result = (!$this->alterMode) && $this->openXmlWrapper($innerFile, $encoding, $options);
+        if (!$result) {
+            $result = $this->openXmlStream($innerFile, $encoding, $options);
+            $this->alterMode = $result;
         }
 
-        return "zip://$encoded#$innerPath";
+        return $result;
     }
 
     /**
@@ -140,12 +202,10 @@ class Reader extends \XMLReader implements InterfaceXmlReader
      *
      * @return bool
      */
-    public function openZip(string $innerFile, ?string $encoding = null, ?int $options = 0): bool
+    public function openXmlWrapper(string $innerFile, ?string $encoding = null, ?int $options = 0): bool
     {
         $this->innerFile = $innerFile;
-        //$result = $this->open('zip://' . $this->zipFile . '#' . $innerFile, $encoding, $options);
-        $uri = $this->makeZipUri($this->zipFile, $innerFile);
-        $result = $this->open($uri, $encoding, $options);
+        $result = @$this->open('zip://' . $this->xlsxFile . '#' . $innerFile, $encoding, $options);
         if ($result) {
             foreach ($this->xmlParserProperties as $property => $value) {
                 $this->setParserProperty($property, $value);
@@ -156,16 +216,174 @@ class Reader extends \XMLReader implements InterfaceXmlReader
     }
 
     /**
+     * Opens the INTERNAL XML file from XLSX as XMLReader
+     * Example: openXml('xl/workbook.xml')
+     *
+     * @param string $innerPath
+     * @param string|null $encoding
+     * @param int|null $options
+     *
+     * @return bool
+     */
+    public function openXmlStream(string $innerPath, ?string $encoding = null, ?int $options = 0): bool
+    {
+        $this->zip = new \ZipArchive();
+
+        if ($this->zip->open($this->xlsxFile) !== true) {
+            throw new Exception('Failed to open archive: ' . $this->xlsxFile);
+        }
+
+        $st = $this->zip->getStream($innerPath);
+        if ($st === false) {
+            throw new Exception("Internal file not found: {$innerPath}");
+        }
+
+        $tmp = $this->makeTempFile();
+        $out = fopen($tmp, 'wb');
+        if (!$out) {
+            fclose($st);
+            throw new Exception("Failed to create temporary file: {$tmp}");
+        }
+
+        stream_copy_to_stream($st, $out);
+        fclose($st);
+        fclose($out);
+
+        if (!$this->open($tmp, $encoding, $options)) {
+            throw new Exception("XMLReader::open() failed to open {$tmp}");
+        }
+
+        return true;
+    }
+
+    /**
      * @return bool
      */
     #[\ReturnTypeWillChange]
     public function close(): bool
     {
-        if ($this->innerFile) {
-            $this->innerFile = null;
-            return parent::close();
+        $result = parent::close();
+        if ($result) {
+            if ($this->innerFile) {
+                $this->innerFile = null;
+            }
+            foreach ($this->tmpFiles as $tmp) {
+                if (is_file($tmp)) {
+                    @unlink($tmp);
+                }
+            }
         }
-        return true;
+
+        return $result;
+    }
+
+    /**
+     * xl/workbook.xml
+     *
+     * @return bool
+     */
+    public function openWorkbook(): bool
+    {
+        return $this->openZip('xl/workbook.xml');
+    }
+
+    /**
+     * xl/sharedStrings.xml (the file may be missing)
+     *
+     * @return bool
+     */
+    public function openSharedStrings(): bool
+    {
+        return $this->zip->locateName('xl/sharedStrings.xml') !== false
+            && $this->openZip('xl/sharedStrings.xml');
+    }
+
+    /**
+     * Returns a list of sheets from workbook.xml: [[name, sheetId, rId] ...]
+     *
+     * @return array
+     */
+    public function sheetList(): array
+    {
+        $sheets = [];
+        $this->openWorkbook();
+
+        while ($this->read()) {
+            if ($this->nodeType === \XMLReader::ELEMENT && $this->name === 'sheet') {
+                $sheets[] = [
+                    'name' => $this->getAttribute('name'),
+                    'sheetId' => $this->getAttribute('sheetId'),
+                    'rId' => $this->getAttribute('r:id'),
+                ];
+            }
+        }
+        $this->close();
+
+        return $sheets;
+    }
+
+    /**
+     * Open a sheet by index (0..n-1) or name (string).
+     * Automatically reads workbook.xml.rels to map rId -> worksheets/sheetN.xml
+     *
+     * @param int $index
+     *
+     * @return bool
+     */
+    public function openSheetByIndex(int $index): bool
+    {
+        $sheets = $this->sheetList();
+        if (!isset($sheets[$index])) {
+            throw new Exception("Sheet with index {$index} not found");
+        }
+        return $this->openSheetByRelId($sheets[$index]['rId']);
+    }
+
+    /**
+     * @param string $name
+     *
+     * @return bool
+     */
+    public function openSheetByName(string $name): bool
+    {
+        foreach ($this->sheetList() as $s) {
+            if ($s['name'] === $name) {
+                return $this->openSheetByRelId($s['rId']);
+            }
+        }
+        throw new Exception("Sheet named '{$name}' not found");
+    }
+
+    /**
+     * Opens xl/_rels/workbook.xml.rels and finds Target by rId
+     *
+     * @param string $rId
+     *
+     * @return bool
+     */
+    protected function openSheetByRelId(string $rId): bool
+    {
+        $this->openZip('xl/_rels/workbook.xml.rels');
+        $target = null;
+
+        while ($this->read()) {
+            if ($this->nodeType === \XMLReader::ELEMENT && $this->name === 'Relationship') {
+                if ($this->getAttribute('Id') === $rId) {
+                    $target = $this->getAttribute('Target'); // "worksheets/sheet1.xml"
+                    break;
+                }
+            }
+        }
+        $this->close();
+
+        if ($target === null) {
+            throw new Exception("Target not found by rId={$rId} in workbook.xml.rels");
+        }
+
+        // относительный путь от xl/
+        $inner = 'xl/' . ltrim($target, '/');
+
+        return $this->openZip($inner);
     }
 
     /**
