@@ -202,7 +202,7 @@ class Reader extends \XMLReader implements InterfaceXmlReader
      *
      * @return bool
      */
-    public function openXmlWrapper(string $innerFile, ?string $encoding = null, ?int $options = 0): bool
+    protected function openXmlWrapper(string $innerFile, ?string $encoding = null, ?int $options = 0): bool
     {
         $this->innerFile = $innerFile;
         $result = @$this->open('zip://' . $this->xlsxFile . '#' . $innerFile, $encoding, $options);
@@ -225,7 +225,7 @@ class Reader extends \XMLReader implements InterfaceXmlReader
      *
      * @return bool
      */
-    public function openXmlStream(string $innerPath, ?string $encoding = null, ?int $options = 0): bool
+    protected function openXmlStream(string $innerPath, ?string $encoding = null, ?int $options = 0): bool
     {
         $this->zip = new \ZipArchive();
 
