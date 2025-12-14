@@ -259,7 +259,8 @@ class Excel implements InterfaceBookReader
                 elseif ($xmlReaderName === 'sheet' || $xmlReaderName === 'x:sheet') {
                     $rId = $this->xmlReader->getAttribute('r:id');
                     $sheetId = $this->xmlReader->getAttribute('sheetId');
-                    $path = $this->relations['worksheet'][$rId];
+                    $path = $this->relations['worksheet'][$rId] ?? null;
+                    // ignoring non-existent sheets
                     if ($path) {
                         $sheetName = $this->xmlReader->getAttribute('name');
                         $this->sheets[$sheetId] = static::createSheet($sheetName, $sheetId, $this->file, $this->relations['worksheet'][$rId], $this);
