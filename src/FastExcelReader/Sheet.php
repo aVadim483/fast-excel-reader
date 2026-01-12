@@ -2277,6 +2277,40 @@ class Sheet implements InterfaceSheetReader
     }
 
     /**
+     * @param int|string $col
+     *
+     * @return array|mixed
+     */
+    public function getColumnAttributes($col)
+    {
+        $allAttributes = $this->getColAttributes();
+        if (is_numeric($col)) {
+            $col = Helper::colLetter($col);
+        }
+        else {
+            $col = strtoupper($col);
+        }
+
+        return $allAttributes[$col] ?? [];
+    }
+
+    /**
+     * @param int|string $col
+     * @param bool|null $flat
+     *
+     * @return array
+     */
+    public function getColumnStyle($col, ?bool $flat = false): array
+    {
+        $attributes = $this->getColumnAttributes($col);
+        if (isset($attributes['style'])) {
+            return $this->excel->getCompleteStyleByIdx($attributes['style'], $flat);
+        }
+
+        return [];
+    }
+
+    /**
      * Returns row height for a specific row number.
      *
      * @param int $rowNumber
