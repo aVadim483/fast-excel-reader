@@ -1206,6 +1206,8 @@ class Excel implements InterfaceBookReader
     }
 
     /**
+     * Set top left and right bottom of read area
+     *
      * @param string $areaRange
      * @param bool|null $firstRowKeys
      *
@@ -1229,14 +1231,28 @@ class Excel implements InterfaceBookReader
     }
 
     /**
+     * Set top left of read area
+     *
+     * @param string $topLeftCell
+     * @param bool|null $firstRowKeys
+     *
+     * @return Sheet
+     */
+    public function from(string $topLeftCell, ?bool $firstRowKeys = false): Sheet
+    {
+        return $this->setReadArea($topLeftCell, $firstRowKeys);
+    }
+
+    /**
      * Reads cell values and passes them to a callback function
      *
      * @param callback $callback
      * @param int|null $resultMode
+     * @param bool|null $styleIdxInclude
      */
     public function readCallback(callable $callback, ?int $resultMode = null, ?bool $styleIdxInclude = null)
     {
-        $this->sheets[$this->defaultSheetId]->readCallback($callback, $resultMode);
+        $this->sheets[$this->defaultSheetId]->readCallback($callback, [], $resultMode, $styleIdxInclude);
     }
 
     /**

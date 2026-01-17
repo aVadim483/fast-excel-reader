@@ -889,13 +889,16 @@ class Sheet implements InterfaceSheetReader
     }
 
     /**
-     * setReadArea('C3:AZ28') - set top left and right bottom of read area
-     * setReadArea('C3') - set top left only
+     * Set top left and right bottom of read area
      *
      * @param string $areaRange
      * @param bool|null $firstRowKeys
      *
      * @return $this
+     *
+     * @example
+     *  setReadArea('C3:AZ28'); // set top left and right bottom of read area
+     *  setReadArea('C3'); // set top left only
      */
     public function setReadArea(string $areaRange, ?bool $firstRowKeys = false): Sheet
     {
@@ -916,6 +919,22 @@ class Sheet implements InterfaceSheetReader
             return $this;
         }
         throw new Exception('Wrong address or range "' . $areaRange . '"');
+    }
+
+    /**
+     * Set top left of read area
+     *
+     * @param string $topLeftCell
+     * @param bool|null $firstRowKeys
+     *
+     * @return $this
+     */
+    public function from(string $topLeftCell, ?bool $firstRowKeys = false): Sheet
+    {
+        if (strpos($topLeftCell, ':') !== false) {
+            throw new Exception('Wrong address of top left cell "' . $topLeftCell . '"');
+        }
+        return $this->setReadArea($topLeftCell, $firstRowKeys);
     }
 
     /**
