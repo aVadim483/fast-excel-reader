@@ -97,6 +97,8 @@ class Reader extends \XMLReader implements InterfaceXmlReader
     }
 
     /**
+     * Get list of all entries in the ZIP archive
+     *
      * @return array
      */
     public function entryList(): array
@@ -154,6 +156,8 @@ class Reader extends \XMLReader implements InterfaceXmlReader
     }
 
     /**
+     * Get list of files in the ZIP archive
+     *
      * @return array
      */
     public function fileList(): array
@@ -169,6 +173,8 @@ class Reader extends \XMLReader implements InterfaceXmlReader
     }
 
     /**
+     * Open an inner file of the ZIP archive
+     *
      * @param string $innerFile
      * @param string|null $encoding
      * @param int|null $options

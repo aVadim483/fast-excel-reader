@@ -913,6 +913,8 @@ class Excel implements InterfaceBookReader
     }
 
     /**
+     * Set date format
+     *
      * @param string $dateFormat
      *
      * @return $this
@@ -925,6 +927,8 @@ class Excel implements InterfaceBookReader
     }
 
     /**
+     * Get date format
+     *
      * @return string|null
      */
     public function getDateFormat(): ?string
@@ -933,6 +937,8 @@ class Excel implements InterfaceBookReader
     }
 
     /**
+     * Format date value
+     *
      * @param $value
      * @param $format
      * @param $styleIdx
@@ -996,7 +1002,7 @@ class Excel implements InterfaceBookReader
     }
 
     /**
-     * Returns a style array by style Idx
+     * Get style array by style index
      *
      * @param $styleIdx
      *
@@ -1008,7 +1014,7 @@ class Excel implements InterfaceBookReader
     }
 
     /**
-     * Returns string by index
+     * Get string by index
      *
      * @param $stringId
      *
@@ -1020,7 +1026,7 @@ class Excel implements InterfaceBookReader
     }
 
     /**
-     * Returns defined names of workbook
+     * Get defined names of workbook
      *
      * @return array
      */
@@ -1030,7 +1036,7 @@ class Excel implements InterfaceBookReader
     }
 
     /**
-     * Returns names array of all sheets
+     * Get names array of all sheets
      *
      * @return array
      */
@@ -1044,7 +1050,7 @@ class Excel implements InterfaceBookReader
     }
 
     /**
-     * Returns current or specified sheet
+     * Get current or specified sheet
      *
      * @param string|null $name
      *
@@ -1416,7 +1422,7 @@ class Excel implements InterfaceBookReader
     }
 
     /**
-     * Returns the list of images from the workbook
+     * Get the list of images from the workbook
      *
      * @return array
      */

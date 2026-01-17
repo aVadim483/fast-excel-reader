@@ -300,6 +300,8 @@ class Sheet implements InterfaceSheetReader
     }
 
     /**
+     * Get sheet ID
+     *
      * @return string
      */
     public function id(): string
@@ -308,6 +310,8 @@ class Sheet implements InterfaceSheetReader
     }
 
     /**
+     * Get sheet name
+     *
      * @return string
      */
     public function name(): string
@@ -316,6 +320,8 @@ class Sheet implements InterfaceSheetReader
     }
 
     /**
+     * Get path to the sheet XML file in ZIP archive
+     *
      * @return string
      */
     public function path(): string
@@ -336,6 +342,8 @@ class Sheet implements InterfaceSheetReader
     }
 
     /**
+     * Returns true if the sheet is active
+     *
      * @return bool
      */
     public function isActive(): bool
@@ -352,6 +360,8 @@ class Sheet implements InterfaceSheetReader
     }
 
     /**
+     * Set sheet state (visible, hidden, veryHidden)
+     *
      * @param string $state
      *
      * @return $this
@@ -364,6 +374,8 @@ class Sheet implements InterfaceSheetReader
     }
 
     /**
+     * Get sheet state
+     *
      * @return string
      */
     public function state(): string
@@ -372,6 +384,8 @@ class Sheet implements InterfaceSheetReader
     }
 
     /**
+     * Returns true if the sheet is visible
+     *
      * @return bool
      */
     public function isVisible(): bool
@@ -380,6 +394,8 @@ class Sheet implements InterfaceSheetReader
     }
 
     /**
+     * Returns true if the sheet is hidden
+     *
      * @return bool
      */
     public function isHidden(): bool
@@ -495,6 +511,8 @@ class Sheet implements InterfaceSheetReader
     }
 
     /**
+     * Get sheet dimension range (e.g. "A1:C10")
+     *
      * @return string|null
      */
     public function dimension(): ?string
@@ -507,6 +525,8 @@ class Sheet implements InterfaceSheetReader
     }
 
     /**
+     * Get sheet dimension as an array
+     *
      * @return array
      */
     public function dimensionArray(): array
@@ -634,6 +654,8 @@ class Sheet implements InterfaceSheetReader
     }
 
     /**
+     * Scan sheet data and returns actual number of rows and columns
+     *
      * @param bool $countColumns
      * @param bool $countRows
      * @param int $blockSize
@@ -731,6 +753,8 @@ class Sheet implements InterfaceSheetReader
     }
 
     /**
+     * Get the first actual row number
+     *
      * @return int
      */
     public function minActualRow(): int
@@ -743,6 +767,8 @@ class Sheet implements InterfaceSheetReader
     }
 
     /**
+     * Get the last actual row number
+     *
      * @return int
      */
     public function maxActualRow(): int
@@ -769,6 +795,8 @@ class Sheet implements InterfaceSheetReader
     }
 
     /**
+     * Get the first actual column letter
+     *
      * @return string
      */
     public function minActualColumn(): string
@@ -781,6 +809,8 @@ class Sheet implements InterfaceSheetReader
     }
 
     /**
+     * Get the last actual column letter
+     *
      * @return string
      */
     public function maxActualColumn(): string
@@ -793,6 +823,8 @@ class Sheet implements InterfaceSheetReader
     }
 
     /**
+     * Get the actual dimension range (e.g. "A1:C10")
+     *
      * @return string
      */
     public function actualDimension(): string
@@ -816,6 +848,8 @@ class Sheet implements InterfaceSheetReader
     }
 
     /**
+     * Get column attributes
+     *
      * @return array
      */
     public function getColAttributes(): array
@@ -837,6 +871,8 @@ class Sheet implements InterfaceSheetReader
     }
 
     /**
+     * Set date format
+     *
      * @param $dateFormat
      *
      * @return $this
@@ -922,7 +958,7 @@ class Sheet implements InterfaceSheetReader
     }
 
     /**
-     * Set top left of read area
+     * Set top left of read area. Alias of setReadArea()
      *
      * @param string $topLeftCell
      * @param bool|null $firstRowKeys
@@ -1008,7 +1044,22 @@ class Sheet implements InterfaceSheetReader
     }
 
     /**
-     * Returns values, styles and other info of cells as array
+     * Read rows from a given area $areaRange
+     *
+     * @param string $areaRange
+     * @param array|bool|int|null $columnKeys
+     * @param int|null $resultMode
+     * @param bool|null $styleIdxInclude
+     *
+     * @return array
+     */
+    public function readRowsFrom(string $areaRange, $columnKeys = [], ?int $resultMode = null, ?bool $styleIdxInclude = null): array
+    {
+        return $this->setReadArea($areaRange)->readRows($columnKeys, $resultMode, $styleIdxInclude);
+    }
+
+    /**
+     * Returns values, styles, and other info of cells as array
      *
      * [
      *      'v' => _value_,
@@ -1039,6 +1090,22 @@ class Sheet implements InterfaceSheetReader
     }
 
     /**
+     * Set read area and returns values, styles, and other info of cells as array
+     *
+     * @param string $areaRange
+     * @param array|bool|int|null $columnKeys
+     * @param int|null $resultMode
+     *
+     * @return array
+     */
+    public function readRowsWithStylesFrom(string $areaRange, $columnKeys = [], ?int $resultMode = null): array
+    {
+        return $this->setReadArea($areaRange)->readRowsWithStyles($columnKeys, $resultMode);
+    }
+
+    /**
+     * Get number of the first row in the read area
+     *
      * @return int
      */
     public function firstRow(): int
@@ -1051,6 +1118,8 @@ class Sheet implements InterfaceSheetReader
     }
 
     /**
+     * Get letter of the first column in the read area
+     *
      * @return string
      */
     public function firstCol(): string
@@ -1093,6 +1162,22 @@ class Sheet implements InterfaceSheetReader
     }
 
     /**
+     * Set read area and returns values of cells of 1st row as array
+     *
+     * @param string $areaRange
+     * @param array|bool|int|null $columnKeys
+     * @param bool|null $styleIdxInclude
+     *
+     * @return array
+     */
+    public function readFirstRowFrom(string $areaRange, $columnKeys = [], ?bool $styleIdxInclude = null): array
+    {
+        return $this->setReadArea($areaRange)->readFirstRow($columnKeys, $styleIdxInclude);
+    }
+
+    /**
+     * Returns values and styles of cells of 1st row as array
+     *
      * @param array|bool|int|null $columnKeys
      *
      * @return array
@@ -1107,6 +1192,19 @@ class Sheet implements InterfaceSheetReader
         }
 
         return $rowData;
+    }
+
+    /**
+     * Set read area and returns values and styles of cells of 1st row as array
+     *
+     * @param string $areaRange
+     * @param array|bool|int|null $columnKeys
+     *
+     * @return array
+     */
+    public function readFirstRowWithStylesFrom(string $areaRange, $columnKeys = []): array
+    {
+        return $this->setReadArea($areaRange)->readFirstRowWithStyles($columnKeys);
     }
 
     /**
@@ -1136,6 +1234,20 @@ class Sheet implements InterfaceSheetReader
     }
 
     /**
+     * Set read area and returns cell values of 1st row as array [address => value]
+     *
+     * @param string $areaRange
+     * @param array|bool|int|null $columnKeys
+     * @param bool|null $styleIdxInclude
+     *
+     * @return array
+     */
+    public function readFirstRowCellsFrom(string $areaRange, $columnKeys = [], ?bool $styleIdxInclude = null): array
+    {
+        return $this->setReadArea($areaRange)->readFirstRowCells($columnKeys, $styleIdxInclude);
+    }
+
+    /**
      * Returns cell values as a two-dimensional array from default sheet [col][row]
      *      ['A' => [1 => _value_A1_], [2 => _value_A2_]],
      *      ['B' => [1 => _value_B1_], [2 => _value_B2_]]
@@ -1156,11 +1268,26 @@ class Sheet implements InterfaceSheetReader
             $resultMode = $resultMode | Excel::KEYS_RELATIVE;
         }
 
-        return $this->readRows($columnKeys, $resultMode | Excel::KEYS_SWAP);
+        return $this->readRows($columnKeys, $resultMode | Excel::KEYS_SWAP, $styleIdxInclude);
     }
 
     /**
-     * Returns values and styles of cells as array ['v' => _value_, 's' => _styles_]
+     * Set read area and returns cell values as a two-dimensional array from default sheet [col][row]
+     *
+     * @param string $areaRange
+     * @param array|bool|int|null $columnKeys
+     * @param int|null $resultMode
+     * @param bool|null $styleIdxInclude
+     *
+     * @return array
+     */
+    public function readColumnsFrom(string $areaRange, $columnKeys = null, ?int $resultMode = null, ?bool $styleIdxInclude = null): array
+    {
+        return $this->setReadArea($areaRange)->readColumns($columnKeys, $resultMode, $styleIdxInclude);
+    }
+
+    /**
+     * Returns cell values and styles as a two-dimensional array [column][row]
      *
      * @param array|bool|int|null $columnKeys
      * @param int|null $resultMode
@@ -1183,6 +1310,20 @@ class Sheet implements InterfaceSheetReader
     }
 
     /**
+     * Set read area and returns cell values and styles as a two-dimensional array [column][row]
+     *
+     * @param string $areaRange
+     * @param $columnKeys
+     * @param int|null $resultMode
+     *
+     * @return array
+     */
+    public function readColumnsWithStylesFrom(string $areaRange, $columnKeys = null, ?int $resultMode = null): array
+    {
+        return $this->setReadArea($areaRange)->readColumnsWithStyles($columnKeys, $resultMode);
+    }
+
+    /**
      * Returns values and styles of cells as array
      *
      * @param bool|null $styleIdxInclude
@@ -1200,18 +1341,31 @@ class Sheet implements InterfaceSheetReader
     }
 
     /**
-     * Returns values and styles of cells as array:
+     * Set read area and returns cell values as a one-dimensional array [address => value]
+     *
+     * @param string $areaRange
+     * @param bool|null $styleIdxInclude
+     *
+     * @return array
+     */
+    public function readCellsFrom(string $areaRange, ?bool $styleIdxInclude = null): array
+    {
+        return $this->setReadArea($areaRange)->readCells($styleIdxInclude);
+    }
+
+    /**
+     * Returns cell values and styles as a one-dimensional array [address => value]:
      *      'v' => _value_
      *      's' => _styles_
      *      'f' => _formula_
      *      't' => _type_
      *      'o' => _original_value_
      *
-     * @param $styleKey
+     * @param string|null $styleKey If specified, only this style property will be returned (e.g. 'fill-color')
      *
      * @return array
      */
-    public function readCellsWithStyles($styleKey = null): array
+    public function readCellsWithStyles(?string $styleKey = null): array
     {
         $data = $this->readCells(true);
         foreach ($data as $cell => $cellData) {
@@ -1227,6 +1381,19 @@ class Sheet implements InterfaceSheetReader
         }
 
         return $data;
+    }
+
+    /**
+     * Set read area and returns cell values and styles as a one-dimensional array [address => value]
+     *
+     * @param string $areaRange
+     * @param string|null $styleKey If specified, only this style property will be returned (e.g. 'fill-color')
+     *
+     * @return array
+     */
+    public function readCellsWithStylesFrom(string $areaRange, ?string $styleKey = null): array
+    {
+        return $this->setReadArea($areaRange)->readCells($styleKey);
     }
 
     /**
@@ -1534,6 +1701,8 @@ class Sheet implements InterfaceSheetReader
     }
 
     /**
+     * Read the next row from the generator
+     *
      * @return mixed
      */
     public function readNextRow()
@@ -1552,6 +1721,8 @@ class Sheet implements InterfaceSheetReader
     }
 
     /**
+     * Get the number of the last row read
+     *
      * @return int
      */
     public function getReadRowNum(): int
@@ -1560,7 +1731,7 @@ class Sheet implements InterfaceSheetReader
     }
 
     /**
-     * Returns all merged ranges
+     * Get merged cells. Returns an array [min_cell => range]
      *
      * @return array|null
      */
@@ -1574,7 +1745,7 @@ class Sheet implements InterfaceSheetReader
     }
 
     /**
-     * Checks if a cell is merged
+     * Returns true if the cell is merged
      *
      * @param string $cellAddress
      *
@@ -1592,7 +1763,7 @@ class Sheet implements InterfaceSheetReader
     }
 
     /**
-     * Returns merge range of specified cell
+     * Get merged range for the cell
      *
      * @param string $cellAddress
      *
@@ -1610,6 +1781,8 @@ class Sheet implements InterfaceSheetReader
     }
 
     /**
+     * Get drawing filename
+     *
      * @return string|null
      */
     protected function drawingFilename(): ?string
@@ -1620,9 +1793,12 @@ class Sheet implements InterfaceSheetReader
     }
 
     /**
+     * Add image to the sheet
+     *
      * @param string $cell
      * @param string $fileName
      * @param string|null $imageName
+     * @param array|null $meta
      *
      * @return void
      */
@@ -1756,6 +1932,8 @@ class Sheet implements InterfaceSheetReader
     }
 
     /**
+     * Returns true if the sheet has drawings
+     *
      * @return bool
      */
     public function hasDrawings(): bool
@@ -1820,6 +1998,8 @@ class Sheet implements InterfaceSheetReader
     }
 
     /**
+     * Get image list
+     *
      * @return array
      */
     public function getImageList(): array
@@ -1836,6 +2016,8 @@ class Sheet implements InterfaceSheetReader
     }
 
     /**
+     * Get image list by row number
+     *
      * @param $row
      *
      * @return array
@@ -1874,7 +2056,7 @@ class Sheet implements InterfaceSheetReader
     }
 
     /**
-     * Returns full path of an image from the cell (if exists) or null
+     * Get full path to the image in the ZIP archive
      *
      * @param string $cell
      *
@@ -1894,7 +2076,7 @@ class Sheet implements InterfaceSheetReader
     }
 
     /**
-     * Returns the MIME type for an image from the cell as determined by using information from the magic.mime file
+     * Get image MIME type
      * Requires fileinfo extension
      *
      * @param string $cell
@@ -1911,7 +2093,7 @@ class Sheet implements InterfaceSheetReader
     }
 
     /**
-     * Returns the name for an image from the cell as it defines in XLSX
+     * Get image name
      *
      * @param string $cell
      *
@@ -1931,7 +2113,7 @@ class Sheet implements InterfaceSheetReader
     }
 
     /**
-     * Returns an image from the cell as a blob (if exists) or null
+     * Get image content as binary string
      *
      * @param string $cell
      *
@@ -1947,7 +2129,7 @@ class Sheet implements InterfaceSheetReader
     }
 
     /**
-     * Writes an image from the cell to the specified filename
+     * Save image to a file
      *
      * @param string $cell
      * @param string|null $filename
@@ -1969,7 +2151,7 @@ class Sheet implements InterfaceSheetReader
     }
 
     /**
-     * Writes an image from the cell to the specified directory
+     * Save image to a directory
      *
      * @param string $cell
      * @param string $dirname
@@ -1984,7 +2166,7 @@ class Sheet implements InterfaceSheetReader
     }
 
     /**
-     * Returns an array of data validation rules found in the sheet
+     * Get data validation rules
      *
      * @return array<array{
      *   type: string,
@@ -2161,7 +2343,7 @@ class Sheet implements InterfaceSheetReader
     }
 
     /**
-     * Returns an array of data validation rules found in the sheet
+     * Get conditional formatting rules
      *
      * @return array<array{
      *   type: string,
@@ -2237,6 +2419,11 @@ class Sheet implements InterfaceSheetReader
         ];
     }
 
+    /**
+     * Set default row height
+     *
+     * @param float $rowHeight
+     */
     public function setDefaultRowHeight(float $rowHeight): void
     {
         $this->defaultRowHeight = $rowHeight;
@@ -2282,9 +2469,10 @@ class Sheet implements InterfaceSheetReader
     }
 
     /**
-     * Returns column width for a specific column number.
+     * Get width of the column
      *
-     * @param int $colNumber
+     * @param int|string $colNumber
+     *
      * @return float|null
      */
     public function getColumnWidth(int $colNumber): ?float
@@ -2296,6 +2484,8 @@ class Sheet implements InterfaceSheetReader
     }
 
     /**
+     * Get column attributes (width, style, etc)
+     *
      * @param int|string $col
      *
      * @return array|mixed
@@ -2314,6 +2504,8 @@ class Sheet implements InterfaceSheetReader
     }
 
     /**
+     * Get column style
+     *
      * @param int|string $col
      * @param bool|null $flat
      *
@@ -2330,7 +2522,7 @@ class Sheet implements InterfaceSheetReader
     }
 
     /**
-     * Returns row height for a specific row number.
+     * Get height of the row
      *
      * @param int $rowNumber
      *
@@ -2345,7 +2537,7 @@ class Sheet implements InterfaceSheetReader
     }
 
     /**
-     * Parses and retrieves frozen pane info from the sheet XML
+     * Get freeze pane info
      *
      * @return array|null
      */
@@ -2426,7 +2618,7 @@ class Sheet implements InterfaceSheetReader
     }
 
     /**
-     * Returns the tab color info of the sheet
+     * Get the tab color info of the sheet
      * Contains any of: rgb, theme, tint, indexed
      *
      * @return array|null
@@ -2441,7 +2633,7 @@ class Sheet implements InterfaceSheetReader
     }
 
     /**
-     * Alias of getTabColorConfig()
+     * Get tab color configuration. Alias of getTabColorConfig()
      *
      * @return array|null
      */
