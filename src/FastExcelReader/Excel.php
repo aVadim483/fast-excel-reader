@@ -152,9 +152,9 @@ class Excel implements InterfaceBookReader
     }
 
     /**
-     * Set dir for temporary files
+     * Set directory for temporary files
      *
-     * @param $tempDir
+     * @param string $tempDir
      */
     public static function setTempDir($tempDir)
     {
@@ -465,6 +465,8 @@ class Excel implements InterfaceBookReader
     }
 
     /**
+     * Get image file name from metadata by index
+     *
      * @param int $vmIndex
      *
      * @return string|null
@@ -791,6 +793,8 @@ class Excel implements InterfaceBookReader
     }
 
     /**
+     * Validate XLSX file
+     *
      * @param string $file
      * @param array|null $errors
      *
@@ -822,13 +826,15 @@ class Excel implements InterfaceBookReader
     }
 
     /**
-     * @param string $sheetName
-     * @param $sheetId
-     * @param $file
-     * @param $path
-     * @param $excel
+     * Create sheet object
      *
-     * @return Sheet
+     * @param string $sheetName
+     * @param int|string $sheetId
+     * @param string $file
+     * @param string $path
+     * @param Excel $excel
+     *
+     * @return InterfaceSheetReader
      */
     public static function createSheet(string $sheetName, $sheetId, $file, $path, $excel): InterfaceSheetReader
     {
@@ -836,10 +842,12 @@ class Excel implements InterfaceBookReader
     }
 
     /**
+     * Create XML reader object
+     *
      * @param string $file
      * @param array|null $parserProperties
      *
-     * @return Reader
+     * @return InterfaceXmlReader
      */
     public static function createReader(string $file, ?array $parserProperties = []): InterfaceXmlReader
     {
@@ -913,7 +921,7 @@ class Excel implements InterfaceBookReader
     }
 
     /**
-     * Set date format
+     * Set date format for reading
      *
      * @param string $dateFormat
      *
@@ -927,7 +935,7 @@ class Excel implements InterfaceBookReader
     }
 
     /**
-     * Get date format
+     * Get current date format
      *
      * @return string|null
      */
@@ -939,9 +947,9 @@ class Excel implements InterfaceBookReader
     /**
      * Format date value
      *
-     * @param $value
-     * @param $format
-     * @param $styleIdx
+     * @param mixed $value
+     * @param string|null $format
+     * @param int|null $styleIdx
      *
      * @return false|mixed|string
      */
@@ -955,9 +963,9 @@ class Excel implements InterfaceBookReader
     }
 
     /**
-     * Sets custom date formatter
+     * Set custom date formatter
      *
-     * @param \Closure|callable|string|bool $formatter
+     * @param \Closure|callable|string|bool|null $formatter
      *
      * @return $this
      */
@@ -994,6 +1002,8 @@ class Excel implements InterfaceBookReader
     }
 
     /**
+     * Get date formatter
+     *
      * @return callable|\Closure|bool|null
      */
     public function getDateFormatter()
@@ -1004,7 +1014,7 @@ class Excel implements InterfaceBookReader
     /**
      * Get style array by style index
      *
-     * @param $styleIdx
+     * @param int $styleIdx
      *
      * @return array
      */
@@ -1016,7 +1026,7 @@ class Excel implements InterfaceBookReader
     /**
      * Get string by index
      *
-     * @param $stringId
+     * @param int $stringId
      *
      * @return string|null
      */
@@ -1078,7 +1088,7 @@ class Excel implements InterfaceBookReader
     }
 
     /**
-     * Returns a sheet by name
+     * Get sheet object by name and optionally set read area and options
      *
      * @param string|null $name
      * @param string|null $areaRange
@@ -1351,6 +1361,11 @@ class Excel implements InterfaceBookReader
         return $this->sheets[$this->defaultSheetId]->readCellStyles($flat);
     }
 
+    /**
+     * Get list of inner files in XLSX
+     *
+     * @return array
+     */
     public function innerFileList(): array
     {
         return $this->fileList;
@@ -1385,6 +1400,8 @@ class Excel implements InterfaceBookReader
     }
 
     /**
+     * Get list of media image files in the workbook
+     *
      * @return array
      */
     public function mediaImageFiles(): array
@@ -1439,6 +1456,8 @@ class Excel implements InterfaceBookReader
     }
 
     /**
+     * Count "extra" images (images that are in the media folder but not in the drawings)
+     *
      * @return int
      */
     public function countExtraImages(): int
@@ -1458,6 +1477,8 @@ class Excel implements InterfaceBookReader
     }
 
     /**
+     * Returns TRUE if there are any "extra" images
+     *
      * @return bool
      */
     public function hasExtraImages(): bool
@@ -1466,6 +1487,8 @@ class Excel implements InterfaceBookReader
     }
 
     /**
+     * Read all workbook styles
+     *
      * @return array
      */
     public function readStyles(): array
@@ -1479,6 +1502,8 @@ class Excel implements InterfaceBookReader
     }
 
     /**
+     * Get complete style by style index
+     *
      * @param int $styleIdx
      * @param bool|null $flat
      *
@@ -1570,6 +1595,8 @@ class Excel implements InterfaceBookReader
     }
 
     /**
+     * Get format pattern by style index
+     *
      * @param int $styleIdx
      *
      * @return mixed|string
@@ -1582,7 +1609,9 @@ class Excel implements InterfaceBookReader
     }
 
     /**
-     * @param $pattern
+     * Convert Excel date format pattern to PHP date format pattern
+     *
+     * @param string $pattern
      *
      * @return string|null
      */
@@ -1647,6 +1676,8 @@ class Excel implements InterfaceBookReader
     }
 
     /**
+     * Get PHP date format pattern by style index
+     *
      * @param int $styleIdx
      *
      * @return string|null

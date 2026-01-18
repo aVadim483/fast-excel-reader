@@ -53,6 +53,8 @@ Jump to:
 * [Info about merged cells](#info-about-merged-cells)
 * [Some useful methods](#some-useful-methods)
 
+You can find [API references here](/docs/90-api-reference.md)
+
 ## Usage
 
 You can find more examples in */demo* folder
