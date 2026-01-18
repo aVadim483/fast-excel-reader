@@ -18,7 +18,8 @@
 * [firstCol()](#firstcol) -- Get letter of the first column in the read area
 * [firstRow()](#firstrow) -- Get number of the first row in the read area
 * [from()](#from) -- Set top left of read area. Alias of setReadArea()
-* [getColAttributes()](#getcolattributes) -- Get column attributes
+* [getAllColAttributes()](#getallcolattributes) -- Get all column attributes
+* [getAllRowAttributes()](#getallrowattributes) -- Read all row attributes to the array
 * [getColumnAttributes()](#getcolumnattributes) -- Get column attributes (width, style, etc)
 * [getColumnStyle()](#getcolumnstyle) -- Get column style
 * [getColumnWidth()](#getcolumnwidth) -- Get width of the column
@@ -32,7 +33,9 @@
 * [getImageName()](#getimagename) -- Get image name
 * [getMergedCells()](#getmergedcells) -- Get merged cells. Returns an array
 * [getReadRowNum()](#getreadrownum) -- Get the number of the last row read
+* [getRowAttributes()](#getrowattributes) -- Get row attributes (height, style, etc)
 * [getRowHeight()](#getrowheight) -- Get height of the row
+* [getRowStyle()](#getrowstyle) -- Get row style
 * [getTabColorConfiguration()](#gettabcolorconfiguration) -- Get tab color configuration. Alias of getTabColorConfig()
 * [getTabColorInfo()](#gettabcolorinfo) -- Get the tab color info of the sheet
 * [hasDrawings()](#hasdrawings) -- Returns true if the sheet has drawings
@@ -340,14 +343,29 @@ _Set top left of read area. Alias of setReadArea()_
 
 ---
 
-## getColAttributes()
+## getAllColAttributes()
 
 ---
 
 ```php
-public function getColAttributes(): array
+public function getAllColAttributes(): array
 ```
-_Get column attributes_
+_Get all column attributes_
+
+### Parameters
+
+_None_
+
+---
+
+## getAllRowAttributes()
+
+---
+
+```php
+public function getAllRowAttributes(): array
+```
+_Read all row attributes to the array_
 
 ### Parameters
 
@@ -551,6 +569,21 @@ _None_
 
 ---
 
+## getRowAttributes()
+
+---
+
+```php
+public function getRowAttributes(int $row): array
+```
+_Get row attributes (height, style, etc)_
+
+### Parameters
+
+* `int $row`
+
+---
+
 ## getRowHeight()
 
 ---
@@ -563,6 +596,22 @@ _Get height of the row_
 ### Parameters
 
 * `int $rowNumber`
+
+---
+
+## getRowStyle()
+
+---
+
+```php
+public function getRowStyle(int $row, ?bool $flat = false): array
+```
+_Get row style_
+
+### Parameters
+
+* `int $row`
+* `bool|null $flat`
 
 ---
 

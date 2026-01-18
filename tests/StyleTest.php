@@ -44,7 +44,7 @@ class StyleTest extends \PHPUnit\Framework\TestCase
         $excel = Excel::open($file);
         $sheet = $excel->sheet('styles');
 
-        $data = $sheet->getColAttributes();
+        $data = $sheet->getAllColAttributes();
         $this->assertEquals('15', $data['C']['style']);
 
         $data = $sheet->getColumnAttributes(3);
@@ -62,5 +62,10 @@ class StyleTest extends \PHPUnit\Framework\TestCase
         $data = $sheet->getColumnStyle('C', true);
         $this->assertEquals('#FFFF00', $data['fill-color']);
 
+        $data = $sheet->getAllRowAttributes();
+        $this->assertEquals('3', $data['3']['r']);
+
+        $data = $sheet->getRowStyle(4);
+        $this->assertEquals('#202020', $data['font']['font-color']);
     }
 }

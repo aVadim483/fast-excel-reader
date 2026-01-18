@@ -848,11 +848,11 @@ class Sheet implements InterfaceSheetReader
     }
 
     /**
-     * Get column attributes
+     * Get all column attributes
      *
      * @return array
      */
-    public function getColAttributes(): array
+    public function getAllColAttributes(): array
     {
         $result = [];
         if ($this->cols) {
@@ -868,6 +868,68 @@ class Sheet implements InterfaceSheetReader
         }
 
         return $result;
+    }
+
+    /**
+     * @deprecated at v2.29
+     *
+     * @return array
+     */
+    public function getColAttributes(): array
+    {
+        return $this->getAllColAttributes();
+    }
+
+    /**
+     * Read all row attributes to the array
+     *
+     * @return array
+     */
+    public function getAllRowAttributes(): array
+    {
+        static $rows = null;
+
+        if ($rows === null) {
+            $rows = [];
+            $this->reset();
+            foreach ($this->nextRow([], Excel::RESULT_MODE_ROW) as $row => $rowData) {
+                $rows[$row] = $rowData['__row'];
+            }
+        }
+
+        return $rows;
+    }
+
+    /**
+     * Get row attributes (height, style, etc)
+     *
+     * @param int $row
+     *
+     * @return array
+     */
+    public function getRowAttributes(int $row): array
+    {
+        $allAttributes = $this->getAllRowAttributes();
+
+        return $allAttributes[$row] ?? [];
+    }
+
+    /**
+     * Get row style
+     *
+     * @param int $row
+     * @param bool|null $flat
+     *
+     * @return array
+     */
+    public function getRowStyle(int $row, ?bool $flat = false): array
+    {
+        $attributes = $this->getRowAttributes($row);
+        if (isset($attributes['s'])) {
+            return $this->excel->getCompleteStyleByIdx($attributes['s'], $flat);
+        }
+
+        return [];
     }
 
     /**
@@ -1550,8 +1612,8 @@ class Sheet implements InterfaceSheetReader
                             if ($resultMode & Excel::RESULT_MODE_ROW) {
                                 $rowNode = $xmlReader->expand();
                                 $rowAttributes = [];
-                                foreach ($rowNode->attributes as $key => $val) {
-                                    $rowAttributes[$key] = $val->value;
+                                foreach ($rowNode->attributes as $key => $attr) {
+                                    $rowAttributes[$key] = $attr->value;
                                 }
                                 $rowData = [
                                     '__cells' => $rowData,
@@ -2492,7 +2554,7 @@ class Sheet implements InterfaceSheetReader
      */
     public function getColumnAttributes($col)
     {
-        $allAttributes = $this->getColAttributes();
+        $allAttributes = $this->getAllColAttributes();
         if (is_numeric($col)) {
             $col = Helper::colLetter($col);
         }
