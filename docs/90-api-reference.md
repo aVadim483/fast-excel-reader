@@ -1,4 +1,4 @@
-# FastExcelWriter - API Reference
+# FastExcelReader - API Reference
 
 ---
 
