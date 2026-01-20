@@ -190,6 +190,9 @@ class Sheet implements InterfaceSheetReader
                 if (($cellValue === null) || (trim($cellValue) === '')) {
                     $dataType = 'date';
                 }
+                elseif ($this->excel->getDateFormatter() === null) {
+                    $value = $originalValue;
+                }
                 elseif ($this->excel->getDateFormatter() === false) {
                     if ($attributeT !== 's' && is_numeric($cellValue)) {
                         $value = $this->excel->timestamp($cellValue);
