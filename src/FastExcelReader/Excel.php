@@ -35,6 +35,79 @@ class Excel implements InterfaceBookReader
     public const TRIM_STRINGS = 2048;
     public const TREAT_EMPTY_STRING_AS_EMPTY_CELL = 4096;
 
+    public const INDEXED_COLORS = [
+        0  => 'FF000000', // Black
+        1  => 'FFFFFFFF', // White
+        2  => 'FFFF0000', // Red
+        3  => 'FF00FF00', // Green
+        4  => 'FF0000FF', // Blue
+        5  => 'FFFFFF00', // Yellow
+        6  => 'FFFF00FF', // Magenta
+        7  => 'FF00FFFF', // Cyan
+
+        8  => 'FF000000', // Black
+        9  => 'FFFFFFFF', // White
+        10 => 'FFFF0000', // Red
+        11 => 'FF00FF00', // Green
+        12 => 'FF0000FF', // Blue
+        13 => 'FFFFFF00', // Yellow
+        14 => 'FFFF00FF', // Magenta
+        15 => 'FF00FFFF', // Cyan
+
+        16 => 'FF800000', // Dark Red
+        17 => 'FF008000', // Dark Green
+        18 => 'FF000080', // Dark Blue
+        19 => 'FF808000', // Olive
+        20 => 'FF800080', // Purple
+        21 => 'FF008080', // Teal
+        22 => 'FFC0C0C0', // Silver
+        23 => 'FF808080', // Gray
+
+        24 => 'FF9999FF', // Light Blue
+        25 => 'FF993366', // Plum
+        26 => 'FFFFFFCC', // Light Yellow
+        27 => 'FFCCFFFF', // Light Cyan
+        28 => 'FF660066', // Dark Purple
+        29 => 'FFFF8080', // Coral
+        30 => 'FF0066CC', // Ocean Blue
+        31 => 'FFCCCCFF', // Ice Blue
+
+        32 => 'FF000080', // Navy
+        33 => 'FFFF00FF', // Pink
+        34 => 'FFFFFF00', // Yellow
+        35 => 'FF00FFFF', // Cyan
+        36 => 'FF800080', // Purple
+        37 => 'FF800000', // Brown
+        38 => 'FF008080', // Teal
+        39 => 'FF0000FF', // Blue
+
+        40 => 'FF00CCFF', // Light Blue
+        41 => 'FFCCFFFF', // Aqua
+        42 => 'FFCCFFCC', // Light Green
+        43 => 'FFFFFF99', // Light Yellow
+        44 => 'FF99CCFF', // Sky Blue
+        45 => 'FFFF99CC', // Rose
+        46 => 'FFCC99FF', // Lavender
+        47 => 'FFFFCC99', // Tan
+
+        48 => 'FF3366FF', // Bright Blue
+        49 => 'FF33CCCC', // Turquoise
+        50 => 'FF99CC00', // Lime
+        51 => 'FFFFCC00', // Gold
+        52 => 'FFFF9900', // Orange
+        53 => 'FFFF6600', // Orange Red
+        54 => 'FF666699', // Blue Gray
+        55 => 'FF969696', // Gray 40%
+
+        56 => 'FF003366', // Dark Teal
+        57 => 'FF339966', // Sea Green
+        58 => 'FF003300', // Dark Green
+        59 => 'FF333300', // Dark Olive
+        60 => 'FF993300', // Brown
+        61 => 'FF993366', // Burgundy
+        62 => 'FF333399', // Indigo
+        63 => 'FF333333', // Gray 80%
+    ];
 
 
     protected string $file;
@@ -670,6 +743,15 @@ class Excel implements InterfaceBookReader
             return $color;
         }
 
+        if ($indexed = $node->getAttribute('indexed')) {
+            if ($indexed === '64') {
+                return '#000000';
+            }
+            if (!isset(self::INDEXED_COLORS[$indexed])) {
+                return '#' . substr(self::INDEXED_COLORS[$indexed], 2);
+            }
+        }
+
         return '';
     }
 
@@ -692,7 +774,18 @@ class Excel implements InterfaceBookReader
                 }
                 foreach ($side->childNodes as $child) {
                     if ($child->nodeName === 'color') {
-                        $node['border-' . $side->nodeName . '-color'] = '#' . substr($child->getAttribute('rgb'), 2);
+                        $node['border-' . $side->nodeName . '-color'] = $this->_extractColor($child);
+                        /*
+                        if ($attr = $child->getAttribute('rgb')) {
+                            $node['border-' . $side->nodeName . '-color'] = '#' . substr($attr, 2);
+                        }
+                        elseif ($attr = $child->getAttribute('indexed')) {
+                            $node['border-' . $side->nodeName . '-color'] = '#' . substr($attr, 2);
+                        }
+                        else {
+                            $node['border-' . $side->nodeName . '-color'] = null;
+                        }
+                        */
                     }
                 }
             }
