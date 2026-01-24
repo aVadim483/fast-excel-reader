@@ -7,7 +7,7 @@ class ReadRewindTest extends \PHPUnit\Framework\TestCase
 {
     public function testReadRewind()
     {
-        $file = __DIR__ . '/Files/standard-file.xlsx';
+        $file = __DIR__ . '/test_files/standard-file.xlsx';
         self::assertFileExists($file);
         $excel = Excel::open($file);
         $sheet = $excel->sheet();

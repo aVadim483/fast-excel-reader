@@ -7,7 +7,7 @@ class StyleTest extends \PHPUnit\Framework\TestCase
 {
     public function testColors()
     {
-        $file = __DIR__ . '/Files/styles.xlsx';
+        $file = __DIR__ . '/test_files/styles.xlsx';
         self::assertFileExists($file);
         $excel = Excel::open($file);
         $sheet = $excel->sheet('colors');
@@ -39,7 +39,7 @@ class StyleTest extends \PHPUnit\Framework\TestCase
 
     public function testColStyles()
     {
-        $file = __DIR__ . '/Files/styles.xlsx';
+        $file = __DIR__ . '/test_files/styles.xlsx';
         self::assertFileExists($file);
         $excel = Excel::open($file);
         $sheet = $excel->sheet('styles');

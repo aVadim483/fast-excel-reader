@@ -139,7 +139,8 @@ class Sheet implements InterfaceSheetReader
             }
         }
         elseif ($styleIdx) {
-            $cellValue = '';
+            //$cellValue = '';
+            // cell is empty, so $cellValue = null;
         }
 
         // Value is a shared string

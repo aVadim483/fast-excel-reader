@@ -8,7 +8,7 @@ class DimensionTest extends \PHPUnit\Framework\TestCase
     public function testDimension()
     {
         // sheet properties contain incorrect information
-        $file = __DIR__ . '/Files/wrong-dimension.xlsx';
+        $file = __DIR__ . '/test_files/wrong-dimension.xlsx';
         self::assertFileExists($file);
         $excel = Excel::open($file);
         $sheet = $excel->sheet();

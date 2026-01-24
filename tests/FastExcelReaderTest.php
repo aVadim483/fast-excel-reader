@@ -218,7 +218,7 @@ final class FastExcelReaderTest extends TestCase
         $sheet = $excel->sheet();
         $images = $sheet->getImageList();
         $this->assertEquals('image1.jpeg', $images['C2']['file_name']);
-        $dir = __DIR__ . '/Files';
+        $dir = __DIR__ . '/test_files';
         $file = $sheet->saveImageTo('C2', $dir);
         $this->assertNotNull($file);
         $this->assertTrue(is_file($file));
@@ -506,7 +506,7 @@ final class FastExcelReaderTest extends TestCase
     public function testExcelReaderFormulas(): void
     {
         // =====================
-        $file = __DIR__ . '/Files/formulas.xlsx';;
+        $file = __DIR__ . '/test_files/formulas.xlsx';;
         $excel = Excel::open($file);
         $sheet = $excel->sheet();
 
@@ -529,5 +529,31 @@ final class FastExcelReaderTest extends TestCase
         $this->assertEquals('=B9+1', $cells['C9']['f']);
         $this->assertEquals('=C9+1', $cells['D9']['f']);
         $this->assertEquals('=SUM(A9:D9)', $cells['E9']['f']);
+    }
+
+    public function testEmpty(): void
+    {
+        // =====================
+        $file = __DIR__ . '/test_files/empty.xlsx';;
+        $excel = Excel::open($file);
+        $sheet = $excel->sheet();
+
+        $cells = $sheet->readCellsWithStyles();
+
+        $this->assertEquals(null, $cells['A1']['v']);
+        $this->assertEquals(null, $cells['A1']['f']);
+        $this->assertEquals(null, $cells['A1']['o']);
+
+        $this->assertEquals('', $cells['B1']['v']);
+        $this->assertEquals('=""', $cells['B1']['f']);
+        $this->assertEquals('', $cells['B1']['o']);
+
+        $this->assertEquals('', $cells['C1']['v']);
+        $this->assertEquals('=B1', $cells['C1']['f']);
+        $this->assertEquals('', $cells['C1']['o']);
+
+        $this->assertEquals(0, $cells['D1']['v']);
+        $this->assertEquals('=A1', $cells['D1']['f']);
+        $this->assertEquals('0', $cells['D1']['o']);
     }
 }
