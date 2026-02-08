@@ -9,10 +9,13 @@ namespace avadim\FastExcelReader;
  */
 class CsvOptions
 {
-    public string $delimiter = ',';
-    public string $enclosure = '"';
+    const STRICT_MODE = 'strict';
+    const TOLERANT_MODE = 'tolerant';
+    public ?string $delimiter = null;
+    public string $quote = '"';
     public string $escape = '\\';
     public ?string $encoding = null;
+    public string $mode = self::STRICT_MODE;
 
     /**
      * @param array $options
@@ -32,11 +35,11 @@ class CsvOptions
     }
 
     /**
-     * @param string $delimiter
+     * @param string|null $delimiter
      *
      * @return $this
      */
-    public function setDelimiter(string $delimiter): CsvOptions
+    public function setDelimiter(?string $delimiter): CsvOptions
     {
         $this->delimiter = $delimiter;
 
@@ -44,13 +47,13 @@ class CsvOptions
     }
 
     /**
-     * @param string $enclosure
+     * @param string $quote
      *
      * @return $this
      */
-    public function setEnclosure(string $enclosure): CsvOptions
+    public function setQuote(string $quote): CsvOptions
     {
-        $this->enclosure = $enclosure;
+        $this->quote = $quote;
 
         return $this;
     }
@@ -75,6 +78,18 @@ class CsvOptions
     public function setEncoding(string $encoding): CsvOptions
     {
         $this->encoding = $encoding;
+
+        return $this;
+    }
+
+    /**
+     * @param string $mode
+     *
+     * @return $this
+     */
+    public function setMode(string $mode): CsvOptions
+    {
+        $this->mode = $mode;
 
         return $this;
     }

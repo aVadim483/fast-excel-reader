@@ -21,7 +21,7 @@ class CsvReaderTest extends TestCase
     {
         $options = new CsvOptions();
         $options->setDelimiter(';')
-            ->setEnclosure('"');
+            ->setQuote('"');
 
         $reader = new CsvReader($this->csvFile, $options);
         $rows = $reader->readRows();
@@ -76,5 +76,15 @@ class CsvReaderTest extends TestCase
         $keys = array_keys($firstRow);
         $this->assertEquals('ID', $keys[0]);
         $this->assertEquals('1', $firstRow['ID']);
+    }
+
+    public function testCsvAutoDelimiter()
+    {
+        $reader = new CsvReader($this->csvFile, ['delimiter' => 'auto']);
+        $rows = $reader->readRows();
+
+        $this->assertCount(3, $rows);
+        $this->assertEquals('John; Doe', $rows[2]['B']);
+        $this->assertEquals('New York', $rows[2]['C']);
     }
 }
