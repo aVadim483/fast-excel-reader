@@ -886,6 +886,18 @@ class Excel implements InterfaceBookReader
     }
 
     /**
+     * Open CSV file
+     *
+     * @param string $file
+     *
+     * @return CsvReader
+     */
+    public static function openCsv(string $file): CsvReader
+    {
+        return new CsvReader($file);
+    }
+
+    /**
      * Validate XLSX file
      *
      * @param string $file
