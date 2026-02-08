@@ -104,6 +104,7 @@ class Sheet implements InterfaceSheetReader
             'col_max' => Helper::EXCEL_2007_MAX_COL,
             'first_row_keys' => false,
             'col_keys' => [],
+            'col_names' => [],
         ];
     }
 
@@ -952,8 +953,10 @@ class Sheet implements InterfaceSheetReader
 
     protected static function _areaRange(string $areaRange): array
     {
-        $area = [];
-        $area['col_keys'] = [];
+        $area = [
+            'col_keys' => [],
+            'col_names' => [],
+        ];
         if (preg_match('/^\$?([A-Za-z]+)\$?(\d+)(:\$?([A-Za-z]+)\$?(\d+))?$/', $areaRange, $matches)) {
             $area['col_min'] = Helper::colNumber($matches[1]);
             $area['row_min'] = (int)$matches[2];
@@ -1508,19 +1511,31 @@ class Sheet implements InterfaceSheetReader
                 $rowData = $rowData['__cells'];
             }
             foreach ($rowData as $col => $val) {
-                if (isset($this->area['col_keys']) && array_key_exists($col, $this->area['col_keys'])
-                    || (!is_array($val) && $val !== null) || isset($val['v']) || isset($val['f']) || isset($val['s'])) {
+                if (empty($this->area['col_keys']) || array_key_exists($col, $this->area['col_keys']) || array_key_exists($col, $this->area['col_names'])) {
                     $needBreak = $callback($row, $col, $val);
-                    if (!isset($this->area['first_row'])) {
-                        $this->area['first_row'] = $row;
-                        $this->area['first_col'] = $col;
-                    }
                     if ($needBreak) {
                         return;
                     }
                 }
             }
         }
+    }
+
+
+    protected function _rowTemplate(array $rowTemplate, array $columnKeys): array
+    {
+        $rowData = [];
+        foreach (array_keys($rowTemplate) as $key) {
+            if (isset($columnKeys[$key])) {
+                $rowData[$columnKeys[$key]] = null;
+                $this->area['col_names'][$columnKeys[$key]] = $key;
+            }
+            else {
+                $rowData[$key] = null;
+            }
+        }
+
+        return $rowData;
     }
 
     /**
@@ -1552,8 +1567,8 @@ class Sheet implements InterfaceSheetReader
             $firstRowKeys = is_int($resultMode) && ($resultMode & Excel::KEYS_FIRST_ROW);
             $columnKeys = array_combine(array_map('strtoupper', array_keys($columnKeys)), array_values($columnKeys));
         }
-        elseif ($columnKeys === true) {
-            $firstRowKeys = true;
+        elseif ($columnKeys === true || $columnKeys === false || $columnKeys === null) {
+            $firstRowKeys = !!$columnKeys;
             $columnKeys = [];
         }
         elseif ($resultMode & Excel::KEYS_FIRST_ROW) {
@@ -1571,11 +1586,11 @@ class Sheet implements InterfaceSheetReader
         }
         $this->readRowNum = $this->countReadRows = 0;
 
-        //$xmlReader = $this->getReader();
-        //$xmlReader->openZip($this->pathInZip);
         $xmlReader = $this->xmlReaderOpenZip($this->pathInZip);
 
-        $rowData = $rowTemplate;
+        // mapping col keys to col names
+        $rowData = $rowTemplate = $this->_rowTemplate($rowTemplate, $columnKeys);
+
         $rowNum = 0;
         $rowOffset = $colOffset = null;
         $row = -1;
@@ -1598,7 +1613,6 @@ class Sheet implements InterfaceSheetReader
                 }
 
                 if ($xmlReader->nodeType === \XMLReader::END_ELEMENT && $xmlReader->name === 'row') {
-                    //$this->countReadRows++;
                     if ($rowNum >= $readArea['row_min'] && $rowNum <= $readArea['row_max']) {
                         $this->readRowNum = $rowNum;
                         if ($rowCnt === 0 && $firstRowKeys) {
@@ -1609,7 +1623,7 @@ class Sheet implements InterfaceSheetReader
                                 else {
                                     $columnKeys = $rowData;
                                 }
-                                $rowTemplate = array_fill_keys(array_keys($columnKeys), null);
+                                $rowData = $rowTemplate = $this->_rowTemplate($rowData, $columnKeys);
                             }
                         }
                         else {
@@ -1679,6 +1693,10 @@ class Sheet implements InterfaceSheetReader
                             }
                             $colLetter = $m[1];
                             $colNum = Excel::colNum($colLetter);
+                            if (!isset($this->area['first_row'])) {
+                                $this->area['first_row'] = $rowNum;
+                                $this->area['first_col'] = $colLetter;
+                            }
 
                             if ($colNum >= $readArea['col_min'] && $colNum <= $readArea['col_max']) {
                                 if ($colOffset === null) {
