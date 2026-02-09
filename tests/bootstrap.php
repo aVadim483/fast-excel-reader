@@ -9,3 +9,5 @@ if (file_exists($file = $vendorDir . '/autoload.php')) {
 } else {
     throw new \RuntimeException('Not found composer autoload');
 }
+
+require_once __DIR__ . '/CssDataProvider.php';

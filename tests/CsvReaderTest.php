@@ -3,6 +3,7 @@
 namespace avadim\FastExcelReader;
 
 use PHPUnit\Framework\TestCase;
+use Throwable;
 
 class CsvReaderTest extends TestCase
 {
@@ -21,7 +22,7 @@ class CsvReaderTest extends TestCase
     {
         $options = new CsvOptions();
         $options->setDelimiter(';')
-            ->setQuote('"');
+            ->setEnclosure('"');
 
         $reader = new CsvReader($this->csvFile, $options);
         $rows = $reader->readRows();
@@ -87,4 +88,39 @@ class CsvReaderTest extends TestCase
         $this->assertEquals('John; Doe', $rows[2]['B']);
         $this->assertEquals('New York', $rows[2]['C']);
     }
+
+    protected function makeReader($input, $options = [])
+    {
+        $file = __DIR__ . '/test_files/test_strict.csv';
+        file_put_contents($file, $input);
+
+        return new CsvReader($file, $options);
+    }
+
+    /**
+     * @dataProvider \CsvDataProvider::provideCsvRecords
+     */
+    public function testParseCsvRecord(string $input, ?array $expectedStrict, ?array $expectedLenient, string $note)
+    {
+        // strict
+        if ($expectedStrict === null) {
+            $this->expectException(\RuntimeException::class);
+        }
+        $strictReader = $this->makeReader($input, ['mode' => 'strict', 'trim_fields' => false]);
+
+        echo '# ' . $note;
+        if ($expectedStrict === null) {
+            $this->expectException(Exception::class);
+        }
+        $strictRow = $strictReader->getCsvLine();
+        if ($expectedStrict !== null) {
+            $this->assertSame($expectedStrict, $strictRow, $note . ' (strict)');
+        }
+
+        // lenient
+        $lenientReader = $this->makeReader($input, ['mode' => 'tolerant', "escape" => '\\']);
+        $lenientRow = $lenientReader->getCsvLine();
+        $this->assertSame($expectedLenient, $lenientRow, $note . ' (lenient)');
+    }
+
 }

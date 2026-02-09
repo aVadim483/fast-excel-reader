@@ -889,12 +889,13 @@ class Excel implements InterfaceBookReader
      * Open CSV file
      *
      * @param string $file
+     * @param CsvOptions|array|null $options
      *
      * @return CsvReader
      */
-    public static function openCsv(string $file): CsvReader
+    public static function openCsv(string $file, $options = []): CsvReader
     {
-        return new CsvReader($file);
+        return new CsvReader($file, $options);
     }
 
     /**

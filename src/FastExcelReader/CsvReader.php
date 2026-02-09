@@ -6,14 +6,26 @@ use avadim\FastExcelHelper\Helper;
 
 class CsvReader
 {
+    const ERR_UNCLOSED_FIELD = 1001;
+    const ERR_UNEXPECTED_QUOTES = 1002;
+    const ERR_UNEXPECTED_CHAR = 1003;
+    const ERR_UNEXPECTED_EOF = 1004;
+
     protected string $file;
     protected $fp = null;
     protected ?string $delimiter = null;
-    protected string $quote = '"';
+    protected string $enclosure = '"';
     protected string $escape = '\\';
     protected ?string $encoding = null;
-    protected ?string $pushback = null;
+    protected bool $doubleQuotes = true;
+    protected bool $trimFields = true;
     protected bool $strictMode = true;
+    protected $errorHandler = null;
+
+    protected string $buffer = '';
+    protected int $bufferPos = 0;
+    protected int $bufferLen = 0;
+    protected ?string $pushback = null;
     protected int $line = 0;
     protected int $col = 0;
 
@@ -29,25 +41,35 @@ class CsvReader
             throw new Exception("File $file not found");
         }
         $this->file = $file;
+        $this->errorHandler = [$this, 'errorHandler'];
+
         if (!empty($options)) {
             if ($options instanceof CsvOptions) {
                 $this->delimiter = $options->delimiter;
-                $this->quote = $options->quote;
+                $this->enclosure = $options->enclosure;
                 $this->escape = $options->escape;
                 $this->encoding = $options->encoding;
+                $this->doubleQuotes = $options->doubleQuotes;
+                $this->trimFields = $options->trimFields;
             }
             else {
                 if (isset($options['delimiter'])) {
                     $this->delimiter = $options['delimiter'];
                 }
                 if (isset($options['quote'])) {
-                    $this->quote = $options['quote'];
+                    $this->enclosure = $options['quote'];
                 }
                 if (isset($options['escape'])) {
                     $this->escape = $options['escape'];
                 }
                 if (isset($options['encoding'])) {
                     $this->encoding = $options['encoding'];
+                }
+                if (isset($options['double_quotes'])) {
+                    $this->doubleQuotes = $options['double_quotes'];
+                }
+                if (isset($options['trim_fields'])) {
+                    $this->trimFields = $options['trim_fields'];
                 }
                 if (isset($options['mode'])) {
                     $this->strictMode = ($options['mode'] === CsvOptions::STRICT_MODE);
@@ -71,6 +93,39 @@ class CsvReader
         $this->close();
     }
 
+    /**
+     * @return bool
+     */
+    protected function open(): bool
+    {
+        $this->fp = @fopen($this->file, 'rb');
+        if (!$this->fp) {
+            return false;
+        }
+        $bom = fread($this->fp, 3);
+        if (strncmp($bom, "\xFF\xFE", 2) === 0) {
+            // UTF-16LE BOM
+            fseek($this->fp, 2);
+            stream_filter_append($this->fp, 'convert.iconv.UTF-16LE/UTF-8', STREAM_FILTER_READ);
+        }
+        elseif (strncmp($bom, "\xFE\xFF", 2) === 0) {
+            // UTF-16BE
+            fseek($this->fp, 2);
+            stream_filter_append($this->fp, 'convert.iconv.UTF-16BE/UTF-8', STREAM_FILTER_READ);
+        }
+        elseif (strncmp($bom, "\xEF\xBB\xBF", 3) === 0) {
+            // UTF-8 BOM
+            fseek($this->fp, 3);
+        }
+        else {
+            fseek($this->fp, 0);
+        }
+
+        $this->line = 0;
+        $this->col = 0;
+
+        return true;
+    }
 
     protected function close()
     {
@@ -92,13 +147,13 @@ class CsvReader
     }
 
     /**
-     * @param string $quote
+     * @param string $enclosure
      *
      * @return $this
      */
-    public function setQuote(string $quote): CsvReader
+    public function setEnclosure(string $enclosure): CsvReader
     {
-        $this->quote = $quote;
+        $this->enclosure = $enclosure;
 
         return $this;
     }
@@ -119,11 +174,36 @@ class CsvReader
     {
         return new CsvOptions([
             'delimiter' => $this->delimiter,
-            'quote' => $this->quote,
+            'quote' => $this->enclosure,
             'escape' => $this->escape,
             'encoding' => $this->encoding,
             'mode' => $this->strictMode ? CsvOptions::STRICT_MODE : CsvOptions::TOLERANT_MODE,
         ]);
+    }
+
+
+    public function setErrorHandler(callable $handler): CsvReader
+    {
+        $this->errorHandler = $handler;
+        
+        return $this;
+    }
+
+    public function errorHandler(int $code, int $line, int $col, string $char, string $error)
+    {
+        throw new Exception($error, $code);
+    }
+
+    /**
+     * @param int $errCode
+     * @param string $ch
+     * @param string $errText
+     */
+    protected function error(int $errCode, string $ch, string $errText)
+    {
+        if ($this->errorHandler) {
+            call_user_func($this->errorHandler, $errCode, $this->line, $this->col, $ch, $errText);
+        }
     }
 
     /**
@@ -135,8 +215,7 @@ class CsvReader
      */
     public function nextRow($columnKeys = [], ?int $resultMode = null, ?int $rowLimit = 0): ?\Generator
     {
-        $this->fp = fopen($this->file, 'rb');
-        if (!$this->fp) {
+        if (!$this->fp && !$this->open()) {
             return null;
         }
 
@@ -153,6 +232,9 @@ class CsvReader
         }
 
         while (($row = $this->getCsvLine()) !== null) {
+            if (!$row) {
+                break;
+            }
             $rowNum++;
 
             if ($rowNum === 1 && isset($row[0])) {
@@ -249,10 +331,14 @@ class CsvReader
     }
 
     /**
-     * @return string|null
+     * EOF - false
+     *
+     * @return string|false
      */
-    private function getChar(): ?string
+    private function getChar()
     {
+        $this->col++;
+
         if ($this->pushback !== null) {
             $ch = $this->pushback;
             $this->pushback = null;
@@ -260,10 +346,40 @@ class CsvReader
             return $ch;
         }
 
-        $ch = fgetc($this->fp);
-        $this->col++;
+        if ($this->bufferPos >= $this->bufferLen) {
+            $this->buffer = fgets($this->fp);
+            if ($this->buffer === false || ($this->buffer === '' && feof($this->fp))) {
+                return false;
+            }
+            ///$this->bufferLen = mb_strlen($this->buffer);
+            $this->bufferLen = strlen($this->buffer);
+            $this->bufferPos = 0;
+        }
 
-        return $ch === false ? null : $ch;
+        ///$ch = mb_substr($this->buffer, $this->bufferPos++, 1);
+        $char = $this->buffer[$this->bufferPos++];
+        $byte = ord($char);
+        if (($byte & 0b10000000) === 0) {
+            $res = $char;
+        }
+        if (($byte & 0b11100000) === 0b11000000) {
+            // utf 2 bytes
+            $res = $char . $this->buffer[$this->bufferPos++];
+        }
+        elseif (($byte & 0b11110000) === 0b11100000) {
+            // utf 3 bytes
+            $res = $char . $this->buffer[$this->bufferPos++] . $this->buffer[$this->bufferPos++];
+        }
+        elseif (($byte & 0b11111000) === 0b11110000) {
+            // utf 4 bytes
+            $res = $char . $this->buffer[$this->bufferPos++] . $this->buffer[$this->bufferPos++] . $this->buffer[$this->bufferPos++];
+        }
+        else {
+            // ($byte & 0b10000000) === 0
+            $res = $char;
+        }
+
+        return $res;
     }
 
     /**
@@ -280,7 +396,7 @@ class CsvReader
     /**
      * Get next field from CSV file
      *
-     * @return array|null
+     * @return string|null|false
      */
     public function getCsvField(): ?string
     {
@@ -290,66 +406,94 @@ class CsvReader
         $quotedField = false;
         $endOfField = false;
 
-        while (($ch = $this->getChar()) !== null) {
-            if ($inQuotes && $ch !== $this->quote && $ch !== $this->escape) {
-                $field .= $ch;
-                continue;
-            }
-            if ($endOfField || $ch === $this->delimiter || $ch === "\n" || $ch === "\r") {
-                // ignore white spaces after end of field
-                if ($ch === ' ' || $ch === "\t") {
-                    // ignore white spaces after end of field
+        $ch = $this->getChar();
+        if ($ch === false) {
+
+            return false; // EOF
+        }
+
+        // Empty field: if delimiter or EOL is encountered immediately — return '' and terminator is returned to the stream
+        if ($ch === $this->delimiter || $ch === "\n" || $ch === "\r") {
+            $this->ungetChar($ch);
+
+            return null;
+        }
+
+        if ($ch === $this->enclosure) {
+            // Quoted field
+            $inQuotes = true;
+            $quotedField = true;
+        }
+        else {
+            $field = $ch;
+        }
+
+        while (($char = $this->getChar()) !== false) {
+            if ($char === $this->enclosure) {
+                if (!$quotedField && $this->strictMode) {
+                    $this->error(self::ERR_UNEXPECTED_QUOTES, $char, 'Unexpected quotes in ' . $this->line . ':' . $this->col);
+                }
+                if (!$quotedField && !$this->strictMode) {
+                    $field .= $char;
                     continue;
                 }
+                $next = $this->getChar();
+                if ($next === $this->enclosure && ($inQuotes || !$this->strictMode)) {
+                    // double quotes
+                    $field .= $this->enclosure;
+                    continue;
+                }
+                elseif ($next !== $this->enclosure && $inQuotes) {
+                    $inQuotes = false;
+                    $endOfField = true;
+                    $this->ungetChar($next);
+                    continue;
+                }
+            }
+            elseif ($char === $this->escape) {
+                $next = $this->getChar();
+                if ($next === false) { // EOF
+                    return $field;
+                }
+                elseif ($next === "\n" || $next === "\r") { // EOL
+                    $this->ungetChar($char);
+                    return $field;
+                }
                 else {
-                    if ($quotedField && $inQuotes) {
-                        throw new Exception("Unclosed quoted field in line {$this->line} col {$this->col}");
+                    $field .= $next;
+                }
+            }
+            elseif ($char === $this->delimiter || $char === "\n" || $char === "\r") {
+                if ($inQuotes) {
+                    // quoted string
+                    $field .= $char;
+                }
+                else {
+                    // end of field
+                    if (!$quotedField && $this->trimFields) {
+                        $field = trim($field);
                     }
-                    if ($ch === "\n" || $ch === "\r") {
-                        $this->ungetChar($ch);
-                    }
-
+                    $this->ungetChar($char);
                     return $field;
                 }
             }
-            if ($this->escape && $ch === $this->escape) {
-                $next = $this->getChar();
-                if ($next === $this->escape || $next === $this->quote || $next === $this->delimiter) {
-                    $field .= $next;
-                    continue;
-                }
-                elseif ($next !== "\n" && $next !== "\r") {
-                    $field .= $next;
-                    $ch = $next;
-                }
-            }
-            if ($ch === $this->quote) {
-                if (!$field) {
-                    $quotedField = true;
-                    $inQuotes = true;
-                }
-                elseif (!$quotedField) {
-                    // non-RFC 4180
-                    if ($this->strictMode) {
-                        $qch = ($this->quote === '`') ? '`' : '`' . $ch . '`';
-                        throw new Exception("Invalid CSV quote: $qch in line {$this->line} col {$this->col}");
-                    }
-                }
-                elseif (($next = $this->getChar()) !== null) {
-                    if ($next === $this->quote) {
-                        // double quote ""
-                        $field .= $this->quote;
-                    }
-                    elseif ($inQuotes) {
-                        $inQuotes = false;
-                        $endOfField = true;
-                        $this->ungetChar($next);
-                    }
-                }
-            }
             else {
-                $field .= $ch;
+                if ($endOfField) {
+                    if ($this->trimFields && ($char === ' ' || $char === "\t")) {
+                        continue;
+                    }
+                    else {
+                        $qch = ($char === '`') ? '`' : '`' . $char . '`';
+                        $this->error(self::ERR_UNEXPECTED_CHAR, $char, "Unexpected character {$qch} after field in {$this->line}:{$this->col}");
+                    }
+                }
+                $field .= $char;
             }
+        }
+
+        if ($inQuotes) {
+            // EOF inside quotes
+            $this->error(self::ERR_UNEXPECTED_EOF, '', 'Unexpected EOF inside quoted CSV field');
         }
 
         return $field;
@@ -363,30 +507,55 @@ class CsvReader
     public function getCsvLine(): ?array
     {
         if (!$this->fp) {
-            $this->fp = fopen($this->file, 'rb');
+            $this->open();
         }
 
         $row = [];
         $this->line++;
         $this->col = 0;
 
-        while (($field = $this->getCsvField()) !== null) {
-            $row[] = $field;
-            $ch = $this->getChar();
-            if ($ch === "\n" || $ch === "\r") {
-                if ($ch === "\r") {
-                    $next = $this->getChar();
-                    if ($next !== "\n" && $next !== null) {
-                        $this->ungetChar($next);
-                    }
-                }
+        // Check for EOF
+        if (($first = $this->getChar()) === false) {
+            return null;
+        }
+        $this->ungetChar($first);
 
+        while (($field = $this->getCsvField()) !== false) {
+            $row[] = (string)$field;
+
+            // теперь читаем терминатор (delimiter / EOL / EOF)
+            $sep = $this->getChar();
+            if ($sep === false) {
                 return $row;
             }
-            elseif ($ch !== null) {
-                $this->ungetChar($ch);
+
+            if ($sep === $this->delimiter) {
+                // следующее поле (в т.ч. может быть пустым)
+                continue;
             }
-        }
+
+            if ($sep === "\n") {
+                return $row;
+            }
+
+            if ($sep === "\r") {
+                // CRLF or just CR
+                $n = $this->getChar();
+                if ($n && $n !== "\n") {
+                    $this->ungetChar($n);
+                }
+                return $row;
+            }
+
+            // неожиданный символ (грязный CSV)
+            if ($this->strictMode) {
+                $qch = ($sep === '`') ? '`' : '`' . $sep . '`';
+                $this->error(self::ERR_UNEXPECTED_CHAR, $sep, "Unexpected character {$qch} in {$this->line}:{$this->col}");
+            }
+
+            // lenient: считаем, что это продолжение значения (очень редкий случай), “приклеим” к последнему полю
+            $row[count($row) - 1] .= $sep;
+        } // while
 
         return $row ?: null;
     }
@@ -550,10 +719,12 @@ class CsvReader
     protected function readSample(int $sampleBytes): array
     {
         if ($this->file && is_file($this->file)) {
-            $fp = @fopen($this->file, 'rb');
-            if (!$fp) return ['', false];
-            $data = fread($fp, $sampleBytes);
-            fclose($fp);
+            $this->open();
+            if (!$this->fp) {
+                return ['', false];
+            }
+            $data = fread($this->fp, $sampleBytes);
+            $this->close();
 
             return [$data !== false ? $data : '', true];
         }

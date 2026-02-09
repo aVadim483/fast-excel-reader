@@ -11,9 +11,22 @@ class CsvOptions
 {
     const STRICT_MODE = 'strict';
     const TOLERANT_MODE = 'tolerant';
+
+    /** @var string|null Column delimiter (null for auto-detect) */
     public ?string $delimiter = null;
-    public string $quote = '"';
-    public string $escape = '\\';
+
+    /** @var string The char that encloses the fields */
+    public string $enclosure = '"';
+
+    /** @var bool RFC4180 allows double quotes */
+    public bool $doubleQuotes = true;
+
+    /** @var string Escape character, usually '\' or '' ('' for no escape) */
+    public string $escape = '';
+
+    /** @var bool Trim spaces around values (does not affect spaces inside quotes) */
+    public bool $trimFields  = true;
+
     public ?string $encoding = null;
     public string $mode = self::STRICT_MODE;
 
@@ -47,13 +60,13 @@ class CsvOptions
     }
 
     /**
-     * @param string $quote
+     * @param string $enclosure
      *
      * @return $this
      */
-    public function setQuote(string $quote): CsvOptions
+    public function setEnclosure(string $enclosure): CsvOptions
     {
-        $this->quote = $quote;
+        $this->enclosure = $enclosure;
 
         return $this;
     }
@@ -78,6 +91,30 @@ class CsvOptions
     public function setEncoding(string $encoding): CsvOptions
     {
         $this->encoding = $encoding;
+
+        return $this;
+    }
+
+    /**
+     * @param bool $enable
+     *
+     * @return $this
+     */
+    public function setDoubleQuotes(bool $enable): CsvOptions
+    {
+        $this->doubleQuotes = $enable;
+
+        return $this;
+    }
+
+    /**
+     * @param bool $enable
+     *
+     * @return $this
+     */
+    public function setTrimFields(bool $enable): CsvOptions
+    {
+        $this->trimFields = $enable;
 
         return $this;
     }
