@@ -18,6 +18,7 @@ class CsvOptions
         'doubleQuotes' => true,
         'escape' => '',
         'trimFields' => true,
+        'skipEmptyLines' => true,
         'encoding' => null,
         'mode' => self::STRICT_MODE,
         'stream_filter' => null,
@@ -66,6 +67,9 @@ class CsvOptions
         if ($name === 'trim_fields') {
             $name = 'trimFields';
         }
+        if ($name === 'skip_empty_lines') {
+            $name = 'skipEmptyLines';
+        }
         if ($name === 'streamFilter') {
             $name = 'stream_filter';
         }
@@ -92,6 +96,9 @@ class CsvOptions
         if ($name === 'trim_fields') {
             $name = 'trimFields';
         }
+        if ($name === 'skip_empty_lines') {
+            $name = 'skipEmptyLines';
+        }
         if ($name === 'streamFilter') {
             $name = 'stream_filter';
         }
@@ -115,6 +122,9 @@ class CsvOptions
         }
         if ($name === 'trim_fields') {
             $name = 'trimFields';
+        }
+        if ($name === 'skip_empty_lines') {
+            $name = 'skipEmptyLines';
         }
         if ($name === 'streamFilter') {
             $name = 'stream_filter';
@@ -202,6 +212,20 @@ class CsvOptions
     public function setTrimFields(bool $enable): CsvOptions
     {
         $this->options['trimFields'] = $enable;
+
+        return $this;
+    }
+
+    /**
+     * Set whether to skip empty lines
+     *
+     * @param bool $enable
+     *
+     * @return $this
+     */
+    public function setSkipEmptyLines(bool $enable): CsvOptions
+    {
+        $this->options['skipEmptyLines'] = $enable;
 
         return $this;
     }

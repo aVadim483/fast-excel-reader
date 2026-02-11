@@ -124,9 +124,6 @@ class CsvReaderTest extends TestCase
 
         $reader = new CsvReader($this->csvFile, $options);
         $this->assertEquals('string.rot13', $reader->getOptions()->stream_filter);
-
-        $reader->setStreamFilter(null);
-        $this->assertNull($reader->getOptions()->stream_filter);
     }
 
     protected function makeReader($input, $options = [])

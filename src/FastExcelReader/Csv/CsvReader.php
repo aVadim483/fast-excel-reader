@@ -21,6 +21,7 @@ class CsvReader
     protected ?string $encoding = null;
     protected bool $doubleQuotes = true;
     protected bool $trimFields = true;
+    protected bool $skipEmptyLines = false;
     protected bool $strictMode = true;
     protected $errorHandler = null;
 
@@ -49,6 +50,9 @@ class CsvReader
         $this->file = $file;
         $this->errorHandler = [$this, 'errorHandler'];
 
+        if (empty($options)) {
+            $options = new CsvOptions();
+        }
         if (!empty($options)) {
             if ($options instanceof CsvOptions) {
                 $options = $options->toArray();
@@ -69,15 +73,22 @@ class CsvReader
                             $this->encoding = ($value ? strtoupper($value) : null);
                             break;
                         case 'double_quotes':
+                        case 'doubleQuotes':
                             $this->doubleQuotes = $value;
                             break;
                         case 'trim_fields':
+                        case 'trimFields':
                             $this->trimFields = $value;
+                            break;
+                        case 'skip_empty_lines':
+                        case 'skipEmptyLines':
+                            $this->skipEmptyLines = (bool)$value;
                             break;
                         case 'mode':
                             $this->strictMode = ($value === CsvOptions::STRICT_MODE);
                             break;
                         case 'stream_filter':
+                        case 'streamFilter':
                             $this->streamFilter = $value;
                             break;
                     }
@@ -158,57 +169,15 @@ class CsvReader
             $this->fp = null;
         }
     }
+
     /**
-     * @param string $delimiter
+     * @param int $size
      *
      * @return $this
      */
-    public function setDelimiter(string $delimiter): CsvReader
-    {
-        $this->delimiter = $delimiter;
-
-        return $this;
-    }
-
-    /**
-     * @param string $enclosure
-     *
-     * @return $this
-     */
-    public function setEnclosure(string $enclosure): CsvReader
-    {
-        $this->enclosure = $enclosure;
-
-        return $this;
-    }
-
-    /**
-     * @param string $encoding
-     *
-     * @return $this
-     */
-    public function setEncoding(string $encoding): CsvReader
-    {
-        $this->encoding = $encoding;
-
-        return $this;
-    }
-
     public function setBufferSize(int $size): CsvReader
     {
         $this->bufferSize = $size;
-
-        return $this;
-    }
-
-    /**
-     * @param string|null $filter
-     *
-     * @return $this
-     */
-    public function setStreamFilter(?string $filter): CsvReader
-    {
-        $this->streamFilter = $filter;
 
         return $this;
     }
@@ -276,16 +245,21 @@ class CsvReader
             if (is_int($resultMode) && ($resultMode & Excel::KEYS_FIRST_ROW)) {
                 $firstRowKeys = true;
             }
-        } elseif ($columnKeys === true) {
+        }
+        elseif ($columnKeys === true) {
             $firstRowKeys = true;
             $columnKeys = [];
         }
 
-        while (($row = $this->getCsvLine()) !== null) {
-            if (!$row) {
-                break;
-            }
+        while (($row = $this->getCsvLine()) !== false) {
             $rowNum++;
+
+            if ($row === null) {
+                if ($this->skipEmptyLines) {
+                    continue;
+                }
+                $row = [];
+            }
 
             if ($rowNum === 1 && isset($row[0])) {
                 if (strpos($row[0], "\xEF\xBB\xBF") === 0) {
@@ -470,7 +444,7 @@ class CsvReader
         while (($char = $this->getChar()) !== false) {
             if ($char === $this->enclosure) {
                 if (!$quotedField && $this->strictMode) {
-                    $this->error(self::ERR_UNEXPECTED_QUOTES, $char, 'Unexpected quotes in ' . $this->lineNo . ':' . $this->colNo);
+                    $this->error(self::ERR_UNEXPECTED_QUOTES, 'Unexpected quotes in ' . $this->lineNo . ':' . $this->colNo);
                 }
                 if (!$quotedField && !$this->strictMode) {
                     $field .= $char;
@@ -523,7 +497,7 @@ class CsvReader
                     }
                     else {
                         $qch = ($char === '`') ? '`' : '`' . $char . '`';
-                        $this->error(self::ERR_UNEXPECTED_CHAR, $char, "Unexpected character {$qch} after field in {$this->lineNo}:{$this->colNo}");
+                        $this->error(self::ERR_UNEXPECTED_CHAR, "Unexpected character {$qch} after field in {$this->lineNo}:{$this->colNo}");
                     }
                 }
                 $field .= $char;
@@ -532,7 +506,7 @@ class CsvReader
 
         if ($inQuotes) {
             // EOF inside quotes
-            $this->error(self::ERR_UNEXPECTED_EOF, '', 'Unexpected EOF inside quoted CSV field');
+            $this->error(self::ERR_UNEXPECTED_EOF, 'Unexpected EOF inside quoted CSV field');
         }
 
         return $field;
@@ -541,9 +515,9 @@ class CsvReader
     /**
      * Get line from CSV file as array of fields
      *
-     * @return array|null
+     * @return array|null|false
      */
-    public function getCsvLine(): ?array
+    public function getCsvLine()
     {
         if (!$this->fp) {
             $this->open();
@@ -555,51 +529,57 @@ class CsvReader
 
         // Check for EOF
         if (($first = $this->getChar()) === false) {
-            return null;
+            return false;
         }
         $this->ungetChar($first);
 
-        while (($field = $this->getCsvField()) !== false) {
-            if ($field && $this->encoding && substr($this->encoding, 0, 3) !== 'UTF') {
-                $field = mb_convert_encoding($field, 'UTF-8', $this->encoding);
+        while (($csvField = $this->getCsvField()) !== false) {
+            if ($csvField && $this->encoding && substr($this->encoding, 0, 3) !== 'UTF') {
+                $field = mb_convert_encoding($csvField, 'UTF-8', $this->encoding);
             }
-            $row[] = (string)$field;
+            else {
+                $field = (string)$csvField;
+            }
+            $row[] = $field;
 
-            // теперь читаем терминатор (delimiter / EOL / EOF)
+            // read terminator of field (delimiter / EOL / EOF)
             $sep = $this->getChar();
-            if ($sep === false) {
-                return $row;
-            }
-
             if ($sep === $this->delimiter) {
-                // следующее поле (в т.ч. может быть пустым)
+                // the next field (may be empty)
                 continue;
             }
 
-            if ($sep === "\n") {
-                return $row;
+            $eol = false;
+            if ($sep === false) {
+                $eol = true;
             }
-
-            if ($sep === "\r") {
+            elseif ($sep === "\n") {
+                $eol = true;
+            }
+            elseif ($sep === "\r") {
                 // CRLF or just CR
                 $n = $this->getChar();
                 if ($n && $n !== "\n") {
                     $this->ungetChar($n);
                 }
-                return $row;
+                $eol = true;
             }
 
-            // неожиданный символ (грязный CSV)
+            if ($eol) {
+                return (count($row) === 1 && $csvField === null) ? null : $row;
+            }
+
+            // unexpected character (dirty CSV)
             if ($this->strictMode) {
                 $qch = ($sep === '`') ? '`' : '`' . $sep . '`';
-                $this->error(self::ERR_UNEXPECTED_CHAR, $sep, "Unexpected character {$qch} in {$this->lineNo}:{$this->colNo}");
+                $this->error(self::ERR_UNEXPECTED_CHAR, "Unexpected character {$qch} in {$this->lineNo}:{$this->colNo}");
             }
 
-            // lenient: считаем, что это продолжение значения (очень редкий случай), “приклеим” к последнему полю
+            // tolerant mode: the field value continues
             $row[count($row) - 1] .= $sep;
         } // while
 
-        return $row ?: null;
+        return $row ?: false;
     }
 
 }
