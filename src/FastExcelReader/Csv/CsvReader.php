@@ -51,67 +51,36 @@ class CsvReader
 
         if (!empty($options)) {
             if ($options instanceof CsvOptions) {
-                $this->delimiter = $options->delimiter;
-                $this->enclosure = $options->enclosure;
-                $this->escape = $options->escape;
-                $this->encoding = strtoupper($options->encoding);
-                $this->doubleQuotes = $options->doubleQuotes;
-                $this->trimFields = $options->trimFields;
+                $options = $options->toArray();
             }
-            else {
-                if (isset($options['delimiter'])) {
-                    $this->delimiter = $options['delimiter'];
-                    if ($this->delimiter === 'auto') {
-                        $this->delimiter = null;
-                    }
-                }
-                if (isset($options['quote'])) {
-                    $this->enclosure = $options['quote'];
-                }
-                if (isset($options['escape'])) {
-                    $this->escape = $options['escape'];
-                }
-                if (isset($options['encoding'])) {
-                    $this->encoding = $options['encoding'];
-                    if ($this->encoding === 'auto') {
-                        $this->encoding = null;
-                    }
-                }
-                if (isset($options['double_quotes'])) {
-                    $this->doubleQuotes = $options['double_quotes'];
-                }
-                if (isset($options['trim_fields'])) {
-                    $this->trimFields = $options['trim_fields'];
-                }
-                if (isset($options['mode'])) {
-                    $this->strictMode = ($options['mode'] === CsvOptions::STRICT_MODE);
-                }
-            }
-        }
-        if ($options) {
-            foreach ($options as $key => $value) {
-                switch ($key) {
-                    case 'delimiter':
-                        $this->delimiter = $value;
-                        break;
-                    case 'enclosure':
-                        $this->enclosure = $value;
-                        break;
+            if ($options) {
+                foreach ($options as $key => $value) {
+                    switch ($key) {
+                        case 'delimiter':
+                            $this->delimiter = $value;
+                            break;
+                        case 'enclosure':
+                            $this->enclosure = $value;
+                            break;
                         case 'escape':
                             $this->escape = $value;
                             break;
-                    case 'encoding':
-                        $this->encoding = strtoupper($value);
-                        break;
-                    case 'double_quotes':
-                        $this->doubleQuotes = $value;
-                        break;
-                    case 'trim_fields':
-                        $this->trimFields = $value;
-                        break;
-                    case 'mode':
-                        $this->strictMode = ($value === CsvOptions::STRICT_MODE);
-                        break;
+                        case 'encoding':
+                            $this->encoding = strtoupper($value);
+                            break;
+                        case 'double_quotes':
+                            $this->doubleQuotes = $value;
+                            break;
+                        case 'trim_fields':
+                            $this->trimFields = $value;
+                            break;
+                        case 'mode':
+                            $this->strictMode = ($value === CsvOptions::STRICT_MODE);
+                            break;
+                        case 'stream_filter':
+                            $this->streamFilter = $value;
+                            break;
+                    }
                 }
             }
         }
@@ -143,7 +112,7 @@ class CsvReader
                 $this->delimiter = $res['guess'];
             }
         }
-        if (stripos($this->encoding, 'UTF-16') === 0 || stripos($this->encoding, 'UTF-32') === 0) {
+        if ($this->streamFilter === null && (stripos($this->encoding, 'UTF-16') === 0 || stripos($this->encoding, 'UTF-32') === 0)) {
             $this->streamFilter = "convert.iconv.$this->encoding/UTF-8";
         }
     }
@@ -231,6 +200,18 @@ class CsvReader
         return $this;
     }
 
+    /**
+     * @param string|null $filter
+     *
+     * @return $this
+     */
+    public function setStreamFilter(?string $filter): CsvReader
+    {
+        $this->streamFilter = $filter;
+
+        return $this;
+    }
+
     public function getOptions(): CsvOptions
     {
         return new CsvOptions([
@@ -239,6 +220,7 @@ class CsvReader
             'escape' => $this->escape,
             'encoding' => $this->encoding,
             'mode' => $this->strictMode ? CsvOptions::STRICT_MODE : CsvOptions::TOLERANT_MODE,
+            'stream_filter' => $this->streamFilter,
         ]);
     }
 

@@ -90,6 +90,41 @@ class CsvReaderTest extends TestCase
         $this->assertEquals('New York', $rows[2]['C']);
     }
 
+    public function testCsvOptionsToArray()
+    {
+        $options = [
+            'delimiter' => ';',
+            'enclosure' => '"',
+            'doubleQuotes' => true,
+            'escape' => '\\',
+            'trimFields' => true,
+            'encoding' => 'UTF-8',
+            'mode' => CsvOptions::STRICT_MODE,
+        ];
+
+        $csvOptions = new CsvOptions($options);
+        $expected = $options;
+        $expected['stream_filter'] = null;
+        $this->assertEquals($expected, $csvOptions->toArray());
+    }
+
+    public function testCsvStreamFilterOption()
+    {
+        $options = new CsvOptions();
+        $this->assertNull($options->stream_filter);
+        $this->assertNull($options->streamFilter);
+
+        $options->setStreamFilter('string.rot13');
+        $this->assertEquals('string.rot13', $options->stream_filter);
+        $this->assertEquals('string.rot13', $options->streamFilter);
+
+        $reader = new CsvReader($this->csvFile, $options);
+        $this->assertEquals('string.rot13', $reader->getOptions()->stream_filter);
+
+        $reader->setStreamFilter(null);
+        $this->assertNull($reader->getOptions()->stream_filter);
+    }
+
     protected function makeReader($input, $options = [])
     {
         $file = __DIR__ . '/test_files/test_strict.csv';
