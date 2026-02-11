@@ -30,21 +30,13 @@ class CsvOptions
     public ?string $encoding = null;
     public string $mode = self::STRICT_MODE;
 
-    /**
-     * @param array $options
-     *
-     * @return static
-     */
-    public static function create(array $options = []): CsvOptions
+    public function __construct(array $options = [])
     {
-        $instance = new static();
         foreach ($options as $key => $value) {
-            if (property_exists($instance, $key)) {
-                $instance->$key = $value;
+            if (property_exists($this, $key)) {
+                $this->$key = $value;
             }
         }
-
-        return $instance;
     }
 
     /**

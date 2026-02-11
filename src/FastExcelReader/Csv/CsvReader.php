@@ -33,6 +33,7 @@ class CsvReader
     protected int $colNo = 0;
     protected string $currentLine = '';
     protected ?string $bom;
+    protected ?string $streamFilter = null;
 
     /**
      * CsvReader constructor
@@ -87,6 +88,34 @@ class CsvReader
                 }
             }
         }
+        if ($options) {
+            foreach ($options as $key => $value) {
+                switch ($key) {
+                    case 'delimiter':
+                        $this->delimiter = $value;
+                        break;
+                    case 'enclosure':
+                        $this->enclosure = $value;
+                        break;
+                        case 'escape':
+                            $this->escape = $value;
+                            break;
+                    case 'encoding':
+                        $this->encoding = strtoupper($value);
+                        break;
+                    case 'double_quotes':
+                        $this->doubleQuotes = $value;
+                        break;
+                    case 'trim_fields':
+                        $this->trimFields = $value;
+                        break;
+                    case 'mode':
+                        $this->strictMode = ($value === CsvOptions::STRICT_MODE);
+                        break;
+                }
+            }
+        }
+
         if ($this->delimiter === null || $this->encoding === null) {
             $sample = CsvHelper::readSample($this->file);
         }
@@ -114,6 +143,9 @@ class CsvReader
                 $this->delimiter = $res['guess'];
             }
         }
+        if (stripos($this->encoding, 'UTF-16') === 0 || stripos($this->encoding, 'UTF-32') === 0) {
+            $this->streamFilter = "convert.iconv.$this->encoding/UTF-8";
+        }
     }
 
     public function __destruct()
@@ -135,13 +167,11 @@ class CsvReader
             fread($this->fp, strlen(CsvHelper::$bomMap[$this->bom]));
         }
         // Attach iconv conversion filter if needed
-        if (stripos($this->encoding, 'UTF-16') === 0 || stripos($this->encoding, 'UTF-32') === 0) {
-            $outputEncoding = 'UTF-8';
-            $filter = "convert.iconv.{$this->encoding}/{$outputEncoding}";
-            $ok = stream_filter_append($this->fp, $filter, STREAM_FILTER_READ);
+        if ($this->streamFilter) {
+            $ok = stream_filter_append($this->fp, $this->streamFilter, STREAM_FILTER_READ);
             if ($ok === false) {
                 fclose($this->fp);
-                throw new Exception("Cannot attach stream filter: $filter");
+                throw new Exception("Cannot attach stream filter: {$this->streamFilter}");
             }
         }
 
