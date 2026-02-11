@@ -112,6 +112,173 @@ class CsvHelper
     }
 
     /**
+     * @param string $bytes
+     * 
+     * @return bool
+     */
+    public static function looksLikeJapaneseBytes(string $bytes): bool
+    {
+        $len = strlen($bytes);
+        if ($len < 64) return false;
+
+        $limit = min($len, 65536);
+
+        $hi = 0;
+        $sjisLead = 0;
+        $eucLead = 0;
+        $eucPrefix = 0;
+
+        for ($i = 0; $i < $limit; $i++) {
+            $b = ord($bytes[$i]);
+
+            if ($b >= 0x80) $hi++;
+
+            // Shift_JIS lead bytes (most common ranges)
+            if (($b >= 0x81 && $b <= 0x9F) || ($b >= 0xE0 && $b <= 0xFC)) {
+                $sjisLead++;
+            }
+
+            // EUC-JP lead range and prefixes
+            if ($b === 0x8E || $b === 0x8F) {
+                $eucPrefix++;
+            } elseif ($b >= 0xA1 && $b <= 0xFE) {
+                $eucLead++;
+            }
+        }
+
+        // If most bytes are ASCII, it is definitely not a Japanese legacy encoding
+        if ($hi < 16) {
+            return false;
+        }
+
+        // Threshold heuristics: there must be noticeable signs of SJIS/EUC
+        // (tuned for text CSVs with Japanese headers/values)
+        if ($sjisLead >= 8) {
+            return true;
+        }
+        if ($eucLead >= 12 || $eucPrefix >= 2) {
+            return true;
+        }
+
+        return false;
+    }
+
+    /**
+     * Choose the best Japanese encoding by decoding a sample and evaluating the result.
+     *
+     * Note: In Windows practice, CP932 (Windows-932 / SJIS-win) is more common.
+     */
+    public static function detectJapaneseEncoding(string $sample, array $candidates = ['CP932', 'Shift_JIS', 'EUC-JP']): string
+    {
+        if (!function_exists('mb_convert_encoding')) {
+            return 'CP932'; // fallback
+        }
+
+        $bestEnc = $candidates[0];
+        $bestScore = -INF;
+
+        foreach ($candidates as $enc) {
+
+            // Try conversion
+            $utf8 = @mb_convert_encoding($sample, 'UTF-8', $enc);
+
+            if ($utf8 === false || $utf8 === '') {
+                continue;
+            }
+
+            $score = self::scoreJapaneseUtf8Text($utf8);
+
+            // Small bonus for CP932 (Windows practice)
+            if (strcasecmp($enc, 'CP932') === 0) {
+                $score += 1.0;
+            }
+
+            if ($score > $bestScore) {
+                $bestScore = $score;
+                $bestEnc = $enc;
+            }
+        }
+
+        return $bestEnc;
+    }
+
+    /**
+     * Scoring for decoding result: the more Japanese scripts, the better.
+     * We encourage:
+     * - Hiragana (\p{Hiragana})
+     * - Katakana (\p{Katakana})
+     * - Han (Kanji, \p{Han})
+     * + overall "printability" of the text
+     * and penalize:
+     * - control characters
+     */
+    public static function scoreJapaneseUtf8Text(string $utf8): float
+    {
+        if (!function_exists('mb_strlen')) {
+            // One can live without mbstring, but accuracy is slightly worse.
+            $len = strlen($utf8);
+            if ($len === 0) {
+                return -INF;
+            }
+
+            // Count at least the presence of Japanese Unicode ranges via preg
+            $jp = 0;
+            if (preg_match_all('/[\x{3040}-\x{30FF}\x{4E00}-\x{9FFF}]/u', $utf8, $m)) {
+                $jp = count($m[0]);
+            }
+
+            $printable = 0;
+            if (preg_match_all('/[\p{L}\p{N}\p{P}\p{Zs}]/u', $utf8, $m2)) {
+                $printable = count($m2[0]);
+            }
+
+            $ctrl = 0;
+            if (preg_match_all('/[\p{Cc}]/u', $utf8, $m3)) {
+                $ctrl = count($m3[0]);
+            }
+
+            $score = 0.0;
+            $score += ($printable / max(1, $len)) * 50.0;
+            $score += ($jp / max(1, $len)) * 120.0;
+            $score -= $ctrl * 1.5;
+
+            return $score;
+        }
+
+        $len = mb_strlen($utf8, 'UTF-8');
+        if ($len === 0) {
+            return -INF;
+        }
+
+        preg_match_all('/\p{Hiragana}/u', $utf8, $mH);
+        preg_match_all('/\p{Katakana}/u', $utf8, $mK);
+        preg_match_all('/\p{Han}/u', $utf8, $mHan);
+        $hir = count($mH[0]);
+        $kat = count($mK[0]);
+        $han = count($mHan[0]);
+
+        preg_match_all('/[\p{L}\p{N}\p{P}\p{Zs}]/u', $utf8, $mP);
+        $printable = count($mP[0]);
+
+        preg_match_all('/[\p{Cc}]/u', $utf8, $mC);
+        $ctrl = count($mC[0]);
+
+        // Weights can be adjusted, but these usually work well:
+        // - kanji/kana give a strong signal
+        // - printable density protects against "garbage"
+        $printableRatio = $printable / $len;
+        $jpRatio = ($hir + $kat + $han) / $len;
+
+        $score = $printableRatio * 50.0;
+        $score += $jpRatio * 120.0;
+        $score += ($hir / $len) * 10.0;  // small bonus for hiragana
+        $score += ($kat / $len) * 6.0;   // and katakana
+        $score -= $ctrl * 1.5;
+
+        return $score;
+    }
+
+    /**
      * Very simple heuristic for Cyrillic-heavy data (helps pick cp1251 vs "unknown").
      */
     public static function hasCyrillicLikely(string $bytes): bool
@@ -158,7 +325,7 @@ class CsvHelper
             $score = self::scoreDecodedUtf8Text($utf8);
 
             // Small tie-break: if CP866 and CP1251 close, prefer CP866 when many box-drawing chars present in raw bytes
-            // (CP866 часто содержит псевдографику в 0xB0-0xDF)
+            // (CP866 often contains pseudographics in 0xB0-0xDF)
             if (($enc === 'CP866' || $enc === 'IBM866') && self::looksLikeCp866BoxDrawing($sample)) {
                 $score += 2.0;
             }
@@ -248,6 +415,11 @@ class CsvHelper
 
         if (self::looksLikeUtf8($sample)) {
             return 'UTF-8';
+        }
+
+        // Japanese branch (before Cyrillic): CP932/Shift_JIS/EUC-JP
+        if (self::looksLikeJapaneseBytes($sample)) {
+            return self::detectJapaneseEncoding($sample, ['CP932', 'Shift_JIS', 'EUC-JP']);
         }
 
         if (self::hasCyrillicLikely($sample)) {

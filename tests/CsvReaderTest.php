@@ -9,6 +9,7 @@ use PHPUnit\Framework\TestCase;
 class CsvReaderTest extends TestCase
 {
     protected string $csvFile;
+    protected string $tmpFile;
 
     protected function setUp(): void
     {
@@ -17,6 +18,9 @@ class CsvReaderTest extends TestCase
 
     protected function tearDown(): void
     {
+        if (isset($this->tmpFile) && is_file($this->tmpFile)) {
+            @unlink($this->tmpFile);
+        }
     }
 
     public function testCsvOptions()

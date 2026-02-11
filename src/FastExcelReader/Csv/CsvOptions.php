@@ -123,7 +123,7 @@ class CsvOptions
     }
 
     /**
-     * Set delimiter character
+     * Set column delimiter character (null for auto-detect)
      *
      * @param string|null $delimiter
      *
@@ -137,7 +137,7 @@ class CsvOptions
     }
 
     /**
-     * Set enclosure character
+     * Set enclosure character of fields
      *
      * @param string $enclosure
      *
@@ -151,7 +151,7 @@ class CsvOptions
     }
 
     /**
-     * Set escape character
+     * Set escape character, usually '\' or '' ('' or null for no escape)
      *
      * @param string $escape
      *
@@ -193,7 +193,7 @@ class CsvOptions
     }
 
     /**
-     * Set whether to trim fields
+     * Set whether to trim fields (does not affect spaces inside quotes)
      *
      * @param bool $enable
      *

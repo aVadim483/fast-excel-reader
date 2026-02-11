@@ -57,7 +57,7 @@ class CsvReader
                 foreach ($options as $key => $value) {
                     switch ($key) {
                         case 'delimiter':
-                            $this->delimiter = $value;
+                            $this->delimiter = ($value === 'auto' ? null : $value);
                             break;
                         case 'enclosure':
                             $this->enclosure = $value;
@@ -66,7 +66,7 @@ class CsvReader
                             $this->escape = $value;
                             break;
                         case 'encoding':
-                            $this->encoding = strtoupper($value);
+                            $this->encoding = ($value ? strtoupper($value) : null);
                             break;
                         case 'double_quotes':
                             $this->doubleQuotes = $value;
@@ -87,28 +87,29 @@ class CsvReader
 
         if ($this->delimiter === null || $this->encoding === null) {
             $sample = CsvHelper::readSample($this->file);
-        }
-        else {
+        } else {
             $sample = CsvHelper::readSample($this->file, 4);
         }
         if ($sample === null) {
             throw new Exception("Cannot read file $file");
         }
         $this->bom = CsvHelper::detectEncodingByBomBytes($sample);
+        if ($this->bom && !$this->encoding) {
+            $this->encoding = $this->bom;
+        }
 
         if ($this->encoding === null) {
             $this->encoding = CsvHelper::detectEncoding($sample);
         }
         if ($this->delimiter === null) {
-            if ($this->encoding !== 'UTF-8') {
-                $sample = mb_convert_encoding($sample, 'UTF-8', $this->bom);
+            if ($this->encoding !== 'UTF-8' && $this->encoding !== null) {
+                $sample = mb_convert_encoding($sample, 'UTF-8', $this->encoding);
             }
             $candidates = [",", ";", "\t", "|", ":"];
             $res = CsvHelper::detectCsvDelimiter($sample, $candidates);
             if ($res['delimiter'] !== null && $res['confidence'] >= 0.6) {
                 $this->delimiter = $res['delimiter'];
-            }
-            else {
+            } else {
                 $this->delimiter = $res['guess'];
             }
         }
@@ -292,7 +293,7 @@ class CsvReader
                 }
             }
 
-            if ($this->encoding && $this->encoding !== 'UTF-8') {
+            if ($this->encoding && $this->encoding !== 'UTF-8' && $this->encoding !== $this->bom) {
                 foreach ($row as &$value) {
                     $value = mb_convert_encoding($value, 'UTF-8', $this->encoding);
                 }
@@ -301,8 +302,7 @@ class CsvReader
             if ($rowNum === 1 && $firstRowKeys) {
                 if (empty($columnKeys)) {
                     $columnKeys = $row;
-                }
-                else {
+                } else {
                     $columnKeys = array_merge($row, $columnKeys);
                 }
                 continue;
@@ -404,7 +404,9 @@ class CsvReader
             $next = fread($this->fp, $this->bufferSize);
             if ($next !== false) {
                 $this->buffer .= $next;
-                $this->buffer = substr($this->buffer, $this->bufferPos);
+                if ($this->bufferPos > 0) {
+                    $this->buffer = substr($this->buffer, $this->bufferPos);
+                }
                 $this->bufferLen = strlen($this->buffer);
                 $this->bufferPos = 0;
             }
@@ -414,48 +416,9 @@ class CsvReader
         }
 
         $char = $this->buffer[$this->bufferPos++];
-        $res = $char;
-/*
-        $byte = ord($char);
+        $this->currentLine .= $char;
 
-        // Определяем длину UTF-8 по первому байту
-        if (($byte & 0xE0) === 0xC0) {
-            $length = 2;
-        } elseif (($byte & 0xF0) === 0xE0) {
-            $length = 3;
-        } elseif (($byte & 0xF8) === 0xF0) {
-            $length = 4;
-        } else {
-            // Некорректный стартовый байт
-            //return $b1; // или бросить исключение
-        }
-
-        $res = $char;
-        /* ///
-
-        if (($byte & 0b10000000) === 0) {
-            $res = $char;
-        }
-        elseif (($byte & 0b11100000) === 0b11000000) {
-            // utf 2 bytes
-            $res = $char . $this->buffer[$this->bufferPos++];
-        }
-        elseif (($byte & 0b11110000) === 0b11100000) {
-            // utf 3 bytes
-            $res = $char . $this->buffer[$this->bufferPos++] . $this->buffer[$this->bufferPos++];
-        }
-        elseif (($byte & 0b11111000) === 0b11110000) {
-            // utf 4 bytes
-            $res = $char . $this->buffer[$this->bufferPos++] . $this->buffer[$this->bufferPos++] . $this->buffer[$this->bufferPos++];
-        }
-        else {
-            // ($byte & 0b10000000) === 0
-            $res = $char;
-        }
-        */
-        $this->currentLine .= $res;
-
-        return $res;
+        return $char;
     }
 
     /**
@@ -597,7 +560,9 @@ class CsvReader
         $this->ungetChar($first);
 
         while (($field = $this->getCsvField()) !== false) {
-            //$field = mb_convert_encoding($field, 'UTF-8', $this->encoding);
+            if ($field && $this->encoding && substr($this->encoding, 0, 3) !== 'UTF') {
+                $field = mb_convert_encoding($field, 'UTF-8', $this->encoding);
+            }
             $row[] = (string)$field;
 
             // теперь читаем терминатор (delimiter / EOL / EOF)
