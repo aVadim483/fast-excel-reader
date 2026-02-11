@@ -13,15 +13,16 @@ class CsvOptions
     const TOLERANT_MODE = 'tolerant';
 
     protected array $options = [
+        'mode' => self::STRICT_MODE,
+        'encoding' => null,
         'delimiter' => null,
         'enclosure' => '"',
-        'doubleQuotes' => true,
+        'double_quotes' => true,
         'escape' => '',
-        'trimFields' => true,
-        'skipEmptyLines' => true,
-        'encoding' => null,
-        'mode' => self::STRICT_MODE,
+        'trim_fields' => true,
+        'skip_empty_lines' => true,
         'stream_filter' => null,
+        'comment_prefix' => null,
     ];
 
     /**
@@ -48,6 +49,18 @@ class CsvOptions
         return new self($options);
     }
 
+    protected static function camelToSnake(string $value): string
+    {
+        $value = preg_replace('/(?<!^)[A-Z]/', '_$0', $value);
+
+        return strtolower($value);
+    }
+
+    protected static function snakeToCamel(string $value): string
+    {
+        return lcfirst(str_replace(' ', '', ucwords(str_replace('_', ' ', $value))));
+    }
+
     /**
      * Magic setter for options
      *
@@ -58,21 +71,7 @@ class CsvOptions
      */
     public function __set($name, $value)
     {
-        if ($name === 'quote') {
-            $name = 'enclosure';
-        }
-        if ($name === 'double_quotes') {
-            $name = 'doubleQuotes';
-        }
-        if ($name === 'trim_fields') {
-            $name = 'trimFields';
-        }
-        if ($name === 'skip_empty_lines') {
-            $name = 'skipEmptyLines';
-        }
-        if ($name === 'streamFilter') {
-            $name = 'stream_filter';
-        }
+        $name = self::camelToSnake($name);
         if (array_key_exists($name, $this->options)) {
             $this->options[$name] = $value;
         }
@@ -87,21 +86,7 @@ class CsvOptions
      */
     public function __get($name)
     {
-        if ($name === 'quote') {
-            $name = 'enclosure';
-        }
-        if ($name === 'double_quotes') {
-            $name = 'doubleQuotes';
-        }
-        if ($name === 'trim_fields') {
-            $name = 'trimFields';
-        }
-        if ($name === 'skip_empty_lines') {
-            $name = 'skipEmptyLines';
-        }
-        if ($name === 'streamFilter') {
-            $name = 'stream_filter';
-        }
+        $name = self::camelToSnake($name);
         return $this->options[$name] ?? null;
     }
 
@@ -114,21 +99,7 @@ class CsvOptions
      */
     public function __isset($name)
     {
-        if ($name === 'quote') {
-            $name = 'enclosure';
-        }
-        if ($name === 'double_quotes') {
-            $name = 'doubleQuotes';
-        }
-        if ($name === 'trim_fields') {
-            $name = 'trimFields';
-        }
-        if ($name === 'skip_empty_lines') {
-            $name = 'skipEmptyLines';
-        }
-        if ($name === 'streamFilter') {
-            $name = 'stream_filter';
-        }
+        $name = self::camelToSnake($name);
         return isset($this->options[$name]);
     }
 
@@ -197,7 +168,7 @@ class CsvOptions
      */
     public function setDoubleQuotes(bool $enable): CsvOptions
     {
-        $this->options['doubleQuotes'] = $enable;
+        $this->options['double_quotes'] = $enable;
 
         return $this;
     }
@@ -211,7 +182,7 @@ class CsvOptions
      */
     public function setTrimFields(bool $enable): CsvOptions
     {
-        $this->options['trimFields'] = $enable;
+        $this->options['trim_fields'] = $enable;
 
         return $this;
     }
@@ -225,7 +196,7 @@ class CsvOptions
      */
     public function setSkipEmptyLines(bool $enable): CsvOptions
     {
-        $this->options['skipEmptyLines'] = $enable;
+        $this->options['skip_empty_lines'] = $enable;
 
         return $this;
     }
@@ -254,6 +225,20 @@ class CsvOptions
     public function setStreamFilter(?string $filter): CsvOptions
     {
         $this->options['stream_filter'] = $filter;
+
+        return $this;
+    }
+
+    /**
+     * Set comment prefix
+     *
+     * @param string|null $value
+     *
+     * @return $this
+     */
+    public function setCommentPrefix(?string $value): CsvOptions
+    {
+        $this->options['comment_prefix'] = $value;
 
         return $this;
     }

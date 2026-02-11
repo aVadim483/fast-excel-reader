@@ -35,6 +35,7 @@ class CsvReader
     protected string $currentLine = '';
     protected ?string $bom;
     protected ?string $streamFilter = null;
+    protected ?string $commentPrefix = null;
 
     /**
      * CsvReader constructor
@@ -50,50 +51,9 @@ class CsvReader
         $this->file = $file;
         $this->errorHandler = [$this, 'errorHandler'];
 
-        if (empty($options)) {
-            $options = new CsvOptions();
-        }
+        $this->setOptions(new CsvOptions());
         if (!empty($options)) {
-            if ($options instanceof CsvOptions) {
-                $options = $options->toArray();
-            }
-            if ($options) {
-                foreach ($options as $key => $value) {
-                    switch ($key) {
-                        case 'delimiter':
-                            $this->delimiter = ($value === 'auto' ? null : $value);
-                            break;
-                        case 'enclosure':
-                            $this->enclosure = $value;
-                            break;
-                        case 'escape':
-                            $this->escape = $value;
-                            break;
-                        case 'encoding':
-                            $this->encoding = ($value ? strtoupper($value) : null);
-                            break;
-                        case 'double_quotes':
-                        case 'doubleQuotes':
-                            $this->doubleQuotes = $value;
-                            break;
-                        case 'trim_fields':
-                        case 'trimFields':
-                            $this->trimFields = $value;
-                            break;
-                        case 'skip_empty_lines':
-                        case 'skipEmptyLines':
-                            $this->skipEmptyLines = (bool)$value;
-                            break;
-                        case 'mode':
-                            $this->strictMode = ($value === CsvOptions::STRICT_MODE);
-                            break;
-                        case 'stream_filter':
-                        case 'streamFilter':
-                            $this->streamFilter = $value;
-                            break;
-                    }
-                }
-            }
+            $this->setOptions($options);
         }
 
         if ($this->delimiter === null || $this->encoding === null) {
@@ -132,6 +92,54 @@ class CsvReader
     public function __destruct()
     {
         $this->close();
+    }
+
+    protected function setOptions($options)
+    {
+        if ($options instanceof CsvOptions) {
+            $options = $options->toArray();
+        }
+        if ($options) {
+            foreach ($options as $key => $value) {
+                switch ($key) {
+                    case 'delimiter':
+                        $this->delimiter = ($value === 'auto' ? null : $value);
+                        break;
+                    case 'enclosure':
+                        $this->enclosure = $value;
+                        break;
+                    case 'escape':
+                        $this->escape = $value;
+                        break;
+                    case 'encoding':
+                        $this->encoding = ($value ? strtoupper($value) : null);
+                        break;
+                    case 'double_quotes':
+                    case 'doubleQuotes':
+                        $this->doubleQuotes = $value;
+                        break;
+                    case 'trim_fields':
+                    case 'trimFields':
+                        $this->trimFields = $value;
+                        break;
+                    case 'skip_empty_lines':
+                    case 'skipEmptyLines':
+                        $this->skipEmptyLines = (bool)$value;
+                        break;
+                    case 'mode':
+                        $this->strictMode = ($value === CsvOptions::STRICT_MODE);
+                        break;
+                    case 'stream_filter':
+                    case 'streamFilter':
+                        $this->streamFilter = $value;
+                        break;
+                    case 'comment_prefix':
+                    case 'commentPrefix':
+                        $this->commentPrefix = $value;
+                        break;
+                }
+            }
+        }
     }
 
     /**
@@ -259,6 +267,10 @@ class CsvReader
                     continue;
                 }
                 $row = [];
+            }
+
+            if ($this->commentPrefix && strpos($this->currentLine, $this->commentPrefix) === 0) {
+                continue;
             }
 
             if ($rowNum === 1 && isset($row[0])) {
@@ -437,6 +449,19 @@ class CsvReader
             $inQuotes = true;
             $quotedField = true;
         }
+        elseif ($ch === $this->escape) {
+            $next = $this->getChar();
+            if ($next === false) { // EOF
+                return $ch;
+            }
+            elseif ($next === "\n" || $next === "\r") { // EOL
+                $this->ungetChar($next);
+                return $ch;
+            }
+            else {
+                $field = $next;
+            }
+        }
         else {
             $field = $ch;
         }
@@ -524,8 +549,7 @@ class CsvReader
         }
 
         $row = [];
-        $this->lineNo++;
-        $this->colNo = 0;
+        $this->newLine();
 
         // Check for EOF
         if (($first = $this->getChar()) === false) {
