@@ -2,8 +2,9 @@
 
 namespace avadim\FastExcelReader;
 
+use avadim\FastExcelReader\Csv\CsvOptions;
+use avadim\FastExcelReader\Csv\CsvReader;
 use PHPUnit\Framework\TestCase;
-use Throwable;
 
 class CsvReaderTest extends TestCase
 {

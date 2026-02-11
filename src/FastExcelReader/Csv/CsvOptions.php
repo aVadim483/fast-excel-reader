@@ -1,6 +1,6 @@
 <?php
 
-namespace avadim\FastExcelReader;
+namespace avadim\FastExcelReader\Csv;
 
 /**
  * Class CsvOptions

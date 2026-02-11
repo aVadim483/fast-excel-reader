@@ -3,6 +3,8 @@
 namespace avadim\FastExcelReader;
 
 use avadim\FastExcelHelper\Helper;
+use avadim\FastExcelReader\Csv\CsvOptions;
+use avadim\FastExcelReader\Csv\CsvReader;
 use avadim\FastExcelReader\Interfaces\InterfaceBookReader;
 use avadim\FastExcelReader\Interfaces\InterfaceSheetReader;
 use avadim\FastExcelReader\Interfaces\InterfaceXmlReader;
