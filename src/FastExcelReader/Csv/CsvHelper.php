@@ -14,6 +14,39 @@ class CsvHelper
         'UTF-16BE' => "\xFE\xFF",
     ];
 
+
+    /**
+     * Check if encoding is available in mbstring (return null if not available)
+     *
+     * @param string $encoding
+     *
+     * @return string|null
+     */
+    public static function availableEncoding(string $encoding): ?string
+    {
+        try {
+            $aliases = mb_encoding_aliases($encoding);
+        } catch (\Throwable $e) {
+            $aliases = [];
+        }
+        if (strcasecmp($encoding, 'SHIFT_JIS') === 0) {
+            $aliases[] = 'SJIS-WIN';
+        }
+        $list = mb_list_encodings();
+        foreach ($list as $enc) {
+            if (strcasecmp($enc, $encoding) === 0) {
+                return $encoding;
+            }
+            foreach ($aliases as $alias) {
+                if (strcasecmp($enc, $alias) === 0) {
+                    return $alias;
+                }
+            }
+        }
+
+        return null;
+    }
+
     /**
      * Detect encoding by BOM from a binary string.
      *
@@ -28,25 +61,6 @@ class CsvHelper
         }
 
         return null;
-    }
-
-    /**
-     * Return BOM length for known Unicode BOMs.
-     */
-    public static function bomLength(string $encoding): int
-    {
-        switch (strtoupper($encoding)) {
-            case 'UTF-8':
-                return 3;
-            case 'UTF-16LE':
-            case 'UTF-16BE':
-                return 2;
-            case 'UTF-32LE':
-            case 'UTF-32BE':
-                return 4;
-            default:
-                return 0;
-        }
     }
 
     /**
@@ -119,7 +133,9 @@ class CsvHelper
     public static function looksLikeJapaneseBytes(string $bytes): bool
     {
         $len = strlen($bytes);
-        if ($len < 64) return false;
+        if ($len < 64) {
+            return false;
+        }
 
         $limit = min($len, 65536);
 
@@ -131,7 +147,9 @@ class CsvHelper
         for ($i = 0; $i < $limit; $i++) {
             $b = ord($bytes[$i]);
 
-            if ($b >= 0x80) $hi++;
+            if ($b >= 0x80) {
+                $hi++;
+            }
 
             // Shift_JIS lead bytes (most common ranges)
             if (($b >= 0x81 && $b <= 0x9F) || ($b >= 0xE0 && $b <= 0xFC)) {
@@ -168,29 +186,31 @@ class CsvHelper
      *
      * Note: In Windows practice, CP932 (Windows-932 / SJIS-win) is more common.
      */
-    public static function detectJapaneseEncoding(string $sample, array $candidates = ['CP932', 'Shift_JIS', 'EUC-JP']): string
+    public static function detectJapaneseEncoding(string $sample, array $candidates): array
     {
-        if (!function_exists('mb_convert_encoding')) {
-            return 'CP932'; // fallback
-        }
-
         $bestEnc = $candidates[0];
         $bestScore = -INF;
 
         foreach ($candidates as $enc) {
-
             // Try conversion
             $utf8 = @mb_convert_encoding($sample, 'UTF-8', $enc);
-
             if ($utf8 === false || $utf8 === '') {
                 continue;
             }
 
             $score = self::scoreJapaneseUtf8Text($utf8);
+            // CP932 vs EUC-JP
+            $rt = self::jpRoundTripSimilarity($sample, $enc); // 0..1
+            if ($rt < 0.90) {
+                $score -= (0.90 - $rt) * 200.0; // сильный штраф
+            }
+            else {
+                $score += ($rt - 0.90) * 200.0; // небольшой бонус за идеальность
+            }
 
             // Small bonus for CP932 (Windows practice)
             if (strcasecmp($enc, 'CP932') === 0) {
-                $score += 1.0;
+                $score += 0.05;
             }
 
             if ($score > $bestScore) {
@@ -199,7 +219,7 @@ class CsvHelper
             }
         }
 
-        return $bestEnc;
+        return ['enc' => $bestEnc, 'score' => $bestScore];
     }
 
     /**
@@ -279,6 +299,46 @@ class CsvHelper
     }
 
     /**
+     * Round-trip similarity (for Japanese)
+     *
+     * @param string $bytes
+     * @param string $enc
+     *
+     * @return float
+     */
+    protected static function jpRoundTripSimilarity(string $bytes, string $enc): float
+    {
+        if (!function_exists('mb_convert_encoding')) {
+            return 0.0;
+        }
+
+        $utf8 = @mb_convert_encoding($bytes, 'UTF-8', $enc);
+        if ($utf8 === false || $utf8 === '') {
+            return 0.0;
+        }
+
+        $back = @mb_convert_encoding($utf8, $enc, 'UTF-8');
+        if ($back === false || $back === '') {
+            return 0.0;
+        }
+
+        $n = min(strlen($bytes), strlen($back));
+        if ($n === 0) {
+            return 0.0;
+        }
+
+        $same = 0;
+        for ($i = 0; $i < $n; $i++) {
+            if ($bytes[$i] === $back[$i]) {
+                $same++;
+            }
+        }
+
+        // 0..1
+        return $same / $n;
+    }
+
+    /**
      * Very simple heuristic for Cyrillic-heavy data (helps pick cp1251 vs "unknown").
      */
     public static function hasCyrillicLikely(string $bytes): bool
@@ -289,9 +349,14 @@ class CsvHelper
         $len = strlen($bytes);
         $hits = 0;
         $limit = min($len, 65536);
+        $nonAsciiCount = 0;
 
         for ($i = 0; $i < $limit; $i++) {
             $b = ord($bytes[$i]);
+            // non-ASCII
+            if ($b > 127) {
+                $nonAsciiCount++;
+            }
             if (($b >= 0xC0 && $b <= 0xFF) || $b === 0xA8 || $b === 0xB8) {
                 $hits++;
                 if ($hits >= 32) {
@@ -300,29 +365,26 @@ class CsvHelper
             }
         }
 
-        return false;
+        return $hits === $nonAsciiCount;
     }
 
     /**
-     * Pick best Cyrillic single-byte encoding by decoding sample and scoring output.
+     * Pick the best Cyrillic single-byte encoding by decoding sample and scoring output.
      * Works best for natural-language text (headers, comments, descriptions).
      */
-    public static function detectCyrillicEncoding(string $sample, array $candidates = null): string
+    public static function detectCyrillicEncoding(string $sample, array $candidates): array
     {
-        if ($candidates === null) {
-            $candidates = ['Windows-1251', 'CP866', 'KOI8-R', 'ISO-8859-5', 'MacCyrillic'];
-        }
-
         $bestEnc = $candidates[0];
         $bestScore = -INF;
 
         foreach ($candidates as $enc) {
-            $utf8 = @iconv($enc, 'UTF-8//IGNORE', $sample);
+            $utf8 = @mb_convert_encoding($sample, 'UTF-8', $enc);
             if ($utf8 === false || $utf8 === '') {
                 continue;
             }
 
             $score = self::scoreDecodedUtf8Text($utf8);
+            $score += self::russianLanguageScore($utf8) * 200;
 
             // Small tie-break: if CP866 and CP1251 close, prefer CP866 when many box-drawing chars present in raw bytes
             // (CP866 often contains pseudographics in 0xB0-0xDF)
@@ -336,7 +398,43 @@ class CsvHelper
             }
         }
 
-        return $bestEnc;
+        return ['enc' => $bestEnc, 'score' => $bestScore];
+    }
+
+    /**
+     * @param string $utf8
+     *
+     * @return float
+     */
+    protected static function russianLanguageScore(string $utf8): float
+    {
+        $s = mb_strtolower($utf8, 'UTF-8');
+
+        // оставим только кириллицу+пробелы, чтобы не шумели цифры/пунктуация
+        $s = preg_replace('/[^\p{Cyrillic}\s]+/u', ' ', $s);
+        $s = preg_replace('/\s+/u', ' ', trim($s));
+        if ($s === '') return 0.0;
+
+        $bigrams = [
+            'ст'=>3.0,'но'=>2.8,'то'=>2.6,'на'=>2.6,'ен'=>2.4,'ов'=>2.2,'ни'=>2.0,'ра'=>1.9,'ко'=>1.8,'ро'=>1.7,
+            'го'=>1.7,'по'=>1.6,'пр'=>1.6,'ос'=>1.5,'ло'=>1.5,'ли'=>1.5,'ер'=>1.4,'ал'=>1.4,'ет'=>1.4,'ан'=>1.3,
+        ];
+
+        $score = 0.0;
+        foreach ($bigrams as $bg => $w) {
+            $score += substr_count($s, $bg) * $w;
+        }
+
+        // бонус за частые слова (пробелы важны)
+        $words = [' и '=>1.5,' в '=>1.2,' на '=>1.2,' не '=>1.1,' что '=>1.0,' это '=>0.9,' как '=>0.8,' для '=>0.8];
+        $padded = ' ' . $s . ' ';
+        foreach ($words as $w => $k) {
+            $score += substr_count($padded, $w) * $k;
+        }
+
+        // нормализуем на длину
+        $len = max(1, mb_strlen($s, 'UTF-8'));
+        return $score / $len;
     }
 
     /**
@@ -419,11 +517,44 @@ class CsvHelper
 
         // Japanese branch (before Cyrillic): CP932/Shift_JIS/EUC-JP
         if (self::looksLikeJapaneseBytes($sample)) {
-            return self::detectJapaneseEncoding($sample, ['CP932', 'Shift_JIS', 'EUC-JP']);
+            $jpEnc = self::detectJapaneseEncoding($sample, ['CP932', 'Shift_JIS', 'EUC-JP']);
+        }
+        else {
+            $jpEnc = ['enc' => null, 'score' => -INF];
         }
 
         if (self::hasCyrillicLikely($sample)) {
-            return self::detectCyrillicEncoding($sample, ['Windows-1251', 'CP866', 'KOI8-R', 'ISO-8859-5']);
+            $cyEnc = self::detectCyrillicEncoding($sample, ['Windows-1251', 'CP866', 'KOI8-R', 'ISO-8859-5'],);
+        }
+        else {
+            $cyEnc = ['enc' => null, 'score' => -INF];
+        }
+
+        // The "margin" is needed to prevent random noise from interrupting the normal text
+        if ($jpEnc['enc'] !== null && $cyEnc['enc'] !== null) {
+            $margin = 6.0;
+
+            // Minimum thresholds to prevent "garbage" selection
+            $minJp = 10.0;
+            $minCy = 10.0;
+
+            if ($jpEnc['score'] >= $minJp && $jpEnc['score'] > $cyEnc['score'] + $margin) {
+                return $jpEnc['enc'];
+            }
+            if ($cyEnc['score'] >= $minCy && $cyEnc['score'] >= $jpEnc['score'] - $margin) {
+                return $cyEnc['enc'];
+            }
+
+            // If both are low, you're not sure, but it's better to return the one that's "less trashy."
+            return ($jpEnc['score'] > $cyEnc['score']) ? $jpEnc['enc'] : $cyEnc['enc'];
+        }
+
+        // If only one branch was triggered, we return it, but with a minimum threshold.
+        if ($cyEnc['enc'] !== null && $cyEnc['score'] >= 10.0) {
+            return $cyEnc['enc'];
+        }
+        if ($jpEnc['enc'] !== null && $jpEnc['score'] >= 10.0) {
+            return $jpEnc['enc'];
         }
 
         return 'ISO-8859-1';
@@ -754,7 +885,9 @@ class CsvHelper
         return $hits;
     }
 
-
+    /**
+     * @return string|null
+     */
     protected static function guessByLocale(): ?string
     {
         $decimalPoint = setlocale(LC_NUMERIC, 0);

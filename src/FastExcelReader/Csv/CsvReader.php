@@ -56,6 +56,16 @@ class CsvReader
             $this->setOptions($options);
         }
 
+        if ($this->encoding) {
+            $enc = CsvHelper::availableEncoding($this->encoding);
+            if (!$enc) {
+                throw new Exception("Encoding {$this->encoding} is not supported");
+            }
+            if ($enc !== $this->encoding) {
+                $this->encoding = $enc;
+            }
+        }
+
         if ($this->delimiter === null || $this->encoding === null) {
             $sample = CsvHelper::readSample($this->file);
         } else {
@@ -271,18 +281,6 @@ class CsvReader
 
             if ($this->commentPrefix && strpos($this->currentLine, $this->commentPrefix) === 0) {
                 continue;
-            }
-
-            if ($rowNum === 1 && isset($row[0])) {
-                if (strpos($row[0], "\xEF\xBB\xBF") === 0) {
-                    $row[0] = substr($row[0], 3);
-                }
-            }
-
-            if ($this->encoding && $this->encoding !== 'UTF-8' && $this->encoding !== $this->bom) {
-                foreach ($row as &$value) {
-                    $value = mb_convert_encoding($value, 'UTF-8', $this->encoding);
-                }
             }
 
             if ($rowNum === 1 && $firstRowKeys) {
@@ -538,7 +536,7 @@ class CsvReader
     }
 
     /**
-     * Get line from CSV file as array of fields
+     * Get line from CSV file as array of fields (null - empty field, false - EOF)
      *
      * @return array|null|false
      */
