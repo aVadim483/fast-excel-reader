@@ -38,6 +38,7 @@ class CsvReader
     protected ?string $commentPrefix = null;
     protected int $startRow = 1;
     protected int $startCol = 1;
+    protected bool $withHeader = false;
 
     /**
      * CsvReader constructor
@@ -226,6 +227,16 @@ class CsvReader
         return $this;
     }
 
+    /**
+     * @return $this
+     */
+    public function withHeader(): CsvReader
+    {
+        $this->withHeader = true;
+
+        return $this;
+    }
+
     public function getOptions(): CsvOptions
     {
         return new CsvOptions([
@@ -284,7 +295,7 @@ class CsvReader
 
         $rowNum = 0;
         $rowCnt = 0;
-        $firstRowKeys = false;
+        $firstRowKeys = $this->withHeader;
         if (is_array($columnKeys)) {
             if (is_int($resultMode) && ($resultMode & Excel::KEYS_FIRST_ROW)) {
                 $firstRowKeys = true;
@@ -294,6 +305,7 @@ class CsvReader
             $firstRowKeys = true;
             $columnKeys = [];
         }
+        $resColumnKeys = [];
 
         while (($row = $this->getCsvLine()) !== false) {
             $rowNum++;
@@ -316,7 +328,8 @@ class CsvReader
             if ($rowNum === 1 && $firstRowKeys) {
                 if (empty($columnKeys)) {
                     $columnKeys = $row;
-                } else {
+                }
+                else {
                     $columnKeys = array_merge($row, $columnKeys);
                 }
                 continue;
@@ -327,25 +340,37 @@ class CsvReader
                 break;
             }
 
-            $rowData = [];
-            foreach ($row as $colIdx => $value) {
-                if ($colIdx < $this->startCol - 1) {
-                    continue;
-                }
-                if (isset($columnKeys[$colIdx])) {
-                    $colKey = $columnKeys[$colIdx];
-                }
-                elseif (is_int($resultMode) && ($resultMode & CsvOptions::KEYS_COL_EXCEL)) {
-                    $colKey = Helper::colLetter($colIdx + 1);
+            if ($this->startCol) {
+                $row = array_slice($row, $this->startCol - 1);
+            }
+
+            // define column keys
+            if (!$resColumnKeys) {
+                // original indexes of fields
+                $colKeys = array_keys($row);
+                if (is_int($resultMode) && ($resultMode & CsvOptions::KEYS_COL_EXCEL)) {
+                    foreach ($colKeys as $colIdx) {
+                        $resColumnKeys[] = Helper::colLetter($colIdx + 1);
+                    }
                 }
                 elseif (is_int($resultMode) && ($resultMode & CsvOptions::KEYS_COL_ONE_BASED)) {
-                    $colKey = $colIdx + 1;
+                    foreach ($colKeys as $colIdx) {
+                        $resColumnKeys[] = $colIdx + 1;
+                    }
                 }
                 else {
-                    $colKey = $colIdx;
+                    $resColumnKeys = $colKeys;
                 }
-                $rowData[$colKey] = $value;
+                if ($columnKeys) {
+                    foreach ($columnKeys as $colIdx => $colName) {
+                        if ($colName) {
+                            $resColumnKeys[$colIdx] = $colName;
+                        }
+                    }
+                }
             }
+
+            $rowData = array_combine($resColumnKeys, array_values($row));
             if (is_int($resultMode) && ($resultMode & CsvOptions::KEYS_ROW_ONE_BASED)) {
                 $rowKey = $rowNum + 1;
             }
@@ -383,12 +408,15 @@ class CsvReader
     /**
      * Read rows and return as 2D array
      *
+     * @param array|bool|int|null $columnKeys
+     * @param int|null $resultMode
+     *
      * @return array
      */
-    public function readRows(): array
+    public function readRows($columnKeys = [], ?int $resultMode = null): array
     {
         $data = [];
-        foreach ($this->nextRow() as $rowNum => $row) {
+        foreach ($this->nextRow($columnKeys, $resultMode) as $rowNum => $row) {
             $data[$rowNum] = $row;
         }
 

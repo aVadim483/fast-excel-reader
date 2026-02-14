@@ -129,6 +129,25 @@ class CsvReaderTest extends TestCase
         $this->assertEquals('string.rot13', $reader->getOptions()->stream_filter);
     }
 
+    public function testCsvHeader()
+    {
+        $reader = new CsvReader($this->csvFile);
+        $rows = $reader->readRows([], CsvOptions::KEYS_FIRST_ROW);
+
+        $expected = ['ID' => '1', 'Name' => 'John; Doe', 'City' => 'New York'];
+        $this->assertCount(3, $rows);
+        $this->assertSame($expected, $rows[2]);
+
+        $reader = new CsvReader($this->csvFile);
+        $rows = $reader->readRows(true);
+        $this->assertSame($expected, $rows[2]);
+
+        $reader = new CsvReader($this->csvFile);
+        $rows = $reader->withHeader()->readRows();
+        $this->assertSame($expected, $rows[2]);
+    }
+
+
     protected function makeReader($input, $options = [])
     {
         $file = __DIR__ . '/test_files/test_strict.csv';
