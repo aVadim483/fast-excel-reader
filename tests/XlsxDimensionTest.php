@@ -3,7 +3,7 @@
 use avadim\FastExcelReader\Excel;
 use PHPUnit\Framework\TestCase;
 
-class DimensionTest extends \PHPUnit\Framework\TestCase
+class XlsxDimensionTest extends \PHPUnit\Framework\TestCase
 {
     public function testDimension()
     {

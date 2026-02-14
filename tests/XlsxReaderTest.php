@@ -6,7 +6,7 @@ namespace avadim\FastExcelReader;
 
 use PHPUnit\Framework\TestCase;
 
-final class FastExcelReaderTest extends TestCase
+final class XlsxReaderTest extends TestCase
 {
     public const DEMO_DIR = __DIR__ . '/../demo/files/';
 

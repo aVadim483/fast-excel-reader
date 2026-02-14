@@ -1,7 +1,27 @@
 <?php
 
-final class CsvDataProvider
+namespace avadim\FastExcelReader;
+
+use avadim\FastExcelReader\Csv\CsvOptions;
+use avadim\FastExcelReader\Csv\CsvReader;
+use PHPUnit\Framework\TestCase;
+
+class CsvParserTest extends TestCase
 {
+    protected string $csvFile;
+
+    protected function setUp(): void
+    {
+        $this->csvFile = tempnam(__DIR__ . '/test_files/', 'csv_');
+    }
+
+    protected function tearDown(): void
+    {
+        if (isset($this->csvFile) && is_file($this->csvFile)) {
+            unlink($this->csvFile);
+        }
+    }
+
     /**
      * Data provider for CSV parsing tests (strict vs tolerant).
      *
@@ -151,4 +171,41 @@ final class CsvDataProvider
             ],
         ];
     }
+
+    protected function makeReader($input, $options = []): CsvReader
+    {
+        file_put_contents($this->csvFile, $input);
+
+        return new CsvReader($this->csvFile, $options);
+    }
+
+    /**
+     * @dataProvider provideCsvRecords
+     */
+    public function testParseCsvRecord(string $input, ?array $expectedStrict, ?array $expectedTolerant, string $note)
+    {
+        // strict
+        if ($expectedStrict === null) {
+            $this->expectException(\RuntimeException::class);
+        }
+        $csv = $this->makeReader($input, ['mode' => 'strict', 'trim_fields' => false]);
+
+        echo '# ' . $note;
+        if ($expectedStrict === null) {
+            $this->expectException(Exception::class);
+        }
+        $strictRow = $csv->getCsvLine();
+        if ($expectedStrict !== null) {
+            $this->assertSame($expectedStrict, $strictRow, $note . ' (STRICT)');
+        }
+        $csv->close();
+
+        // tolerant
+        $csv = $this->makeReader($input, ['mode' => 'tolerant', "escape" => '\\']);
+        $tolerantRow = $csv->getCsvLine();
+        $this->assertSame($expectedTolerant, $tolerantRow, $note . ' (TOLERANT)');
+        $csv->close();
+
+    }
+
 }

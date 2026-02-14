@@ -3,7 +3,7 @@
 use avadim\FastExcelReader\Excel;
 use PHPUnit\Framework\TestCase;
 
-class ReadRewindTest extends \PHPUnit\Framework\TestCase
+class XlsxReadRewindTest extends \PHPUnit\Framework\TestCase
 {
     public function testReadRewind()
     {

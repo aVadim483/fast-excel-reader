@@ -39,6 +39,7 @@ class CsvReader
     protected int $startRow = 1;
     protected int $startCol = 1;
     protected bool $withHeader = false;
+    protected array $lineErrors = [];
 
     /**
      * CsvReader constructor
@@ -183,12 +184,18 @@ class CsvReader
         return true;
     }
 
-    protected function close()
+    public function close()
     {
         if ($this->fp) {
             fclose($this->fp);
             $this->fp = null;
         }
+    }
+
+    public function rewind()
+    {
+        $this->close();
+        $this->open();
     }
 
     /**
@@ -250,7 +257,7 @@ class CsvReader
     }
 
 
-    public function setErrorHandler(callable $handler): CsvReader
+    public function setErrorHandler(?callable $handler): CsvReader
     {
         $this->errorHandler = $handler;
         
@@ -278,6 +285,16 @@ class CsvReader
         if ($this->errorHandler) {
             call_user_func($this->errorHandler, $errCode, $errText, $this->currentLine, $this->lineNo, $this->colNo);
         }
+    }
+
+    /**
+     * @param int $errCode
+     * @param string $errText
+     */
+    protected function fieldError(int $errCode, string $errText)
+    {
+        $this->lineErrors[] = ['row_no' => $this->lineNo, 'col_no' => $this->colNo];
+        $this->error($errCode, $errText);
     }
 
     /**
@@ -370,6 +387,21 @@ class CsvReader
                 }
             }
 
+            if (count($resColumnKeys) < count($row)) {
+                $min = count($resColumnKeys);
+                $max = count($row);
+                for ($idx = $min; $idx < $max; $idx++) {
+                    if (is_int($resultMode) && ($resultMode & CsvOptions::KEYS_COL_EXCEL)) {
+                        $resColumnKeys[] = Helper::colLetter($idx + 1);
+                    }
+                    elseif (is_int($resultMode) && ($resultMode & CsvOptions::KEYS_COL_ONE_BASED)) {
+                        $resColumnKeys[] = $idx + 1;
+                    }
+                    else {
+                        $resColumnKeys[] = $idx;
+                    }
+                }
+            }
             $rowData = array_combine($resColumnKeys, array_values($row));
             if (is_int($resultMode) && ($resultMode & CsvOptions::KEYS_ROW_ONE_BASED)) {
                 $rowKey = $rowNum + 1;
@@ -445,6 +477,7 @@ class CsvReader
         $this->lineNo++;
         $this->colNo = 0;
         $this->currentLine = '';
+        $this->lineErrors = [];
     }
 
     /**
@@ -542,9 +575,15 @@ class CsvReader
         }
 
         while (($char = $this->getChar()) !== false) {
+            if ($ignore && $char !== $this->delimiter && $char !== "\n" && $char !== "\r") {
+                continue;
+            }
+
             if ($char === $this->enclosure) {
                 if (!$quotedField && $this->strictMode) {
                     $this->error(self::ERR_UNEXPECTED_QUOTES, 'Unexpected quotes in ' . $this->lineNo . ':' . $this->colNo);
+                    // If there is no break, then ignore characters until the end of the field
+                    $ignore = true;
                 }
                 if (!$quotedField && !$this->strictMode) {
                     $field .= $char;
@@ -598,9 +637,13 @@ class CsvReader
                     else {
                         $qch = ($char === '`') ? '`' : '`' . $char . '`';
                         $this->error(self::ERR_UNEXPECTED_CHAR, "Unexpected character {$qch} after field in {$this->lineNo}:{$this->colNo}");
+                        // If there is no break, then ignore characters until the end of the field
+                        $ignore = true;
                     }
                 }
-                $field .= $char;
+                if (!$ignore) {
+                    $field .= $char;
+                }
             }
         }
 
@@ -648,12 +691,8 @@ class CsvReader
                 continue;
             }
 
-            $eol = false;
-            if ($sep === false) {
-                $eol = true;
-            }
-            elseif ($sep === "\n") {
-                $eol = true;
+            if ($sep === false || $sep === "\n") {
+                break; // EOL
             }
             elseif ($sep === "\r") {
                 // CRLF or just CR
@@ -661,12 +700,12 @@ class CsvReader
                 if ($n && $n !== "\n") {
                     $this->ungetChar($n);
                 }
-                $eol = true;
+                break; // EOL
             }
 
-            if ($eol) {
-                return (count($row) === 1 && $csvField === null) ? []: $row;
-            }
+//            if ($eol) {
+//                return (count($row) === 1 && $csvField === null) ? []: $row;
+//            }
 
             // unexpected character (dirty CSV)
             if ($this->strictMode) {
@@ -677,6 +716,10 @@ class CsvReader
             // tolerant mode: the field value continues
             $row[count($row) - 1] .= $sep;
         } // while
+
+        if (count($row) === 1 && $csvField === null) {
+            return [];
+        }
 
         return $row ?: false;
     }

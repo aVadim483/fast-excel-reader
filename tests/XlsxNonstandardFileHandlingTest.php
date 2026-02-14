@@ -3,7 +3,7 @@
 use avadim\FastExcelReader\Excel;
 use PHPUnit\Framework\TestCase;
 
-class NonstandardFileHandlingTest extends TestCase
+class XlsxNonstandardFileHandlingTest extends TestCase
 {
     public function testNonStandardFile(): void
     {

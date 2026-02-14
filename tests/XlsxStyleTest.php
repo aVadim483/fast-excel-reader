@@ -3,7 +3,7 @@
 use avadim\FastExcelReader\Excel;
 use PHPUnit\Framework\TestCase;
 
-class StyleTest extends \PHPUnit\Framework\TestCase
+class XlsxStyleTest extends \PHPUnit\Framework\TestCase
 {
     public function testColors()
     {

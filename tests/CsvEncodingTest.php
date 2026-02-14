@@ -6,6 +6,21 @@ use PHPUnit\Framework\TestCase;
 
 final class CsvEncodingTest extends TestCase
 {
+    protected string $csvFile;
+
+    protected function setUp(): void
+    {
+        $this->csvFile = tempnam(__DIR__ . '/test_files/', 'enc_');
+    }
+
+    protected function tearDown(): void
+    {
+        if (isset($this->csvFile) && is_file($this->csvFile)) {
+            unlink($this->csvFile);
+        }
+    }
+
+
     /**
      * @dataProvider dpCsvEncodingsTop20
      */
@@ -16,14 +31,11 @@ final class CsvEncodingTest extends TestCase
         }
 
         $input = self::encodeCsv($utf8Csv, $detected ?: $encoding, $withBom);
-
-        $file = __DIR__ . '/test_files/test_encoding.csv';
-        file_put_contents($file, $input);
-
+        file_put_contents($this->csvFile, $input);
 
         try {
             if ($auto) {
-                $csv = \avadim\FastExcelReader\Excel::openCsv($file);
+                $csv = \avadim\FastExcelReader\Excel::openCsv($this->csvFile);
                 $rows = [];
                 while (($row = $csv->getCsvLine()) !== false) {
                     $rows[] = $row;
@@ -31,7 +43,7 @@ final class CsvEncodingTest extends TestCase
                 self::assertSame($expectedRows, $rows, "Encoding: {$encoding}");
             }
 
-            $csv = \avadim\FastExcelReader\Excel::openCsv($file, ['encoding' => $encoding]);
+            $csv = \avadim\FastExcelReader\Excel::openCsv($this->csvFile, ['encoding' => $encoding]);
             $rows = [];
             while (($row = $csv->getCsvLine()) !== false) {
                 $rows[] = $row;
