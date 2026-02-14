@@ -23,10 +23,10 @@ class Excel implements InterfaceBookReader
     public const KEYS_FIRST_ROW = 1;
     public const KEYS_ROW_ZERO_BASED = 2;
     public const KEYS_COL_ZERO_BASED = 4;
-    public const KEYS_ZERO_BASED = 6;
+    public const KEYS_ZERO_BASED = 6; // KEYS_ROW_ZERO_BASED & KEYS_COL_ZERO_BASED
     public const KEYS_ROW_ONE_BASED = 8;
     public const KEYS_COL_ONE_BASED = 16;
-    public const KEYS_ONE_BASED = 24;
+    public const KEYS_ONE_BASED = 24; // KEYS_ROW_ONE_BASED & KEYS_COL_ONE_BASED
     public const KEYS_RELATIVE = 32;
     public const KEYS_SWAP = 64;
 

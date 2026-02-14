@@ -300,14 +300,27 @@ class CsvReader
             $rowData = [];
             foreach ($row as $colIdx => $value) {
                 if (isset($columnKeys[$colIdx])) {
-                    $key = $columnKeys[$colIdx];
-                } else {
-                    $key = Helper::colLetter($colIdx + 1);
+                    $colKey = $columnKeys[$colIdx];
                 }
-                $rowData[$key] = $value;
+                elseif (is_int($resultMode) && ($resultMode & CsvOptions::KEYS_COL_EXCEL)) {
+                    $colKey = Helper::colLetter($colIdx + 1);
+                }
+                elseif (is_int($resultMode) && ($resultMode & CsvOptions::KEYS_COL_ONE_BASED)) {
+                    $colKey = $colIdx + 1;
+                }
+                else {
+                    $colKey = $colIdx;
+                }
+                $rowData[$colKey] = $value;
+            }
+            if (is_int($resultMode) && ($resultMode & CsvOptions::KEYS_ROW_ONE_BASED)) {
+                $rowKey = $rowNum + 1;
+            }
+            else {
+                $rowKey = $rowNum;
             }
 
-            yield $rowNum => $rowData;
+            yield $rowKey => $rowData;
         }
         $this->close();
     }

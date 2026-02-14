@@ -2,6 +2,8 @@
 
 namespace avadim\FastExcelReader\Csv;
 
+use avadim\FastExcelReader\Excel;
+
 /**
  * Class CsvOptions
  *
@@ -9,6 +11,18 @@ namespace avadim\FastExcelReader\Csv;
  */
 class CsvOptions
 {
+    public const KEYS_ORIGINAL = Excel::KEYS_ORIGINAL;
+    public const KEYS_FIRST_ROW = Excel::KEYS_FIRST_ROW;
+    public const KEYS_ROW_ZERO_BASED = Excel::KEYS_ROW_ZERO_BASED;
+    public const KEYS_COL_ZERO_BASED = Excel::KEYS_COL_ZERO_BASED;
+    public const KEYS_ZERO_BASED = Excel::KEYS_ZERO_BASED;
+    public const KEYS_ROW_ONE_BASED = Excel::KEYS_ROW_ONE_BASED;
+    public const KEYS_COL_ONE_BASED = Excel::KEYS_COL_ONE_BASED;
+    public const KEYS_ONE_BASED = Excel::KEYS_ONE_BASED;
+
+    // Column keys like in Excel: A, B, C, ...
+    public const KEYS_COL_EXCEL = 128;
+
     const STRICT_MODE = 'strict';
     const TOLERANT_MODE = 'tolerant';
 
