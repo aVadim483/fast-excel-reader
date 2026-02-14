@@ -36,6 +36,8 @@ class CsvReader
     protected ?string $bom;
     protected ?string $streamFilter = null;
     protected ?string $commentPrefix = null;
+    protected int $startRow = 1;
+    protected int $startCol = 1;
 
     /**
      * CsvReader constructor
@@ -200,6 +202,30 @@ class CsvReader
         return $this;
     }
 
+    /**
+     * @param int $rowNum
+     *
+     * @return $this
+     */
+    public function fromRow(int $rowNum): CsvReader
+    {
+        $this->startRow = $rowNum;
+
+        return $this;
+    }
+
+    /**
+     * @param int $colNum
+     *
+     * @return $this
+     */
+    public function fromCol(int $colNum): CsvReader
+    {
+        $this->startCol = $colNum;
+
+        return $this;
+    }
+
     public function getOptions(): CsvOptions
     {
         return new CsvOptions([
@@ -272,7 +298,7 @@ class CsvReader
         while (($row = $this->getCsvLine()) !== false) {
             $rowNum++;
 
-            if ($row === null) {
+            if (count($row) === 0) {
                 if ($this->skipEmptyLines) {
                     continue;
                 }
@@ -280,6 +306,10 @@ class CsvReader
             }
 
             if ($this->commentPrefix && strpos($this->currentLine, $this->commentPrefix) === 0) {
+                continue;
+            }
+
+            if ($rowNum < $this->startRow) {
                 continue;
             }
 
@@ -299,6 +329,9 @@ class CsvReader
 
             $rowData = [];
             foreach ($row as $colIdx => $value) {
+                if ($colIdx < $this->startCol - 1) {
+                    continue;
+                }
                 if (isset($columnKeys[$colIdx])) {
                     $colKey = $columnKeys[$colIdx];
                 }
@@ -604,7 +637,7 @@ class CsvReader
             }
 
             if ($eol) {
-                return (count($row) === 1 && $csvField === null) ? null : $row;
+                return (count($row) === 1 && $csvField === null) ? []: $row;
             }
 
             // unexpected character (dirty CSV)

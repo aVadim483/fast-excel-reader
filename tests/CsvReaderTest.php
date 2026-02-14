@@ -9,17 +9,18 @@ use PHPUnit\Framework\TestCase;
 class CsvReaderTest extends TestCase
 {
     protected string $csvFile;
-    protected string $tmpFile;
 
     protected function setUp(): void
     {
-        $this->csvFile = __DIR__ . '/test_files/test.csv';
+        $this->csvFile = __DIR__ . '/test.csv';
+        $content = "ID;Name;City\r\n1;\"John; Doe\";New York\n2;Jane;London\r3;\"Josse, Dominique\";Brussels";
+        file_put_contents($this->csvFile, $content);
     }
 
     protected function tearDown(): void
     {
-        if (isset($this->tmpFile) && is_file($this->tmpFile)) {
-            @unlink($this->tmpFile);
+        if (isset($this->csvFile) && is_file($this->csvFile)) {
+            @unlink($this->csvFile);
         }
     }
 
@@ -32,9 +33,9 @@ class CsvReaderTest extends TestCase
         $reader = new CsvReader($this->csvFile, $options);
         $rows = $reader->readRows();
 
-        $this->assertCount(3, $rows);
-        $this->assertEquals('John; Doe', $rows[2]['B']);
-        $this->assertEquals('New York', $rows[2]['C']);
+        $this->assertCount(4, $rows);
+        $this->assertEquals('John; Doe', $rows[2][1]);
+        $this->assertEquals('New York', $rows[2][2]);
     }
 
     public function testCsvOptionsArray()
@@ -47,8 +48,8 @@ class CsvReaderTest extends TestCase
         $reader = new CsvReader($this->csvFile, $options);
         $rows = $reader->readRows();
 
-        $this->assertCount(3, $rows);
-        $this->assertEquals('John; Doe', $rows[2]['B']);
+        $this->assertCount(4, $rows);
+        $this->assertEquals('John; Doe', $rows[2][1]);
     }
 
     public function testCsvOptionsStaticCreate()
@@ -61,8 +62,8 @@ class CsvReaderTest extends TestCase
         $reader = new CsvReader($this->csvFile, $options);
         $rows = $reader->readRows();
 
-        $this->assertCount(3, $rows);
-        $this->assertEquals('John; Doe', $rows[2]['B']);
+        $this->assertCount(4, $rows);
+        $this->assertEquals('John; Doe', $rows[2][1]);
     }
 
     public function testCsvWithBom()
@@ -89,9 +90,9 @@ class CsvReaderTest extends TestCase
         $reader = new CsvReader($this->csvFile, ['delimiter' => 'auto']);
         $rows = $reader->readRows();
 
-        $this->assertCount(3, $rows);
-        $this->assertEquals('John; Doe', $rows[2]['B']);
-        $this->assertEquals('New York', $rows[2]['C']);
+        $this->assertCount(4, $rows);
+        $this->assertEquals('John; Doe', $rows[2][1]);
+        $this->assertEquals('New York', $rows[2][2]);
     }
 
     public function testCsvOptionsToArray()
@@ -99,11 +100,13 @@ class CsvReaderTest extends TestCase
         $options = [
             'delimiter' => ';',
             'enclosure' => '"',
-            'doubleQuotes' => true,
             'escape' => '\\',
-            'trimFields' => true,
             'encoding' => 'UTF-8',
             'mode' => CsvOptions::STRICT_MODE,
+            'double_quotes' => true,
+            'trim_fields' => true,
+            'skip_empty_lines' => true,
+            'comment_prefix' => null,
         ];
 
         $csvOptions = new CsvOptions($options);
@@ -151,13 +154,14 @@ class CsvReaderTest extends TestCase
         }
         $strictRow = $strictReader->getCsvLine();
         if ($expectedStrict !== null) {
-            $this->assertSame($expectedStrict, $strictRow, $note . ' (strict)');
+            $this->assertSame($expectedStrict, $strictRow, $note . ' (STRICT)');
         }
+
 
         // lenient
         $lenientReader = $this->makeReader($input, ['mode' => 'tolerant', "escape" => '\\']);
         $lenientRow = $lenientReader->getCsvLine();
-        $this->assertSame($expectedLenient, $lenientRow, $note . ' (lenient)');
+        $this->assertSame($expectedLenient, $lenientRow, $note . ' (TOLERANT)');
     }
 
 }
