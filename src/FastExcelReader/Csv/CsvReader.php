@@ -23,7 +23,6 @@ class CsvReader
     protected bool $trimFields = true;
     protected bool $skipEmptyLines = false;
     protected bool $strictMode = true;
-    protected $errorHandler = null;
 
     protected string $buffer = '';
     protected int $bufferPos = 0;
@@ -41,6 +40,9 @@ class CsvReader
     protected bool $withHeader = false;
     protected array $lineErrors = [];
 
+    /** @var callable|null  */
+    protected $onError = null;
+
     /**
      * CsvReader constructor
      *
@@ -53,7 +55,7 @@ class CsvReader
             throw new Exception("File $file not found");
         }
         $this->file = $file;
-        $this->errorHandler = [$this, 'errorHandler'];
+        $this->onError = [$this, 'defaultErrorHandler'];
 
         $this->setOptions(new CsvOptions());
         if (!empty($options)) {
@@ -257,9 +259,9 @@ class CsvReader
     }
 
 
-    public function setErrorHandler(?callable $handler): CsvReader
+    public function onError(?callable $handler): CsvReader
     {
-        $this->errorHandler = $handler;
+        $this->onError = $handler;
         
         return $this;
     }
@@ -271,19 +273,17 @@ class CsvReader
      * @param int $lineNo
      * @param int $colNo
      */
-    public function errorHandler(int $code, string $error, string $line, int $lineNo, int $colNo)
+    public function defaultErrorHandler(int $code, string $error, string $line, int $lineNo, int $colNo)
     {
         throw new Exception($error, $code);
     }
 
-    /**
-     * @param int $errCode
-     * @param string $errText
-     */
-    protected function error(int $errCode, string $errText)
+    protected function callErrorHandler()
     {
-        if ($this->errorHandler) {
-            call_user_func($this->errorHandler, $errCode, $errText, $this->currentLine, $this->lineNo, $this->colNo);
+        if ($this->lineErrors && $this->onError) {
+            foreach ($this->lineErrors as $lineError) {
+                call_user_func($this->onError, $lineError['code'], $lineError['error'], $this->currentLine, $lineError['row_no'], $lineError['col_no']);
+            }
         }
     }
 
@@ -291,10 +291,9 @@ class CsvReader
      * @param int $errCode
      * @param string $errText
      */
-    protected function fieldError(int $errCode, string $errText)
+    protected function setError(int $errCode, string $errText)
     {
-        $this->lineErrors[] = ['row_no' => $this->lineNo, 'col_no' => $this->colNo];
-        $this->error($errCode, $errText);
+        $this->lineErrors[] = ['row_no' => $this->lineNo, 'col_no' => $this->colNo, 'code' => $errCode, 'error' => $errText];
     }
 
     /**
@@ -419,25 +418,6 @@ class CsvReader
     }
 
     /**
-     * Reads cell values and passes them to a callback function
-     *
-     * @param callable $callback Callback function($row, $col, $value)
-     * @param array|bool|int|null $columnKeys
-     * @param int|null $resultMode
-     */
-    public function readCallback(callable $callback, $columnKeys = [], ?int $resultMode = null)
-    {
-        foreach ($this->nextRow($columnKeys, $resultMode) as $row => $rowData) {
-            foreach ($rowData as $col => $val) {
-                $needBreak = $callback($row, $col, $val);
-                if ($needBreak) {
-                    return;
-                }
-            }
-        }
-    }
-
-    /**
      * Read rows and return as 2D array
      *
      * @param array|bool|int|null $columnKeys
@@ -450,23 +430,6 @@ class CsvReader
         $data = [];
         foreach ($this->nextRow($columnKeys, $resultMode) as $rowNum => $row) {
             $data[$rowNum] = $row;
-        }
-
-        return $data;
-    }
-
-    /**
-     * Read cells and return as 1D array [address => value]
-     *
-     * @return array
-     */
-    public function readCells(): array
-    {
-        $data = [];
-        foreach ($this->nextRow() as $rowNum => $row) {
-            foreach ($row as $colLetter => $value) {
-                $data[$colLetter . $rowNum] = $value;
-            }
         }
 
         return $data;
@@ -494,19 +457,15 @@ class CsvReader
             return $ch;
         }
 
-        if (($this->bufferPos >= ($this->bufferLen - 4)) && !feof($this->fp)) {
-            $next = fread($this->fp, $this->bufferSize);
-            if ($next !== false) {
-                $this->buffer .= $next;
-                if ($this->bufferPos > 0) {
-                    $this->buffer = substr($this->buffer, $this->bufferPos);
-                }
+        if (($this->bufferPos >= $this->bufferLen)) {
+            if (!feof($this->fp)) {
+                $this->buffer = fread($this->fp, $this->bufferSize);
                 $this->bufferLen = strlen($this->buffer);
                 $this->bufferPos = 0;
             }
-        }
-        if ($this->bufferPos >= $this->bufferLen) {
-            return false;
+            else {
+                return false;
+            }
         }
 
         $char = $this->buffer[$this->bufferPos++];
@@ -581,7 +540,7 @@ class CsvReader
 
             if ($char === $this->enclosure) {
                 if (!$quotedField && $this->strictMode) {
-                    $this->error(self::ERR_UNEXPECTED_QUOTES, 'Unexpected quotes in ' . $this->lineNo . ':' . $this->colNo);
+                    $this->setError(self::ERR_UNEXPECTED_QUOTES, 'Unexpected quotes in ' . $this->lineNo . ':' . $this->colNo);
                     // If there is no break, then ignore characters until the end of the field
                     $ignore = true;
                 }
@@ -634,9 +593,9 @@ class CsvReader
                     if ($this->trimFields && ($char === ' ' || $char === "\t")) {
                         continue;
                     }
-                    else {
+                    elseif ($this->strictMode) {
                         $qch = ($char === '`') ? '`' : '`' . $char . '`';
-                        $this->error(self::ERR_UNEXPECTED_CHAR, "Unexpected character {$qch} after field in {$this->lineNo}:{$this->colNo}");
+                        $this->setError(self::ERR_UNEXPECTED_CHAR, "Unexpected character {$qch} after field in {$this->lineNo}:{$this->colNo}");
                         // If there is no break, then ignore characters until the end of the field
                         $ignore = true;
                     }
@@ -649,7 +608,7 @@ class CsvReader
 
         if ($inQuotes) {
             // EOF inside quotes
-            $this->error(self::ERR_UNEXPECTED_EOF, 'Unexpected EOF inside quoted CSV field');
+            $this->setError(self::ERR_UNEXPECTED_EOF, 'Unexpected EOF inside quoted CSV field');
         }
 
         return $field;
@@ -687,7 +646,7 @@ class CsvReader
             // read terminator of field (delimiter / EOL / EOF)
             $sep = $this->getChar();
             if ($sep === $this->delimiter) {
-                // the next field (may be empty)
+                // the next field
                 continue;
             }
 
@@ -703,19 +662,17 @@ class CsvReader
                 break; // EOL
             }
 
-//            if ($eol) {
-//                return (count($row) === 1 && $csvField === null) ? []: $row;
-//            }
-
             // unexpected character (dirty CSV)
             if ($this->strictMode) {
                 $qch = ($sep === '`') ? '`' : '`' . $sep . '`';
-                $this->error(self::ERR_UNEXPECTED_CHAR, "Unexpected character {$qch} in {$this->lineNo}:{$this->colNo}");
+                $this->setError(self::ERR_UNEXPECTED_CHAR, "Unexpected character {$qch} in {$this->lineNo}:{$this->colNo}");
             }
 
             // tolerant mode: the field value continues
             $row[count($row) - 1] .= $sep;
         } // while
+
+        $this->callErrorHandler();
 
         if (count($row) === 1 && $csvField === null) {
             return [];

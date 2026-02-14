@@ -53,6 +53,8 @@ Jump to:
 * [Info about merged cells](#info-about-merged-cells)
 * [Some useful methods](#some-useful-methods)
 
+[CSV Parsing in FastExcelReader](README-CSV.md)
+
 You can find [API references here](/docs/90-api-reference.md)
 
 ## Usage
