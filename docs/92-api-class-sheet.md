@@ -3,93 +3,94 @@
 ---
 
 * [__construct()](#__construct)
-* [actualDimension()](#actualdimension) -- Get the actual dimension range (e.g. "A1:C10")
-* [countActualColumns()](#countactualcolumns) -- Returns the actual number of columns from the sheet data area
-* [countActualDimension()](#countactualdimension) -- Scan sheet data and returns actual number of rows and columns
-* [countActualRows()](#countactualrows) -- Returns the actual number of rows from the sheet data area
-* [countCols()](#countcols) -- Count columns by dimension value, alias of countColumns()
-* [countColumns()](#countcolumns) -- Count columns by dimension value
-* [countImages()](#countimages) -- Count images of the sheet
-* [countRows()](#countrows) -- Count rows by dimension value
-* [dimension()](#dimension) -- Get sheet dimension range (e.g. "A1:C10")
-* [dimensionArray()](#dimensionarray) -- Get sheet dimension as an array
-* [extractConditionalFormatting()](#extractconditionalformatting) -- Extracts conditional formatting rules from the sheet
-* [extractDataValidations()](#extractdatavalidations) -- Extracts data validation rules from the sheet
-* [firstCol()](#firstcol) -- Get letter of the first column in the read area
-* [firstRow()](#firstrow) -- Get number of the first row in the read area
-* [from()](#from) -- Set top left of read area. Alias of setReadArea()
-* [getAllColAttributes()](#getallcolattributes) -- Get all column attributes
-* [getAllRowAttributes()](#getallrowattributes) -- Read all row attributes to the array
-* [getColumnAttributes()](#getcolumnattributes) -- Get column attributes (width, style, etc)
-* [getColumnStyle()](#getcolumnstyle) -- Get column style
-* [getColumnWidth()](#getcolumnwidth) -- Get width of the column
-* [getConditionalFormatting()](#getconditionalformatting) -- Get conditional formatting rules
-* [getDataValidations()](#getdatavalidations) -- Get data validation rules
-* [getFreezePaneInfo()](#getfreezepaneinfo) -- Get freeze pane info
-* [getImageBlob()](#getimageblob) -- Get image content as binary string
-* [getImageList()](#getimagelist) -- Get image list
-* [getImageListByRow()](#getimagelistbyrow) -- Get image list by row number
-* [getImageMimeType()](#getimagemimetype) -- Get image MIME type
-* [getImageName()](#getimagename) -- Get image name
-* [getMergedCells()](#getmergedcells) -- Get merged cells. Returns an array
-* [getReadRowNum()](#getreadrownum) -- Get the number of the last row read
-* [getRowAttributes()](#getrowattributes) -- Get row attributes (height, style, etc)
-* [getRowHeight()](#getrowheight) -- Get height of the row
-* [getRowStyle()](#getrowstyle) -- Get row style
-* [getTabColorConfiguration()](#gettabcolorconfiguration) -- Get tab color configuration. Alias of getTabColorConfig()
-* [getTabColorInfo()](#gettabcolorinfo) -- Get the tab color info of the sheet
-* [hasDrawings()](#hasdrawings) -- Returns true if the sheet has drawings
-* [hasImage()](#hasimage) -- Returns TRUE if the cell contains an image
-* [id()](#id) -- Get sheet ID
-* [imageEntryFullPath()](#imageentryfullpath) -- Get full path to the image in the ZIP archive
-* [isActive()](#isactive) -- Returns true if the sheet is active
-* [isHidden()](#ishidden) -- Returns true if the sheet is hidden
-* [isMerged()](#ismerged) -- Returns true if the cell is merged
-* [isName()](#isname) -- Case-insensitive name checking
-* [isVisible()](#isvisible) -- Returns true if the sheet is visible
-* [maxActualColumn()](#maxactualcolumn) -- Get the last actual column letter
-* [maxActualRow()](#maxactualrow) -- Get the last actual row number
-* [maxColumn()](#maxcolumn) -- Max column from dimension value
-* [maxRow()](#maxrow) -- Max row number from dimension value
-* [mergedRange()](#mergedrange) -- Get merged range for the cell
-* [minActualColumn()](#minactualcolumn) -- Get the first actual column letter
-* [minActualRow()](#minactualrow) -- Get the first actual row number
-* [minColumn()](#mincolumn) -- Min column from dimension value
-* [minRow()](#minrow) -- Min row number from dimension value
-* [name()](#name) -- Get sheet name
-* [nextRow()](#nextrow) -- Read cell values row by row, returns either an array of values or an array of arrays
-* [path()](#path) -- Get path to the sheet XML file in ZIP archive
-* [readCallback()](#readcallback) -- Reads cell values and passes them to a callback function
-* [readCells()](#readcells) -- Returns values and styles of cells as array
-* [readCellsFrom()](#readcellsfrom) -- Set read area and returns cell values as a one-dimensional array
-* [readCellStyles()](#readcellstyles) -- Returns styles of cells as array
-* [readCellsWithStyles()](#readcellswithstyles) -- Returns cell values and styles as a one-dimensional array
-* [readCellsWithStylesFrom()](#readcellswithstylesfrom) -- Set read area and returns cell values and styles as a one-dimensional array
-* [readColumns()](#readcolumns) -- Returns cell values as a two-dimensional array from default sheet
-* [readColumnsFrom()](#readcolumnsfrom) -- Set read area and returns cell values as a two-dimensional array from default sheet
-* [readColumnsWithStyles()](#readcolumnswithstyles) -- Returns cell values and styles as a two-dimensional array
-* [readColumnsWithStylesFrom()](#readcolumnswithstylesfrom) -- Set read area and returns cell values and styles as a two-dimensional array
-* [readFirstRow()](#readfirstrow) -- Returns values of cells of 1st row as array
-* [readFirstRowCells()](#readfirstrowcells) -- Returns values and styles of cells of 1st row as array
-* [readFirstRowCellsFrom()](#readfirstrowcellsfrom) -- Set read area and returns cell values of 1st row as array
-* [readFirstRowFrom()](#readfirstrowfrom) -- Set read area and returns values of cells of 1st row as array
-* [readFirstRowWithStyles()](#readfirstrowwithstyles) -- Returns values and styles of cells of 1st row as array
-* [readFirstRowWithStylesFrom()](#readfirstrowwithstylesfrom) -- Set read area and returns values and styles of cells of 1st row as array
-* [readNextRow()](#readnextrow) -- Read the next row from the generator
-* [readRows()](#readrows) -- Returns cell values as a two-dimensional array
-* [readRowsFrom()](#readrowsfrom) -- Read rows from a given area $areaRange
-* [readRowsWithStyles()](#readrowswithstyles) -- Returns values, styles, and other info of cells as array
-* [readRowsWithStylesFrom()](#readrowswithstylesfrom) -- Set read area and returns values, styles, and other info of cells as array
-* [reset()](#reset) -- Reset read generator
-* [rewind()](#rewind) -- Rewind read generator, alias of reset()
-* [saveImage()](#saveimage) -- Save image to a file
-* [saveImageTo()](#saveimageto) -- Save image to a directory
-* [setDateFormat()](#setdateformat) -- Set date format
-* [setDefaultRowHeight()](#setdefaultrowheight) -- Set default row height
-* [setReadArea()](#setreadarea) -- Set top left and right bottom of read area
-* [setReadAreaColumns()](#setreadareacolumns) -- setReadArea('C:AZ') - set left and right columns of read area
-* [setState()](#setstate) -- Set sheet state (visible, hidden, veryHidden)
-* [state()](#state) -- Get sheet state
+* [actualDimension()](#actualdimension) – Get the actual dimension range (e.g. "A1:C10")
+* [countActualColumns()](#countactualcolumns) – Returns the actual number of columns from the sheet data area
+* [countActualDimension()](#countactualdimension) – Scan sheet data and returns actual number of rows and columns
+* [countActualRows()](#countactualrows) – Returns the actual number of rows from the sheet data area
+* [countCols()](#countcols) – Count columns by dimension value, alias of countColumns()
+* [countColumns()](#countcolumns) – Count columns by dimension value
+* [countImages()](#countimages) – Count images of the sheet
+* [countRows()](#countrows) – Count rows by dimension value
+* [dimension()](#dimension) – Get sheet dimension range (e.g. "A1:C10")
+* [dimensionArray()](#dimensionarray) – Get sheet dimension as an array
+* [extractConditionalFormatting()](#extractconditionalformatting) – Extracts conditional formatting rules from the sheet
+* [extractDataValidations()](#extractdatavalidations) – Extracts data validation rules from the sheet
+* [firstCol()](#firstcol) – Get letter of the first column in the read area
+* [firstRow()](#firstrow) – Get number of the first row in the read area
+* [from()](#from) – Set top left of read area. Alias of setReadArea()
+* [getAllColAttributes()](#getallcolattributes) – Get all column attributes
+* [getAllRowAttributes()](#getallrowattributes) – Read all row attributes to the array
+* [getColumnAttributes()](#getcolumnattributes) – Get column attributes (width, style, etc)
+* [getColumnStyle()](#getcolumnstyle) – Get column style
+* [getColumnWidth()](#getcolumnwidth) – Get width of the column
+* [getConditionalFormatting()](#getconditionalformatting) – Get conditional formatting rules
+* [getDataValidations()](#getdatavalidations) – Get data validation rules
+* [getFreezePaneInfo()](#getfreezepaneinfo) – Get freeze pane info
+* [getImageBlob()](#getimageblob) – Get image content as binary string
+* [getImageList()](#getimagelist) – Get image list
+* [getImageListByRow()](#getimagelistbyrow) – Get image list by row number
+* [getImageMimeType()](#getimagemimetype) – Get image MIME type
+* [getImageName()](#getimagename) – Get image name
+* [getMergedCells()](#getmergedcells) – Get merged cells. Returns an array
+* [getReadRowNum()](#getreadrownum) – Get the number of the last row read
+* [getRowAttributes()](#getrowattributes) – Get row attributes (height, style, etc)
+* [getRowHeight()](#getrowheight) – Get height of the row
+* [getRowStyle()](#getrowstyle) – Get row style
+* [getTabColorConfiguration()](#gettabcolorconfiguration) – Get tab color configuration. Alias of getTabColorConfig()
+* [getTabColorInfo()](#gettabcolorinfo) – Get the tab color info of the sheet
+* [hasDrawings()](#hasdrawings) – Returns true if the sheet has drawings
+* [hasImage()](#hasimage) – Returns TRUE if the cell contains an image
+* [id()](#id) – Get sheet ID
+* [imageEntryFullPath()](#imageentryfullpath) – Get full path to the image in the ZIP archive
+* [isActive()](#isactive) – Returns true if the sheet is active
+* [isHidden()](#ishidden) – Returns true if the sheet is hidden
+* [isMerged()](#ismerged) – Returns true if the cell is merged
+* [isName()](#isname) – Case-insensitive name checking
+* [isVisible()](#isvisible) – Returns true if the sheet is visible
+* [maxActualColumn()](#maxactualcolumn) – Get the last actual column letter
+* [maxActualRow()](#maxactualrow) – Get the last actual row number
+* [maxColumn()](#maxcolumn) – Max column from dimension value
+* [maxRow()](#maxrow) – Max row number from dimension value
+* [mergedRange()](#mergedrange) – Get merged range for the cell
+* [minActualColumn()](#minactualcolumn) – Get the first actual column letter
+* [minActualRow()](#minactualrow) – Get the first actual row number
+* [minColumn()](#mincolumn) – Min column from dimension value
+* [minRow()](#minrow) – Min row number from dimension value
+* [name()](#name) – Get sheet name
+* [nextRow()](#nextrow) – Read cell values row by row, returns either an array of values or an array of arrays
+* [path()](#path) – Get path to the sheet XML file in ZIP archive
+* [readCallback()](#readcallback) – Reads cell values and passes them to a callback function
+* [readCells()](#readcells) – Returns values and styles of cells as array
+* [readCellsFrom()](#readcellsfrom) – Set read area and returns cell values as a one-dimensional array
+* [readCellStyles()](#readcellstyles) – Returns styles of cells as array
+* [readCellsWithStyles()](#readcellswithstyles) – Returns cell values and styles as a one-dimensional array
+* [readCellsWithStylesFrom()](#readcellswithstylesfrom) – Set read area and returns cell values and styles as a one-dimensional array
+* [readColumns()](#readcolumns) – Returns cell values as a two-dimensional array from default sheet
+* [readColumnsFrom()](#readcolumnsfrom) – Set read area and returns cell values as a two-dimensional array from default sheet
+* [readColumnsWithStyles()](#readcolumnswithstyles) – Returns cell values and styles as a two-dimensional array
+* [readColumnsWithStylesFrom()](#readcolumnswithstylesfrom) – Set read area and returns cell values and styles as a two-dimensional array
+* [readFirstRow()](#readfirstrow) – Returns values of cells of 1st row as array
+* [readFirstRowCells()](#readfirstrowcells) – Returns values and styles of cells of 1st row as array
+* [readFirstRowCellsFrom()](#readfirstrowcellsfrom) – Set read area and returns cell values of 1st row as array
+* [readFirstRowFrom()](#readfirstrowfrom) – Set read area and returns values of cells of 1st row as array
+* [readFirstRowWithStyles()](#readfirstrowwithstyles) – Returns values and styles of cells of 1st row as array
+* [readFirstRowWithStylesFrom()](#readfirstrowwithstylesfrom) – Set read area and returns values and styles of cells of 1st row as array
+* [readNextRow()](#readnextrow) – Read the next row from the generator
+* [readRows()](#readrows) – Returns cell values as a two-dimensional array
+* [readRowsFrom()](#readrowsfrom) – Read rows from a given area $areaRange
+* [readRowsWithStyles()](#readrowswithstyles) – Returns values, styles, and other info of cells as array
+* [readRowsWithStylesFrom()](#readrowswithstylesfrom) – Set read area and returns values, styles, and other info of cells as array
+* [reset()](#reset) – Reset read generator
+* [rewind()](#rewind) – Rewind read generator, alias of reset()
+* [saveImage()](#saveimage) – Save image to a file
+* [saveImageTo()](#saveimageto) – Save image to a directory
+* [setDateFormat()](#setdateformat) – Set date format
+* [setDefaultRowHeight()](#setdefaultrowheight) – Set default row height
+* [setReadArea()](#setreadarea) – Set top left and right bottom of read area
+* [setReadAreaColumns()](#setreadareacolumns) – setReadArea('C:AZ') - set left and right columns of read area
+* [setState()](#setstate) – Set sheet state (visible, hidden, veryHidden)
+* [state()](#state) – Get sheet state
+* [withHeader()](#withheader) – Enables header mode
 
 ---
 
@@ -980,7 +981,7 @@ _Reads cell values and passes them to a callback function_
 
 ### Parameters
 
-* `callback $callback` -- Callback function($row, $col, $value)
+* `callback $callback` – Callback function($row, $col, $value)
 * `array|bool|int|null $columnKeys`
 * `int|null $resultMode`
 * `bool|null $styleIdxInclude`
@@ -1047,7 +1048,7 @@ _Returns cell values and styles as a one-dimensional array \[address => value]:'
 
 ### Parameters
 
-* `string|null $styleKey` -- If specified, only this style property will be returned (e.g. 'fill-color')
+* `string|null $styleKey` – If specified, only this style property will be returned (e.g. 'fill-color')
 
 ---
 
@@ -1064,7 +1065,7 @@ _Set read area and returns cell values and styles as a one-dimensional array \[a
 ### Parameters
 
 * `string $areaRange`
-* `string|null $styleKey` -- If specified, only this style property will be returned (e.g. 'fill-color')
+* `string|null $styleKey` – If specified, only this style property will be returned (e.g. 'fill-color')
 
 ---
 
@@ -1502,6 +1503,23 @@ _Set sheet state (visible, hidden, veryHidden)_
 public function state(): string
 ```
 _Get sheet state_
+
+### Parameters
+
+_None_
+
+---
+
+## withHeader()
+
+---
+
+```php
+public function withHeader(): Sheet
+```
+_Enables header mode_
+
+_Treats the first row of the read area as a header row and returns subsequent rowsas associative arrays keyed by column names_
 
 ### Parameters
 

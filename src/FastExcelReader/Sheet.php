@@ -1064,6 +1064,21 @@ class Sheet implements InterfaceSheetReader
     }
 
     /**
+     * Enables header mode
+     *
+     * Treats the first row of the read area as a header row and returns subsequent rows
+     * as associative arrays keyed by column names
+     *
+     * @return $this
+     */
+    public function withHeader(): Sheet
+    {
+        $this->area['first_row_keys'] = true;
+
+        return $this;
+    }
+
+    /**
      * Returns cell values as a two-dimensional array
      *      [1 => ['A' => _value_A1_], ['B' => _value_B1_]],
      *      [2 => ['A' => _value_A2_], ['B' => _value_B2_]]

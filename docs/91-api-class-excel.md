@@ -2,55 +2,56 @@
 
 ---
 
-* [__construct()](#__construct) -- Excel constructor
-* [colLetter()](#colletter) -- Convert column number to letter
-* [colNum()](#colnum) -- Converts an alphabetic column index to a numeric
-* [createReader()](#createreader) -- Create XML reader object
-* [createSheet()](#createsheet) -- Create sheet object
-* [open()](#open) -- Open XLSX file
-* [setTempDir()](#settempdir) -- Set directory for temporary files
-* [validate()](#validate) -- Validate XLSX file
-* [countExtraImages()](#countextraimages) -- Count "extra" images (images that are in the media folder but not in the drawings)
-* [countImages()](#countimages) -- Returns the total count of images in the workbook
-* [dateFormatter()](#dateformatter) -- Set custom date formatter
-* [formatDate()](#formatdate) -- Format date value
-* [from()](#from) -- Set top left of read area
-* [getCompleteStyleByIdx()](#getcompletestylebyidx) -- Get complete style by style index
-* [getDateFormat()](#getdateformat) -- Get current date format
-* [getDateFormatPattern()](#getdateformatpattern) -- Get PHP date format pattern by style index
-* [getDateFormatter()](#getdateformatter) -- Get date formatter
-* [getDefinedNames()](#getdefinednames) -- Get defined names of workbook
-* [getFirstSheet()](#getfirstsheet) -- Returns the first sheet as default
-* [getFormatPattern()](#getformatpattern) -- Get format pattern by style index
-* [getImageList()](#getimagelist) -- Get the list of images from the workbook
-* [getSheet()](#getsheet) -- Get sheet object by name and optionally set read area and options
-* [getSheetById()](#getsheetbyid) -- Returns a sheet by ID
-* [getSheetNames()](#getsheetnames) -- Get names array of all sheets
-* [hasDrawings()](#hasdrawings) -- Returns TRUE if the workbook contains an any draw objects (not images only)
-* [hasExtraImages()](#hasextraimages) -- Returns TRUE if there are any "extra" images
-* [hasImages()](#hasimages) -- Returns TRUE if any sheet contains an image object
-* [innerFileList()](#innerfilelist) -- Get list of inner files in XLSX
-* [mediaImageFiles()](#mediaimagefiles) -- Get list of media image files in the workbook
-* [metadataImage()](#metadataimage) -- Get image file name from metadata by index
-* [readCallback()](#readcallback) -- Reads cell values and passes them to a callback function
-* [readCells()](#readcells) -- Returns the values of all cells as array
-* [readCellStyles()](#readcellstyles) -- Returns the styles of all cells as array
-* [readCellsWithStyles()](#readcellswithstyles) -- Returns the values and styles of all cells as array
-* [readColumns()](#readcolumns) -- Returns cell values as a two-dimensional array from default sheet
-* [readColumnsWithStyles()](#readcolumnswithstyles) -- Returns cell values and styles as a two-dimensional array from default sheet
-* [readRows()](#readrows) -- Returns cell values as a two-dimensional array from default sheet
-* [readRowsWithStyles()](#readrowswithstyles) -- Returns cell values and styles as a two-dimensional array from default sheet
-* [readStyles()](#readstyles) -- Read all workbook styles
-* [selectFirstSheet()](#selectfirstsheet) -- Selects the first sheet as default
-* [selectSheet()](#selectsheet) -- Selects default sheet by name
-* [selectSheetById()](#selectsheetbyid) -- Selects default sheet by ID
-* [setDateFormat()](#setdateformat) -- Set date format for reading
-* [setReadArea()](#setreadarea) -- Set top left and right bottom of read area
-* [sharedString()](#sharedstring) -- Get string by index
-* [sheet()](#sheet) -- Get current or specified sheet
-* [sheets()](#sheets) -- Array of all sheets
-* [styleByIdx()](#stylebyidx) -- Get style array by style index
-* [timestamp()](#timestamp) -- Convert date to timestamp
+* [__construct()](#__construct) – Excel constructor
+* [colLetter()](#colletter) – Convert column number to letter
+* [colNum()](#colnum) – Converts an alphabetic column index to a numeric
+* [createReader()](#createreader) – Create XML reader object
+* [createSheet()](#createsheet) – Create sheet object
+* [open()](#open) – Open XLSX file
+* [openCsv()](#opencsv) – Open CSV file
+* [setTempDir()](#settempdir) – Set directory for temporary files
+* [validate()](#validate) – Validate XLSX file
+* [countExtraImages()](#countextraimages) – Count "extra" images (images that are in the media folder but not in the drawings)
+* [countImages()](#countimages) – Returns the total count of images in the workbook
+* [dateFormatter()](#dateformatter) – Set custom date formatter
+* [formatDate()](#formatdate) – Format date value
+* [from()](#from) – Set top left of read area
+* [getCompleteStyleByIdx()](#getcompletestylebyidx) – Get complete style by style index
+* [getDateFormat()](#getdateformat) – Get current date format
+* [getDateFormatPattern()](#getdateformatpattern) – Get PHP date format pattern by style index
+* [getDateFormatter()](#getdateformatter) – Get date formatter
+* [getDefinedNames()](#getdefinednames) – Get defined names of workbook
+* [getFirstSheet()](#getfirstsheet) – Returns the first sheet as default
+* [getFormatPattern()](#getformatpattern) – Get format pattern by style index
+* [getImageList()](#getimagelist) – Get the list of images from the workbook
+* [getSheet()](#getsheet) – Get sheet object by name and optionally set read area and options
+* [getSheetById()](#getsheetbyid) – Returns a sheet by ID
+* [getSheetNames()](#getsheetnames) – Get names array of all sheets
+* [hasDrawings()](#hasdrawings) – Returns TRUE if the workbook contains an any draw objects (not images only)
+* [hasExtraImages()](#hasextraimages) – Returns TRUE if there are any "extra" images
+* [hasImages()](#hasimages) – Returns TRUE if any sheet contains an image object
+* [innerFileList()](#innerfilelist) – Get list of inner files in XLSX
+* [mediaImageFiles()](#mediaimagefiles) – Get list of media image files in the workbook
+* [metadataImage()](#metadataimage) – Get image file name from metadata by index
+* [readCallback()](#readcallback) – Reads cell values and passes them to a callback function
+* [readCells()](#readcells) – Returns the values of all cells as array
+* [readCellStyles()](#readcellstyles) – Returns the styles of all cells as array
+* [readCellsWithStyles()](#readcellswithstyles) – Returns the values and styles of all cells as array
+* [readColumns()](#readcolumns) – Returns cell values as a two-dimensional array from default sheet
+* [readColumnsWithStyles()](#readcolumnswithstyles) – Returns cell values and styles as a two-dimensional array from default sheet
+* [readRows()](#readrows) – Returns cell values as a two-dimensional array from default sheet
+* [readRowsWithStyles()](#readrowswithstyles) – Returns cell values and styles as a two-dimensional array from default sheet
+* [readStyles()](#readstyles) – Read all workbook styles
+* [selectFirstSheet()](#selectfirstsheet) – Selects the first sheet as default
+* [selectSheet()](#selectsheet) – Selects default sheet by name
+* [selectSheetById()](#selectsheetbyid) – Selects default sheet by ID
+* [setDateFormat()](#setdateformat) – Set date format for reading
+* [setReadArea()](#setreadarea) – Set top left and right bottom of read area
+* [sharedString()](#sharedstring) – Get string by index
+* [sheet()](#sheet) – Get current or specified sheet
+* [sheets()](#sheets) – Array of all sheets
+* [styleByIdx()](#stylebyidx) – Get style array by style index
+* [timestamp()](#timestamp) – Convert date to timestamp
 
 ---
 
@@ -81,7 +82,7 @@ _Convert column number to letter_
 
 ### Parameters
 
-* `int $colNumber` -- ONE based
+* `int $colNumber` – ONE based
 
 ---
 
@@ -149,6 +150,22 @@ _Open XLSX file_
 ### Parameters
 
 * `string $file`
+
+---
+
+## openCsv()
+
+---
+
+```php
+public static function openCsv(string $file, $options): Csv\CsvReader
+```
+_Open CSV file_
+
+### Parameters
+
+* `string $file`
+* `CsvOptions|array|null $options`
 
 ---
 

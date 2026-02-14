@@ -237,6 +237,11 @@ class CsvReader
     }
 
     /**
+     * Enables header mode
+     *
+     * Treats the first row of the CSV file as a header row and returns subsequent
+     * rows as associative arrays keyed by column names
+     *
      * @return $this
      */
     public function withHeader(): CsvReader
