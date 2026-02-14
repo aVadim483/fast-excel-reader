@@ -316,6 +316,9 @@ class CsvReader
             if (is_int($resultMode) && ($resultMode & CsvOptions::KEYS_ROW_ONE_BASED)) {
                 $rowKey = $rowNum + 1;
             }
+            elseif (is_int($resultMode) && ($resultMode & CsvOptions::KEYS_ROW_ZERO_BASED)) {
+                $rowKey = $rowNum - 1;
+            }
             else {
                 $rowKey = $rowNum;
             }
