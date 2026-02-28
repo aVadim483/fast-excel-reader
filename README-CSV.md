@@ -19,7 +19,6 @@ A fast and efficient CSV reader for PHP, integrated into the `fast-excel-reader`
 
 ## Features
 
-* **BOM Handling**: Automatic processing of files with Byte Order Mark.
 * **Delimiter Detection**: Automatic detection or manual specification of column delimiters.
 * **Wide Encoding Support**:
     - UTF-8, UTF-16LE, UTF-16BE, UTF-32LE, UTF-32BE
@@ -33,6 +32,7 @@ A fast and efficient CSV reader for PHP, integrated into the `fast-excel-reader`
     - **Tolerant Mode**: More forgiving with non-standard CSV files (e.g., quotes inside unquoted fields).
 * **Memory Efficient**: Capable of reading very large files line by line using Generators.
 * **Additional Utilities**: Skip empty lines, skip comment lines, trim fields, custom enclosures, and escape characters.
+* **BOM Handling**: Automatic processing of files with Byte Order Mark.
 
 ## Basic Usage
 

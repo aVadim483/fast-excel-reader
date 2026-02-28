@@ -19,13 +19,25 @@ This library is designed to be lightweight, super-fast and requires minimal memo
 **FastExcelReader** can read Excel compatible spreadsheets in XLSX format (Office 2007+) and CSV-files.
 It only reads data, but it does it very quickly and with minimal memory usage.
 
-**Features**
+## Features
+
+### XLSX format support
 
 * Supports XLSX format only (Office 2007+) with multiple worksheets
 * Supports autodetect currency/numeric/date types
 * Supports auto formatter and custom formatter of datetime values
 * The library can define and extract images from XLSX files
 * The library can read styling options of cells - formatting patterns, colors, borders, fonts, etc.
+
+### CSV format support
+
+* Delimiter Detection: Automatic detection or manual specification of column delimiters.
+* Wide Encoding Support: Any encoding supported by your PHP environment
+* Supports fields with or without quotes, and escaped quotes (doubled quotes).
+* Multi-line Fields Handles line breaks within quoted fields.
+* Two modes - strict (follows RFC 4180) and tolerant (with non-standard CSV files)
+
+About CSV parsing [see here](README-CSV.md)
 
 ## Installation
 
