@@ -16,27 +16,44 @@ use avadim\FastExcelReader\Interfaces\InterfaceXmlReader;
  */
 class Excel implements InterfaceBookReader
 {
+    /** @var int Maximum number of rows in Excel 2007+ */
     public const EXCEL_2007_MAX_ROW = 1048576;
+    /** @var int Maximum number of columns in Excel 2007+ */
     public const EXCEL_2007_MAX_COL = 16384;
 
+    /** @var int Use original keys (column names like 'A', 'B', etc.) */
     public const KEYS_ORIGINAL = 0;
+    /** @var int Use the first row values as keys */
     public const KEYS_FIRST_ROW = 1;
+    /** @var int Use zero-based row indices as keys */
     public const KEYS_ROW_ZERO_BASED = 2;
+    /** @var int Use zero-based column indices as keys */
     public const KEYS_COL_ZERO_BASED = 4;
+    /** @var int Use both zero-based row and column indices as keys */
     public const KEYS_ZERO_BASED = 6; // KEYS_ROW_ZERO_BASED & KEYS_COL_ZERO_BASED
+    /** @var int Use one-based row indices as keys */
     public const KEYS_ROW_ONE_BASED = 8;
+    /** @var int Use one-based column indices as keys */
     public const KEYS_COL_ONE_BASED = 16;
+    /** @var int Use both one-based row and column indices as keys */
     public const KEYS_ONE_BASED = 24; // KEYS_ROW_ONE_BASED & KEYS_COL_ONE_BASED
+    /** @var int Use relative keys */
     public const KEYS_RELATIVE = 32;
+    /** @var int Swap keys and values */
     public const KEYS_SWAP = 64;
 
-    // nextRow() returns cells & row attributes
-    // ['__cells' => [...], '__row' => [...]]
+    /**
+     * nextRow() returns cells & row attributes
+     * ['__cells' => [...], '__row' => [...]]
+     */
     public const RESULT_MODE_ROW = 1024;
 
+    /** @var int Trim string values */
     public const TRIM_STRINGS = 2048;
+    /** @var int Treat empty strings as empty cells */
     public const TREAT_EMPTY_STRING_AS_EMPTY_CELL = 4096;
 
+    /** @var array Standard Excel indexed colors */
     public const INDEXED_COLORS = [
         0  => 'FF000000', // Black
         1  => 'FFFFFFFF', // White

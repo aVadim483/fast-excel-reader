@@ -11,19 +11,37 @@ use avadim\FastExcelReader\Excel;
  */
 class CsvOptions
 {
+    /** Cell keys correspond to their original addresses in Excel (e.g. A1, B1...) */
     public const KEYS_ORIGINAL = Excel::KEYS_ORIGINAL;
+
+    /** The first row is used as keys for the remaining rows */
     public const KEYS_FIRST_ROW = Excel::KEYS_FIRST_ROW;
+
+    /** Row keys start from 0 */
     public const KEYS_ROW_ZERO_BASED = Excel::KEYS_ROW_ZERO_BASED;
+
+    /** Column keys start from 0 */
     public const KEYS_COL_ZERO_BASED = Excel::KEYS_COL_ZERO_BASED;
+
+    /** Row and column keys start from 0 */
     public const KEYS_ZERO_BASED = Excel::KEYS_ZERO_BASED;
+
+    /** Row keys start from 1 */
     public const KEYS_ROW_ONE_BASED = Excel::KEYS_ROW_ONE_BASED;
+
+    /** Column keys start from 1 */
     public const KEYS_COL_ONE_BASED = Excel::KEYS_COL_ONE_BASED;
+
+    /** Row and column keys start from 1 */
     public const KEYS_ONE_BASED = Excel::KEYS_ONE_BASED;
 
-    // Column keys like in Excel: A, B, C, ...
+    /** Column keys like in Excel: A, B, C, ... */
     public const KEYS_COL_EXCEL = 128;
 
+    /** Strict CSV reading mode */
     const STRICT_MODE = 'strict';
+
+    /** Tolerant CSV reading mode */
     const TOLERANT_MODE = 'tolerant';
 
     protected array $options = [

@@ -49,6 +49,18 @@ class CsvKeysTest extends TestCase
         $this->assertEquals($expected, $rows);
     }
 
+    public function testKeysFirstRowHeader()
+    {
+        $reader = new CsvReader($this->csvFile, []);
+        $rows = iterator_to_array($reader->nextRow(['FirstName'], CsvOptions::KEYS_FIRST_ROW));
+
+        $expected = [
+            2 => ['FirstName' => 'John', 'Age' => '30', 'City' => 'New York'],
+            3 => ['FirstName' => 'Jane', 'Age' => '25', 'City' => 'London'],
+        ];
+        $this->assertEquals($expected, $rows);
+    }
+
     public function testKeysRowZeroBased()
     {
         $reader = new CsvReader($this->csvFile, []);

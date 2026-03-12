@@ -47,7 +47,8 @@ Use `composer` to install **FastExcelReader** into your project:
 composer require avadim/fast-excel-reader
 ```
 
-Jump to:
+## Table of Contents
+
 * [Simple example](#simple-example)
 * [Read values row by row in loop](#read-values-row-by-row-in-loop)
 * [Keys in resulting arrays](#keys-in-resulting-arrays)

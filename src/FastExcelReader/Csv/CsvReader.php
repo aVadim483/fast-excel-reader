@@ -38,6 +38,7 @@ class CsvReader
     protected int $startRow = 1;
     protected int $startCol = 1;
     protected bool $withHeader = false;
+    protected array $withHeaderKeys = [];
     protected array $lineErrors = [];
 
     /** @var callable|null  */
@@ -351,7 +352,7 @@ class CsvReader
                     $columnKeys = $row;
                 }
                 else {
-                    $columnKeys = array_merge($row, $columnKeys);
+                    $columnKeys = array_replace($row, $columnKeys);
                 }
                 continue;
             }
