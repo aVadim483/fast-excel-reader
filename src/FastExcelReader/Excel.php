@@ -766,7 +766,7 @@ class Excel implements InterfaceBookReader
             if ($indexed === '64') {
                 return '#000000';
             }
-            if (!isset(self::INDEXED_COLORS[$indexed])) {
+            if (isset(self::INDEXED_COLORS[$indexed])) {
                 return '#' . substr(self::INDEXED_COLORS[$indexed], 2);
             }
         }
