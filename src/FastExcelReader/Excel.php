@@ -1347,6 +1347,68 @@ class Excel implements InterfaceBookReader
     }
 
     /**
+     * Array of visible sheets only
+     *
+     * @return Sheet[]
+     */
+    public function visibleSheets(): array
+    {
+        $result = [];
+        foreach ($this->sheets as $sheetId => $sheet) {
+            if ($sheet->isVisible()) {
+                $result[$sheetId] = $sheet;
+            }
+        }
+
+        return $result;
+    }
+
+    /**
+     * Array of hidden sheets only
+     *
+     * @return Sheet[]
+     */
+    public function hiddenSheets(): array
+    {
+        $result = [];
+        foreach ($this->sheets as $sheetId => $sheet) {
+            if ($sheet->isHidden()) {
+                $result[$sheetId] = $sheet;
+            }
+        }
+
+        return $result;
+    }
+
+    /**
+     * Returns TRUE if a sheet with the given name exists
+     *
+     * @param string $name
+     *
+     * @return bool
+     */
+    public function sheetExists(string $name): bool
+    {
+        foreach ($this->sheets as $sheet) {
+            if ($sheet->isName($name)) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    /**
+     * Returns the number of sheets in the workbook
+     *
+     * @return int
+     */
+    public function countSheets(): int
+    {
+        return count($this->sheets);
+    }
+
+    /**
      * Set top left and right bottom of read area
      *
      * @param string $areaRange
