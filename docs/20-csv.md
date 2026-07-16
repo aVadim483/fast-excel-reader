@@ -1,5 +1,7 @@
 # CSV Parsing in FastExcelReader
 
+[← Back to README](../README.md) | [Documentation index](../README.md#documentation) | [🇷🇺 Русский](ru/20-csv.md)
+
 A fast and efficient CSV reader for PHP, integrated into the `fast-excel-reader` package. It supports various encodings, automatic delimiter detection, and large file processing.
 
 ## Table of Contents
@@ -16,6 +18,7 @@ A fast and efficient CSV reader for PHP, integrated into the `fast-excel-reader`
    - [Parsing Modes (Strict vs Tolerant)](#parsing-modes-strict-vs-tolerant)
 5. [Error Handling](#error-handling)
 6. [Examples](#examples)
+7. [API Reference](#api-reference)
 
 ## Features
 
@@ -184,3 +187,8 @@ foreach ($csv->nextRow() as $row) {
     // Rows starting with # will be ignored
 }
 ```
+
+## API Reference
+
+* [Class Csv\CsvReader](94-api-class-csv-reader.md)
+* [Class Csv\CsvOptions](95-api-class-csv-options.md)
