@@ -62,6 +62,8 @@ class Sheet implements InterfaceSheetReader
 
     protected array $actualCols = [];
 
+    protected ?array $cellStat = null;
+
     /**
      * @var array<array{
      *  type: string,
@@ -661,6 +663,12 @@ class Sheet implements InterfaceSheetReader
     /**
      * Scan sheet data and returns actual number of rows and columns
      *
+     * Note: this method performs a full streaming pass over the (decompressed) sheet XML,
+     * because the ZIP stream of a deflated inner file is not seekable — the tail cannot be
+     * reached without reading through the whole entry. On wide sheets requesting columns
+     * ($countColumns = true) is significantly more expensive than rows only, since every
+     * cell tag must be scanned. Prefer dimension() when the declared range is enough.
+     *
      * @param bool $countColumns
      * @param bool $countRows
      * @param int $blockSize
@@ -669,69 +677,77 @@ class Sheet implements InterfaceSheetReader
      */
     public function countActualDimension(bool $countColumns = true, bool $countRows = true, int $blockSize = 4096): array
     {
-        $block1 = $block2 = null;
+        $needRows = $countRows && !$this->actualRows;
+        $needCols = $countColumns && !$this->actualCols;
+
+        // Nothing to compute (both disabled or already cached) — skip opening the stream
+        if (!$needRows && !$needCols) {
+            return [
+                'rows' => $this->actualRows,
+                'cols' => $this->actualCols,
+            ];
+        }
+
+        // Max expected length of an opening <row ...>/<c ...> tag, used to keep tags whole
+        // across block boundaries.
+        $overlap = 1024;
+
         $fp = fopen('zip://' . $this->zipFilename . '#' . $this->pathInZip, 'r');
         $minRow = $maxRow = 0;
         $columns = [];
-        $cntBlocks = 0;
+        $carry = '';    // tail of the previous block, to glue tags split on the boundary
+        $rowTail = '';  // sliding window of the stream end, to find the last <row>
+
         while (!feof($fp)) {
-            $str = fread($fp, $blockSize);
-            if ($str === false) {
+            $chunk = fread($fp, $blockSize);
+            if ($chunk === false || $chunk === '') {
                 break;
             }
+            $scan = $carry . $chunk;
 
-            if ($block1 === null) {
-                $block1 = $str;
-                $block2 = (string)fread($fp, $blockSize);
-            }
-            else {
-                $block2 = $str;
-            }
-
-            $txt = $block1 . $block2;
-            if (!$txt) {
-                break;
+            // The first row is searched only until it is found, then we stop scanning the head
+            if ($needRows && $minRow === 0) {
+                if (preg_match('/<row\s+[^>]*?\br\s*=\s*"?(\d+)"?/', $scan, $m)) {
+                    $minRow = (int)$m[1];
+                }
             }
 
-            if ($countRows && !$this->actualRows) {
-                if (preg_match_all('/<row\s+([^>]+)/', $txt, $matches)) {
-                    if ($minRow === 0) {
-                        $attr = reset($matches[1]);
-                        if ($attr && preg_match('/r\s*=\s*"?(\d+)"?/', $attr, $m)) {
-                            $minRow = (int)$m[1];
-                        }
-                    }
-                    $attr = end($matches[1]);
-                    if ($attr && preg_match('/r\s*=\s*"?(\d+)"?/', $attr, $m)) {
-                        $rowNum = (int)$m[1];
-                        if ($maxRow === 0 || $rowNum >= $maxRow) {
-                            $maxRow = $rowNum;
+            // Columns require the full pass: collect the set of distinct column letters
+            if ($needCols) {
+                if (preg_match_all('/<c\s+[^>]*?\br\s*=\s*"?([A-Z]+)\d+"?/', $scan, $mm)) {
+                    foreach ($mm[1] as $col) {
+                        if (!isset($columns[$col])) {
+                            $columns[$col] = \avadim\FastExcelHelper\Helper::colNumber($col);
                         }
                     }
                 }
             }
 
-            if ($countColumns && !$this->actualCols) {
-                if (preg_match_all('/<c\s+([^>]+)/', $txt, $matches)) {
-                    foreach ($matches[1] as $attr) {
-                        if (preg_match('/r\s*=\s*"?([A-Z]+)(\d+)"?/', $attr, $m) && !empty($m[1]) && !isset($columns[$m[1]])) {
-                            $columns[$m[1]] = \avadim\FastExcelHelper\Helper::colNumber($m[1]);
-                        }
-                    }
-                }
+            // The last row is taken from the tail window — no per-block regex over rows
+            if ($needRows) {
+                $rowTail = substr($rowTail . $chunk, -($blockSize + $overlap));
             }
 
-            $block1 = $block2;
+            $carry = substr($scan, -$overlap);
         }
         fclose($fp);
 
-        if ($countColumns && !$this->actualCols) {
-            asort($columns);
-            $this->actualCols['min'] = array_key_first($columns);
-            $this->actualCols['max'] = array_key_last($columns);
-            $this->actualCols['count'] = $columns[$this->actualCols['max']] - $columns[$this->actualCols['min']] + 1;
+        if ($needRows && preg_match_all('/<row\s+[^>]*?\br\s*=\s*"?(\d+)"?/', $rowTail, $mm)) {
+            $maxRow = (int)end($mm[1]);
+            if ($minRow === 0) {
+                $minRow = (int)reset($mm[1]);
+            }
         }
-        if ($countRows && !$this->actualRows) {
+
+        if ($needCols) {
+            asort($columns);
+            if ($columns) {
+                $this->actualCols['min'] = array_key_first($columns);
+                $this->actualCols['max'] = array_key_last($columns);
+                $this->actualCols['count'] = $columns[$this->actualCols['max']] - $columns[$this->actualCols['min']] + 1;
+            }
+        }
+        if ($needRows) {
             $this->actualRows['min'] = $minRow;
             $this->actualRows['max'] = $maxRow;
             $this->actualRows['count'] = $maxRow - $minRow + 1;
@@ -740,6 +756,127 @@ class Sheet implements InterfaceSheetReader
         return [
             'rows' => $this->actualRows,
             'cols' => $this->actualCols,
+        ];
+    }
+
+    /**
+     * Single streaming pass over the sheet XML collecting rows, columns and cell counts.
+     * Results are cached in $actualRows / $actualCols / $cellStat.
+     *
+     * @param int $blockSize
+     *
+     * @return void
+     */
+    protected function _scanStat(int $blockSize = 4096): void
+    {
+        // Max expected length of an opening tag, used to glue tags split on block boundaries
+        $overlap = 1024;
+
+        $fp = fopen('zip://' . $this->zipFilename . '#' . $this->pathInZip, 'r');
+        $minRow = $maxRow = 0;
+        $columns = [];
+        $cntCells = $cntEmpty = 0;
+        $carry = '';    // possibly unfinished tag carried to the next iteration
+        $rowTail = '';  // sliding window of the stream end, to find the last <row>
+
+        // Counts distinct data (rows/cols/cells) inside a chunk of complete tags
+        $count = function (string $scan) use (&$minRow, &$columns, &$cntCells, &$cntEmpty) {
+            if ($scan === '') {
+                return;
+            }
+            if ($minRow === 0 && preg_match('/<row\s+[^>]*?\br\s*=\s*"?(\d+)"?/', $scan, $m)) {
+                $minRow = (int)$m[1];
+            }
+            if (preg_match_all('/<c\s[^>]*?\br\s*=\s*"?([A-Z]+)\d+"?/', $scan, $mm)) {
+                foreach ($mm[1] as $col) {
+                    if (!isset($columns[$col])) {
+                        $columns[$col] = \avadim\FastExcelHelper\Helper::colNumber($col);
+                    }
+                }
+            }
+            // all cell tags: <c ...>, <c>, <c/>  (word boundary excludes <col>, <cols>, ...)
+            $cntCells += preg_match_all('/<c[\s>\/]/', $scan);
+            // empty cells: self-closed <c .../> or immediately closed <c ...></c>
+            $cntEmpty += preg_match_all('/<c\b[^>]*\/>/', $scan);
+            $cntEmpty += preg_match_all('/<c\b[^>]*[^\/]><\/c>/', $scan);
+        };
+
+        while (!feof($fp)) {
+            $chunk = fread($fp, $blockSize);
+            if ($chunk === false || $chunk === '') {
+                break;
+            }
+            $buf = $carry . $chunk;
+
+            // Cut at the last '<': everything before it consists of complete tags only,
+            // the remainder (a possibly unfinished tag) is carried over. Prevents both
+            // double counting on the overlap and splitting a tag across blocks.
+            $cut = strrpos($buf, '<');
+            if ($cut === false) {
+                $carry = '';
+            }
+            else {
+                $count(substr($buf, 0, $cut));
+                $carry = substr($buf, $cut);
+            }
+
+            $rowTail = substr($rowTail . $chunk, -($blockSize + $overlap));
+        }
+        fclose($fp);
+
+        // Process the final remainder (e.g. a sheet ending with a cell tag)
+        $count($carry);
+
+        if (preg_match_all('/<row\s+[^>]*?\br\s*=\s*"?(\d+)"?/', $rowTail, $mm)) {
+            $maxRow = (int)end($mm[1]);
+            if ($minRow === 0) {
+                $minRow = (int)reset($mm[1]);
+            }
+        }
+
+        asort($columns);
+        if ($columns) {
+            $this->actualCols = [
+                'min' => array_key_first($columns),
+                'max' => array_key_last($columns),
+                'count' => $columns[array_key_last($columns)] - $columns[array_key_first($columns)] + 1,
+            ];
+        }
+        $this->actualRows = [
+            'min' => $minRow,
+            'max' => $maxRow,
+            'count' => $maxRow - $minRow + 1,
+        ];
+        $this->cellStat = [
+            'total' => $cntCells,
+            'filled' => $cntCells - $cntEmpty,
+        ];
+    }
+
+    /**
+     * Returns statistics of the sheet: rows, columns and cell counts
+     *
+     * [
+     *      'rows'  => ['min' => int, 'max' => int, 'count' => int],
+     *      'cols'  => ['min' => string, 'max' => string, 'count' => int],
+     *      'cells' => ['total' => int, 'filled' => int],
+     * ]
+     *
+     * Note: performs a full streaming pass over the sheet XML (cached); memory is O(blockSize),
+     * but time grows with the number of cells — expensive on large/wide sheets.
+     *
+     * @return array
+     */
+    public function stat(): array
+    {
+        if ($this->cellStat === null) {
+            $this->_scanStat();
+        }
+
+        return [
+            'rows' => $this->actualRows,
+            'cols' => $this->actualCols,
+            'cells' => $this->cellStat,
         ];
     }
 
@@ -774,6 +911,8 @@ class Sheet implements InterfaceSheetReader
     /**
      * Get the last actual row number
      *
+     * Note: performs a full streaming pass over the sheet (see countActualDimension()).
+     *
      * @return int
      */
     public function maxActualRow(): int
@@ -787,6 +926,8 @@ class Sheet implements InterfaceSheetReader
 
     /**
      * Returns the actual number of columns from the sheet data area
+     *
+     * Note: scans every cell of the sheet (see countActualDimension()); expensive on wide sheets.
      *
      * @return int
      */
@@ -829,6 +970,8 @@ class Sheet implements InterfaceSheetReader
 
     /**
      * Get the actual dimension range (e.g. "A1:C10")
+     *
+     * Note: scans every cell of the sheet (see countActualDimension()); expensive on wide sheets.
      *
      * @return string
      */
@@ -1831,6 +1974,9 @@ class Sheet implements InterfaceSheetReader
 
     /**
      * Get merged cells. Returns an array [min_cell => range]
+     *
+     * Note: merge definitions live after <sheetData>, so the first call reads the sheet XML
+     * through to the end (result is cached). Lazy — only triggered when merged data is requested.
      *
      * @return array|null
      */

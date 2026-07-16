@@ -1409,6 +1409,51 @@ class Excel implements InterfaceBookReader
     }
 
     /**
+     * Returns statistics of the workbook: per-sheet breakdown and totals
+     *
+     * [
+     *      'sheets' => [
+     *          '<sheetName>' => ['rows' => [...], 'cols' => [...], 'cells' => ['total' => int, 'filled' => int]],
+     *          ...
+     *      ],
+     *      'total' => [
+     *          'sheets'  => int,   // number of sheets
+     *          'visible' => int,   // number of visible sheets
+     *          'hidden'  => int,   // number of hidden sheets
+     *          'rows'    => int,   // sum of actual rows over all sheets
+     *          'cells'   => ['total' => int, 'filled' => int],
+     *      ],
+     * ]
+     *
+     * Note: scans every sheet fully (see Sheet::stat()); expensive on large workbooks.
+     *
+     * @return array
+     */
+    public function stat(): array
+    {
+        $sheets = [];
+        $totalRows = $totalCells = $filledCells = 0;
+        foreach ($this->sheets as $sheet) {
+            $stat = $sheet->stat();
+            $sheets[$sheet->name()] = $stat;
+            $totalRows += $stat['rows']['count'] ?? 0;
+            $totalCells += $stat['cells']['total'] ?? 0;
+            $filledCells += $stat['cells']['filled'] ?? 0;
+        }
+
+        return [
+            'sheets' => $sheets,
+            'total' => [
+                'sheets' => $this->countSheets(),
+                'visible' => count($this->visibleSheets()),
+                'hidden' => count($this->hiddenSheets()),
+                'rows' => $totalRows,
+                'cells' => ['total' => $totalCells, 'filled' => $filledCells],
+            ],
+        ];
+    }
+
+    /**
      * Set top left and right bottom of read area
      *
      * @param string $areaRange
