@@ -13,6 +13,7 @@
 * [validate()](#validate) – Validate XLSX file
 * [countExtraImages()](#countextraimages) – Count "extra" images (images that are in the media folder but not in the drawings)
 * [countImages()](#countimages) – Returns the total count of images in the workbook
+* [countSheets()](#countsheets) – Returns the number of sheets in the workbook
 * [dateFormatter()](#dateformatter) – Set custom date formatter
 * [formatDate()](#formatdate) – Format date value
 * [from()](#from) – Set top left of read area
@@ -30,6 +31,7 @@
 * [hasDrawings()](#hasdrawings) – Returns TRUE if the workbook contains an any draw objects (not images only)
 * [hasExtraImages()](#hasextraimages) – Returns TRUE if there are any "extra" images
 * [hasImages()](#hasimages) – Returns TRUE if any sheet contains an image object
+* [hiddenSheets()](#hiddensheets) – Array of hidden sheets only
 * [innerFileList()](#innerfilelist) – Get list of inner files in XLSX
 * [mediaImageFiles()](#mediaimagefiles) – Get list of media image files in the workbook
 * [metadataImage()](#metadataimage) – Get image file name from metadata by index
@@ -37,10 +39,10 @@
 * [readCells()](#readcells) – Returns the values of all cells as array
 * [readCellStyles()](#readcellstyles) – Returns the styles of all cells as array
 * [readCellsWithStyles()](#readcellswithstyles) – Returns the values and styles of all cells as array
-* [readColumns()](#readcolumns) – Returns cell values as a two-dimensional array from default sheet
-* [readColumnsWithStyles()](#readcolumnswithstyles) – Returns cell values and styles as a two-dimensional array from default sheet
-* [readRows()](#readrows) – Returns cell values as a two-dimensional array from default sheet
-* [readRowsWithStyles()](#readrowswithstyles) – Returns cell values and styles as a two-dimensional array from default sheet
+* [readColumns()](#readcolumns) – Returns cell values as a two-dimensional array from default sheet [col][row]
+* [readColumnsWithStyles()](#readcolumnswithstyles) – Returns cell values and styles as a two-dimensional array from default sheet [col][row]
+* [readRows()](#readrows) – Returns cell values as a two-dimensional array from default sheet [row][col]
+* [readRowsWithStyles()](#readrowswithstyles) – Returns cell values and styles as a two-dimensional array from default sheet [row][col]
 * [readStyles()](#readstyles) – Read all workbook styles
 * [selectFirstSheet()](#selectfirstsheet) – Selects the first sheet as default
 * [selectSheet()](#selectsheet) – Selects default sheet by name
@@ -49,9 +51,12 @@
 * [setReadArea()](#setreadarea) – Set top left and right bottom of read area
 * [sharedString()](#sharedstring) – Get string by index
 * [sheet()](#sheet) – Get current or specified sheet
+* [sheetExists()](#sheetexists) – Returns TRUE if a sheet with the given name exists
 * [sheets()](#sheets) – Array of all sheets
+* [stat()](#stat) – Returns statistics of the workbook: per-sheet breakdown and totals
 * [styleByIdx()](#stylebyidx) – Get style array by style index
 * [timestamp()](#timestamp) – Convert date to timestamp
+* [visibleSheets()](#visiblesheets) – Array of visible sheets only
 
 ---
 
@@ -223,6 +228,21 @@ _None_
 public function countImages(): int
 ```
 _Returns the total count of images in the workbook_
+
+### Parameters
+
+_None_
+
+---
+
+## countSheets()
+
+---
+
+```php
+public function countSheets(): int
+```
+_Returns the number of sheets in the workbook_
 
 ### Parameters
 
@@ -491,6 +511,21 @@ _None_
 public function hasImages(): bool
 ```
 _Returns TRUE if any sheet contains an image object_
+
+### Parameters
+
+_None_
+
+---
+
+## hiddenSheets()
+
+---
+
+```php
+public function hiddenSheets(): array
+```
+_Array of hidden sheets only_
 
 ### Parameters
 
@@ -806,6 +841,21 @@ _Get current or specified sheet_
 
 ---
 
+## sheetExists()
+
+---
+
+```php
+public function sheetExists(string $name): bool
+```
+_Returns TRUE if a sheet with the given name exists_
+
+### Parameters
+
+* `string $name`
+
+---
+
 ## sheets()
 
 ---
@@ -814,6 +864,25 @@ _Get current or specified sheet_
 public function sheets(): array
 ```
 _Array of all sheets_
+
+### Parameters
+
+_None_
+
+---
+
+## stat()
+
+---
+
+```php
+public function stat(): array
+```
+_Returns statistics of the workbook: per-sheet breakdown and totals_
+
+_\['sheets' => \['<sheetName>' => \['rows' => \[...], 'cols' => \[...], 'cells' => \['total' => int, 'filled' => int]],...],'total' => \['sheets'  => int,   // number of sheets'visible' => int,   // number of visible sheets'hidden'  => int,   // number of hidden sheets'rows'    => int,   // sum of actual rows over all sheets'cells'   => \['total' => int, 'filled' => int],],]_
+
+_Note: scans every sheet fully (see Sheet::stat()); expensive on large workbooks._
 
 ### Parameters
 
@@ -848,6 +917,21 @@ _Convert date to timestamp_
 ### Parameters
 
 * `$excelDateTime`
+
+---
+
+## visibleSheets()
+
+---
+
+```php
+public function visibleSheets(): array
+```
+_Array of visible sheets only_
+
+### Parameters
+
+_None_
 
 ---
 

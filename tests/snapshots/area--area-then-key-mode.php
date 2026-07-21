@@ -6,27 +6,27 @@
 return array (
   0 => 
   array (
-    'C' => NULL,
-    'D' => NULL,
+    0 => 'Date',
+    1 => 'Color',
   ),
   1 => 
   array (
-    'C' => NULL,
-    'D' => NULL,
+    0 => 18316800,
+    1 => 'Red',
   ),
   2 => 
   array (
-    'C' => NULL,
-    'D' => NULL,
+    0 => -777600,
+    1 => 'Green',
   ),
   3 => 
   array (
-    'C' => NULL,
-    'D' => NULL,
+    0 => -62121600,
+    1 => 'Blue',
   ),
   4 => 
   array (
-    'C' => NULL,
-    'D' => NULL,
+    0 => 38707200,
+    1 => 'Brown',
   ),
 );

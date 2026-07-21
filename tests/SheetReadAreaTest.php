@@ -72,10 +72,7 @@ final class SheetReadAreaTest extends GuardTestCase
     }
 
     /**
-     * Narrowing the area moves the reported first row.
-     *
-     * Note that firstCol() does NOT follow the column bounds the same way -
-     * see KnownBugsTest::testFirstColIgnoresTheColumnBoundsOfTheReadArea().
+     * Narrowing the area moves the reported first cell in both directions
      *
      * @return void
      */
@@ -85,6 +82,7 @@ final class SheetReadAreaTest extends GuardTestCase
         $sheet->setReadArea('C4:D9');
 
         $this->assertSame(4, $sheet->firstRow());
+        $this->assertSame('C', $sheet->firstCol());
     }
 
     /**
@@ -200,11 +198,7 @@ final class SheetReadAreaTest extends GuardTestCase
 
     /**
      * A row key mode applied on top of a narrowed area: the offset is computed
-     * from the first row that passes the filter, not from the sheet origin.
-     *
-     * Only the row half is asserted here - restricting columns while asking for
-     * numeric column keys currently drops the values, see
-     * KnownBugsTest::testColumnKeyModesLoseValuesWhenColumnsAreRestricted().
+     * from the first row that passes the filter, not from the sheet origin
      *
      * @return void
      */

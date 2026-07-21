@@ -219,10 +219,11 @@ final class RefactorGuardTest extends GuardTestCase
             'area--read-first-row-from' => static function () {
                 return Excel::open(self::fixture('demo-01-base.xlsx'))->sheet()->readFirstRowFrom('B2:D6');
             },
-            // readFirstRowCellsFrom() cannot be snapshotted: it always throws.
-            // See KnownBugsTest::testReadFirstRowCellsFromIsBroken()
             'area--read-first-row-cells-after-area' => static function () {
                 return Excel::open(self::fixture('demo-01-base.xlsx'))->sheet()->setReadArea('B2:D6')->readFirstRowCells();
+            },
+            'area--read-first-row-cells-from' => static function () {
+                return Excel::open(self::fixture('demo-01-base.xlsx'))->sheet()->readFirstRowCellsFrom('B2:D6');
             },
             'area--read-rows-from-then-plain' => static function () {
                 // setReadArea() mutates the sheet, so the second call must stay narrowed

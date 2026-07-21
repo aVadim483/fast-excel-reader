@@ -1445,7 +1445,7 @@ class Sheet implements InterfaceSheetReader
     {
         $rowData = [];
         $rowNum = -1;
-        $this->readCallback(static function($row, $col, $val) use (&$columnKeys, &$rowData, &$rowNum) {
+        $this->readCallback(static function($row, $col, $val) use (&$rowData, &$rowNum) {
             if ($rowNum === -1) {
                 $rowNum = $row;
             }
@@ -1455,7 +1455,7 @@ class Sheet implements InterfaceSheetReader
             $rowData[$col . $row] = $val;
 
             return null;
-        }, $columnKeys, null, $styleIdxInclude);
+        }, [], null, $styleIdxInclude);
 
         return $rowData;
     }
@@ -1463,15 +1463,16 @@ class Sheet implements InterfaceSheetReader
     /**
      * Set read area and returns cell values of 1st row as array [address => value]
      *
+     * Like readCellsFrom(), this method takes no column keys, because the result is keyed by cell address and renaming a column would corrupt it.
+     *
      * @param string $areaRange
-     * @param array|bool|int|null $columnKeys
      * @param bool|null $styleIdxInclude
      *
      * @return array
      */
-    public function readFirstRowCellsFrom(string $areaRange, $columnKeys = [], ?bool $styleIdxInclude = null): array
+    public function readFirstRowCellsFrom(string $areaRange, ?bool $styleIdxInclude = null): array
     {
-        return $this->setReadArea($areaRange)->readFirstRowCells($columnKeys, $styleIdxInclude);
+        return $this->setReadArea($areaRange)->readFirstRowCells($styleIdxInclude);
     }
 
     /**
@@ -1746,11 +1747,38 @@ class Sheet implements InterfaceSheetReader
 
         $xmlReader = $this->xmlReaderOpenZip($this->pathInZip);
 
+        // When the read area restricts columns and numeric column keys are requested,
+        // the template taken from col_keys is keyed by letter while the cell loop below
+        // writes numeric keys. Left as is, every row would carry both halves and
+        // readCallback() would keep the empty one. Transform the template, and anchor
+        // the column offset to the area, so that the two sides agree.
+        $colOffset = null;
+        if ($rowTemplate && is_int($resultMode) && ($resultMode & (Excel::KEYS_COL_ZERO_BASED | Excel::KEYS_COL_ONE_BASED))) {
+            $colOffset = $readArea['col_min'] - 1;
+            if ($resultMode & Excel::KEYS_COL_ZERO_BASED) {
+                $colOffset += 1;
+            }
+            $numericTemplate = [];
+            foreach (array_keys($rowTemplate) as $colLetter) {
+                if (is_array($columnKeys) && isset($columnKeys[$colLetter])) {
+                    // an explicit name wins over the numeric key, and _rowTemplate()
+                    // needs the letter to apply it
+                    $numericTemplate[$colLetter] = null;
+                    continue;
+                }
+                $colKey = Excel::colNum((string)$colLetter) - $colOffset;
+                $numericTemplate[$colKey] = null;
+                // makes readCallback() recognise the transformed key as part of the area
+                $this->area['col_names'][$colKey] = $colLetter;
+            }
+            $rowTemplate = $numericTemplate;
+        }
+
         // mapping col keys to col names
         $rowData = $rowTemplate = $this->_rowTemplate($rowTemplate, $columnKeys);
 
         $rowNum = 0;
-        $rowOffset = $colOffset = null;
+        $rowOffset = null;
         $row = -1;
         $rowCnt = -1;
 
@@ -1851,12 +1879,14 @@ class Sheet implements InterfaceSheetReader
                             }
                             $colLetter = $m[1];
                             $colNum = Excel::colNum($colLetter);
-                            if (!isset($this->area['first_row'])) {
-                                $this->area['first_row'] = $rowNum;
-                                $this->area['first_col'] = $colLetter;
-                            }
 
                             if ($colNum >= $readArea['col_min'] && $colNum <= $readArea['col_max']) {
+                                // must be recorded after the column filter, otherwise the first
+                                // cell of the row is reported even when it lies outside the area
+                                if (!isset($this->area['first_row'])) {
+                                    $this->area['first_row'] = $rowNum;
+                                    $this->area['first_col'] = $colLetter;
+                                }
                                 if ($colOffset === null) {
                                     $colOffset = $colNum - 1;
                                     if (is_int($resultMode) && ($resultMode & Excel::KEYS_COL_ZERO_BASED)) {
@@ -1939,7 +1969,7 @@ class Sheet implements InterfaceSheetReader
     public function rewind($columnKeys = [], ?int $resultMode = null, ?bool $styleIdxInclude = null, ?int $rowLimit = 0): ?\Generator
     {
 
-        return $this->reset($columnKeys = [], $resultMode, $styleIdxInclude, $rowLimit);
+        return $this->reset($columnKeys, $resultMode, $styleIdxInclude, $rowLimit);
     }
 
     /**

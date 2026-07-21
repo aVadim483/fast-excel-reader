@@ -31,7 +31,7 @@
 * [getImageListByRow()](#getimagelistbyrow) – Get image list by row number
 * [getImageMimeType()](#getimagemimetype) – Get image MIME type
 * [getImageName()](#getimagename) – Get image name
-* [getMergedCells()](#getmergedcells) – Get merged cells. Returns an array
+* [getMergedCells()](#getmergedcells) – Get merged cells. Returns an array [min_cell => range]
 * [getReadRowNum()](#getreadrownum) – Get the number of the last row read
 * [getRowAttributes()](#getrowattributes) – Get row attributes (height, style, etc)
 * [getRowHeight()](#getrowheight) – Get height of the row
@@ -61,17 +61,17 @@
 * [path()](#path) – Get path to the sheet XML file in ZIP archive
 * [readCallback()](#readcallback) – Reads cell values and passes them to a callback function
 * [readCells()](#readcells) – Returns values and styles of cells as array
-* [readCellsFrom()](#readcellsfrom) – Set read area and returns cell values as a one-dimensional array
+* [readCellsFrom()](#readcellsfrom) – Set read area and returns cell values as a one-dimensional array [address => value]
 * [readCellStyles()](#readcellstyles) – Returns styles of cells as array
-* [readCellsWithStyles()](#readcellswithstyles) – Returns cell values and styles as a one-dimensional array
-* [readCellsWithStylesFrom()](#readcellswithstylesfrom) – Set read area and returns cell values and styles as a one-dimensional array
-* [readColumns()](#readcolumns) – Returns cell values as a two-dimensional array from default sheet
-* [readColumnsFrom()](#readcolumnsfrom) – Set read area and returns cell values as a two-dimensional array from default sheet
-* [readColumnsWithStyles()](#readcolumnswithstyles) – Returns cell values and styles as a two-dimensional array
-* [readColumnsWithStylesFrom()](#readcolumnswithstylesfrom) – Set read area and returns cell values and styles as a two-dimensional array
+* [readCellsWithStyles()](#readcellswithstyles) – Returns cell values and styles as a one-dimensional array [address => value]:
+* [readCellsWithStylesFrom()](#readcellswithstylesfrom) – Set read area and returns cell values and styles as a one-dimensional array [address => value]
+* [readColumns()](#readcolumns) – Returns cell values as a two-dimensional array from default sheet [col][row]
+* [readColumnsFrom()](#readcolumnsfrom) – Set read area and returns cell values as a two-dimensional array from default sheet [col][row]
+* [readColumnsWithStyles()](#readcolumnswithstyles) – Returns cell values and styles as a two-dimensional array [column][row]
+* [readColumnsWithStylesFrom()](#readcolumnswithstylesfrom) – Set read area and returns cell values and styles as a two-dimensional array [column][row]
 * [readFirstRow()](#readfirstrow) – Returns values of cells of 1st row as array
 * [readFirstRowCells()](#readfirstrowcells) – Returns values and styles of cells of 1st row as array
-* [readFirstRowCellsFrom()](#readfirstrowcellsfrom) – Set read area and returns cell values of 1st row as array
+* [readFirstRowCellsFrom()](#readfirstrowcellsfrom) – Set read area and returns cell values of 1st row as array [address => value]
 * [readFirstRowFrom()](#readfirstrowfrom) – Set read area and returns values of cells of 1st row as array
 * [readFirstRowWithStyles()](#readfirstrowwithstyles) – Returns values and styles of cells of 1st row as array
 * [readFirstRowWithStylesFrom()](#readfirstrowwithstylesfrom) – Set read area and returns values and styles of cells of 1st row as array
@@ -89,6 +89,7 @@
 * [setReadArea()](#setreadarea) – Set top left and right bottom of read area
 * [setReadAreaColumns()](#setreadareacolumns) – setReadArea('C:AZ') - set left and right columns of read area
 * [setState()](#setstate) – Set sheet state (visible, hidden, veryHidden)
+* [stat()](#stat) – Returns statistics of the sheet: rows, columns and cell counts
 * [state()](#state) – Get sheet state
 * [withHeader()](#withheader) – Enables header mode
 
@@ -123,6 +124,8 @@ public function actualDimension(): string
 ```
 _Get the actual dimension range (e.g. "A1:C10")_
 
+_Note: scans every cell of the sheet (see countActualDimension()); expensive on wide sheets._
+
 ### Parameters
 
 _None_
@@ -137,6 +140,8 @@ _None_
 public function countActualColumns(): int
 ```
 _Returns the actual number of columns from the sheet data area_
+
+_Note: scans every cell of the sheet (see countActualDimension()); expensive on wide sheets._
 
 ### Parameters
 
@@ -154,6 +159,8 @@ public function countActualDimension(bool $countColumns = true,
                                      int $blockSize = 4096): array
 ```
 _Scan sheet data and returns actual number of rows and columns_
+
+_Note: this method performs a full streaming pass over the (decompressed) sheet XML,because the ZIP stream of a deflated inner file is not seekable — the tail cannot bereached without reading through the whole entry. On wide sheets requesting columns($countColumns = true) is significantly more expensive than rows only, since everycell tag must be scanned. Prefer dimension() when the declared range is enough._
 
 ### Parameters
 
@@ -549,6 +556,8 @@ public function getMergedCells(): ?array
 ```
 _Get merged cells. Returns an array \[min_cell => range]_
 
+_Note: merge definitions live after <sheetData>, so the first call reads the sheet XMLthrough to the end (result is cached). Lazy — only triggered when merged data is requested._
+
 ### Parameters
 
 _None_
@@ -804,6 +813,8 @@ _None_
 public function maxActualRow(): int
 ```
 _Get the last actual row number_
+
+_Note: performs a full streaming pass over the sheet (see countActualDimension())._
 
 ### Parameters
 
@@ -1179,15 +1190,16 @@ _Returns values and styles of cells of 1st row as array_
 ---
 
 ```php
-public function readFirstRowCellsFrom(string $areaRange, $columnKeys, 
+public function readFirstRowCellsFrom(string $areaRange, 
                                       ?bool $styleIdxInclude = null): array
 ```
 _Set read area and returns cell values of 1st row as array \[address => value]_
 
+_Like readCellsFrom(), this method takes no column keys, because the result is keyed by cell address and renaming a column would corrupt it._
+
 ### Parameters
 
 * `string $areaRange`
-* `array|bool|int|null $columnKeys`
 * `bool|null $styleIdxInclude`
 
 ---
@@ -1492,6 +1504,25 @@ _Set sheet state (visible, hidden, veryHidden)_
 ### Parameters
 
 * `string $state`
+
+---
+
+## stat()
+
+---
+
+```php
+public function stat(): array
+```
+_Returns statistics of the sheet: rows, columns and cell counts_
+
+_\['rows'  => \['min' => int, 'max' => int, 'count' => int],'cols'  => \['min' => string, 'max' => string, 'count' => int],'cells' => \['total' => int, 'filled' => int],]_
+
+_Note: performs a full streaming pass over the sheet XML (cached); memory is O(blockSize),but time grows with the number of cells — expensive on large/wide sheets._
+
+### Parameters
+
+_None_
 
 ---
 
