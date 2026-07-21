@@ -22,18 +22,26 @@
 
 This library is designed to be lightweight, super-fast and requires minimal memory usage.
 
-**FastExcelReader** can read Excel compatible spreadsheets in XLSX format (Office 2007+) and CSV-files.
-It only reads data, but it does it very quickly and with minimal memory usage.
+**FastExcelReader** can read Excel compatible spreadsheets in XLSX format (Office 2007+), legacy XLS
+format (Office 97-2003) and CSV-files. It only reads data, but it does it very quickly and with minimal
+memory usage.
 
 ## Features
 
 ### XLSX format support
 
-* Supports XLSX format only (Office 2007+) with multiple worksheets
+* Supports XLSX format (Office 2007+) with multiple worksheets
 * Supports autodetect currency/numeric/date types
 * Supports auto formatter and custom formatter of datetime values
 * The library can define and extract images from XLSX files
 * The library can read styling options of cells - formatting patterns, colors, borders, fonts, etc.
+
+### XLS format support
+
+* Supports legacy XLS format (Office 97-2003, BIFF8) with the same API as XLSX
+* Values, dates, cell styles, formula text and images are all returned in the same shape
+* The format is chosen by the file signature, not by the extension
+* Streaming as well: a sheet is read in one forward pass with constant memory
 
 ### CSV format support
 
@@ -56,6 +64,7 @@ composer require avadim/fast-excel-reader
 ```php
 use \avadim\FastExcelReader\Excel;
 
+// XLSX and legacy XLS are both opened this way; the reader is chosen by the file signature
 $excel = Excel::open(__DIR__ . '/files/demo.xlsx');
 
 // Read all rows into a two-dimensional array (ROW x COL)
@@ -82,6 +91,7 @@ See more in the [Getting Started](docs/10-getting-started.md) guide.
 * [Images](docs/15-images.md) — extract images from XLSX
 * [Sheet Metadata](docs/16-sheet-metadata.md) — data validation, column widths, row heights, freeze pane, tab color, merged cells, dimensions
 * [CSV Parsing](docs/20-csv.md) — reading CSV files
+* [XLS (Excel 97-2003)](docs/21-xls.md) — reading legacy XLS workbooks
 
 ### API Reference
 

@@ -9,7 +9,9 @@ use \avadim\FastExcelReader\Excel;
 
 $file = __DIR__ . '/files/demo-00-simple.xlsx';
 
-// Открыть XLSX-файл
+// Открыть таблицу: ридер выбирается по сигнатуре файла, поэтому XLSX и устаревший
+// XLS (Office 97-2003) открываются одинаково.
+// Об отличиях при чтении XLS — см. docs/ru/21-xls.md
 $excel = Excel::open($file);
 // Прочитать все значения текущего листа как плоский массив
 $result = $excel->readCells();
