@@ -863,12 +863,16 @@ abstract class AbstractSheet implements InterfaceSheetReader
         $data = $this->readCells(true);
         foreach ($data as $cell => $cellData) {
             if (isset($cellData['s'])) {
-                $style = $this->excel->getCompleteStyleByIdx($cellData['s']);
-                if ($styleKey && isset($style[$styleKey])) {
-                    $data[$cell]['s'] = [$styleKey => $style[$styleKey]];
+                if ($styleKey) {
+                    // properties such as 'fill-color' live inside a group, so the
+                    // lookup has to happen on the flattened style
+                    $flat = $this->excel->getCompleteStyleByIdx($cellData['s'], true);
+                    $data[$cell]['s'] = array_key_exists($styleKey, $flat)
+                        ? [$styleKey => $flat[$styleKey]]
+                        : $this->excel->getCompleteStyleByIdx($cellData['s']);
                 }
                 else {
-                    $data[$cell]['s'] = $style;
+                    $data[$cell]['s'] = $this->excel->getCompleteStyleByIdx($cellData['s']);
                 }
             }
         }
@@ -886,7 +890,7 @@ abstract class AbstractSheet implements InterfaceSheetReader
      */
     public function readCellsWithStylesFrom(string $areaRange, ?string $styleKey = null): array
     {
-        return $this->setReadArea($areaRange)->readCells($styleKey);
+        return $this->setReadArea($areaRange)->readCellsWithStyles($styleKey);
     }
 
     /**

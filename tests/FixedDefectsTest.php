@@ -241,4 +241,57 @@ final class FixedDefectsTest extends GuardTestCase
 
         $this->assertSame('C', $sheet->firstCol());
     }
+
+    /**
+     * readCellsWithStylesFrom() used to return bare values: it called
+     * readCells() instead of readCellsWithStyles(), so it dropped the styles
+     * its own name promises and passed the style key into a bool parameter.
+     *
+     * @return void
+     */
+    public function testReadCellsWithStylesFromReturnsStyles(): void
+    {
+        $inOneStep = Excel::open(self::fixture('demo-04-styles.xlsx'))->sheet()->readCellsWithStylesFrom('A1:B2');
+        $inTwoSteps = Excel::open(self::fixture('demo-04-styles.xlsx'))->sheet()->setReadArea('A1:B2')->readCellsWithStyles();
+
+        $this->assertSame($inTwoSteps, $inOneStep);
+
+        $this->assertSame(['v', 's', 'f', 't', 'o'], array_keys($inOneStep['A2']));
+        $this->assertSame('This is demo XLSX-sheet', $inOneStep['A2']['v']);
+        $this->assertArrayHasKey('font', $inOneStep['A2']['s']);
+    }
+
+    /**
+     * readCellsWithStyles($styleKey) is documented with 'fill-color' as its
+     * example, yet that never worked: the key was looked up on the nested
+     * style, where properties sit one level down inside their group, so the
+     * whole style was returned instead.
+     *
+     * @return void
+     */
+    public function testReadCellsWithStylesNarrowsToASingleProperty(): void
+    {
+        $cells = Excel::open(self::fixture('demo-04-styles.xlsx'))
+            ->sheet()->setReadArea('A1:E12')->readCellsWithStyles('fill-color');
+
+        $this->assertSame(['fill-color' => '#9FC63C'], $cells['A1']['s']);
+    }
+
+    /**
+     * A group name still selects the whole group, and an unknown key falls back
+     * to the complete style rather than losing it
+     *
+     * @return void
+     */
+    public function testReadCellsWithStylesKeyFallbacks(): void
+    {
+        $sheet = Excel::open(self::fixture('demo-04-styles.xlsx'))->sheet();
+
+        $byGroup = $sheet->setReadArea('A1:B2')->readCellsWithStyles('font');
+        $this->assertArrayHasKey('font-name', $byGroup['A1']['s']['font']);
+
+        $unknown = Excel::open(self::fixture('demo-04-styles.xlsx'))
+            ->sheet()->setReadArea('A1:B2')->readCellsWithStyles('no-such-property');
+        $this->assertArrayHasKey('font', $unknown['A1']['s']);
+    }
 }

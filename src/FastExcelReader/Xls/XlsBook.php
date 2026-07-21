@@ -3,6 +3,7 @@
 namespace avadim\FastExcelReader\Xls;
 
 use avadim\FastExcelReader\AbstractBook;
+use avadim\FastExcelReader\Excel;
 use avadim\FastExcelReader\Exception;
 
 /**
@@ -25,6 +26,15 @@ class XlsBook extends AbstractBook
 
     /** Format index of every XF record, in file order */
     protected array $xfFormatIndex = [];
+
+    /** Raw XF records, in file order; cells reference them by position */
+    protected array $xfRecords = [];
+
+    /** Decoded FONT records, in file order */
+    protected array $fontRecords = [];
+
+    /** Colour index => #RRGGBB, from the PALETTE record */
+    protected array $palette = [];
 
     protected int $codepage = 1252;
 
@@ -132,6 +142,15 @@ class XlsBook extends AbstractBook
                     // cells reference XF records by their position in the file,
                     // style and cell formats sharing one sequence
                     $this->xfFormatIndex[] = unpack('v', substr($record['data'], 2, 2))[1];
+                    $this->xfRecords[] = $record['data'];
+                    break;
+
+                case BiffRecord::FONT:
+                    $this->fontRecords[] = XlsStyle::font($record['data']);
+                    break;
+
+                case BiffRecord::PALETTE:
+                    $this->palette = XlsStyle::palette($record['data']);
                     break;
 
                 case BiffRecord::SST:
@@ -183,11 +202,11 @@ class XlsBook extends AbstractBook
     }
 
     /**
-     * Turn the collected XF records into the style table the readers expect
+     * The lightweight style table consulted while reading values
      *
-     * Only the number format is derived for now, which is what date and number
-     * detection needs. Fonts, fills and borders are also carried by XF records
-     * but are not decoded yet.
+     * Only the number format matters there, because it is what decides whether
+     * a numeric cell is a date, a number or text. The full tables - fonts,
+     * fills, borders - are built lazily by _loadCompleteStyles().
      *
      * @return void
      */
@@ -254,6 +273,13 @@ class XlsBook extends AbstractBook
     }
 
     /**
+     * Build the style tables in the shape getCompleteStyleByIdx() composes from
+     *
+     * BIFF packs the fill and the borders into the XF record itself, so unlike
+     * XLSX there are no fill or border tables to read. They are rebuilt here by
+     * collecting the distinct combinations and pointing each XF at one, which
+     * lets the composition code stay shared between the two formats.
+     *
      * @return void
      */
     protected function _loadCompleteStyles()
@@ -267,26 +293,164 @@ class XlsBook extends AbstractBook
             ];
         }
         foreach ($this->numberFormats as $index => $pattern) {
+            if ($this->_isDatePattern($index, $pattern)) {
+                $category = 'date';
+            }
+            else {
+                // custom formats that merely restate a builtin pattern keep its category
+                $category = (string)$this->categoryByPattern($pattern);
+            }
             $numFmts[$index] = [
                 'format-num-id' => $index,
                 'format-pattern' => $pattern,
-                'format-category' => $this->_isDatePattern($index, $pattern) ? 'date' : '',
+                'format-category' => $category,
             ];
         }
 
+        $fonts = [];
+        foreach ($this->fontRecords as $record) {
+            $font = $record['font'];
+            if (($color = $this->colorByIndex($record['colorIndex'])) !== null) {
+                $font['font-color'] = $color;
+            }
+            $fonts[] = $font;
+        }
+
+        $fills = [];
+        $borders = [];
         $cellXfs = [];
-        foreach ($this->xfFormatIndex as $formatIndex) {
-            $cellXfs[] = ['numFmtId' => $formatIndex];
+        foreach ($this->xfRecords as $data) {
+            $xf = XlsStyle::xf($data);
+
+            $node = [
+                'numFmtId' => $xf['formatIndex'],
+                'fontId' => $this->fontPosition($xf['fontIndex']),
+                'fillId' => self::intern($fills, $this->fillNode($xf['fill'])),
+                'borderId' => self::intern($borders, $this->borderNode($xf['border'])),
+            ];
+
+            $format = [];
+            if ($xf['align']['horizontal'] !== null) {
+                $format['format-align-horizontal'] = $xf['align']['horizontal'];
+            }
+            if ($xf['align']['vertical'] !== null) {
+                $format['format-align-vertical'] = $xf['align']['vertical'];
+            }
+            if ($xf['align']['wrap']) {
+                $format['format-wrap-text'] = 1;
+            }
+            if ($format) {
+                $node['format'] = $format;
+            }
+
+            $cellXfs[] = $node;
         }
 
         $this->styles['_'] = [
             'numFmts' => $numFmts,
-            'fonts' => [],
-            'fills' => [],
-            'borders' => [],
+            'fonts' => $fonts,
+            'fills' => $fills,
+            'borders' => $borders,
             'cellStyleXfs' => [],
             'cellXfs' => $cellXfs,
         ];
+    }
+
+    /**
+     * Position of a font in the FONT record sequence
+     *
+     * BIFF leaves a hole: font index 4 does not exist, so every index above it
+     * is one further along than it looks.
+     *
+     * @param int $fontIndex
+     *
+     * @return int
+     */
+    protected function fontPosition(int $fontIndex): int
+    {
+        return $fontIndex > 4 ? $fontIndex - 1 : $fontIndex;
+    }
+
+    /**
+     * @param array $fill
+     *
+     * @return array
+     */
+    protected function fillNode(array $fill): array
+    {
+        $node = ['fill-pattern' => XlsStyle::FILL_PATTERNS[$fill['pattern']] ?? 'none'];
+
+        // for a solid fill the pattern foreground is the visible colour
+        if (($color = $this->colorByIndex($fill['foreground'])) !== null) {
+            $node['fill-color'] = $color;
+        }
+
+        return $node;
+    }
+
+    /**
+     * @param array $border
+     *
+     * @return array
+     */
+    protected function borderNode(array $border): array
+    {
+        $node = [];
+        foreach ($border as $side => $definition) {
+            $node['border-' . $side . '-style'] = XlsStyle::BORDER_STYLES[$definition['style']] ?? null;
+        }
+        foreach ($border as $side => $definition) {
+            if ($definition['style'] !== 0 && ($color = $this->colorByIndex($definition['color'])) !== null) {
+                $node['border-' . $side . '-color'] = $color;
+            }
+        }
+
+        return $node;
+    }
+
+    /**
+     * Resolve a colour index against the palette
+     *
+     * Indices 0 to 7 are fixed, 8 upwards come from the PALETTE record when the
+     * workbook carries one, and fall back to the standard table otherwise.
+     * 0x7FFF means "automatic" and has no colour of its own.
+     *
+     * @param int $index
+     *
+     * @return string|null
+     */
+    protected function colorByIndex(int $index): ?string
+    {
+        if ($index === 0x7FFF || $index === 64 || $index === 65) {
+            return null;
+        }
+        if (isset($this->palette[$index])) {
+            return $this->palette[$index];
+        }
+        if (isset(Excel::INDEXED_COLORS[$index])) {
+            return '#' . substr(Excel::INDEXED_COLORS[$index], 2);
+        }
+
+        return null;
+    }
+
+    /**
+     * Add a node to a table unless an identical one is already there
+     *
+     * @param array $table
+     * @param array $node
+     *
+     * @return int
+     */
+    private static function intern(array &$table, array $node): int
+    {
+        $key = array_search($node, $table, true);
+        if ($key !== false) {
+            return (int)$key;
+        }
+        $table[] = $node;
+
+        return count($table) - 1;
     }
 
     /**

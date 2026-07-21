@@ -9,32 +9,7 @@ return array (
     'v' => NULL,
     's' => 
     array (
-      'format' => 
-      array (
-        'format-num-id' => 0,
-        'format-pattern' => 'General',
-        'format-category' => 'general',
-      ),
-      'font' => 
-      array (
-        'font-size' => '10',
-        'font-name' => 'Arial',
-        'font-family' => '2',
-        'font-charset' => '1',
-      ),
-      'fill' => 
-      array (
-        'fill-pattern' => 'solid',
-        'fill-color' => '#9FC63C',
-      ),
-      'border' => 
-      array (
-        'border-left-style' => NULL,
-        'border-right-style' => NULL,
-        'border-top-style' => NULL,
-        'border-bottom-style' => NULL,
-        'border-diagonal-style' => NULL,
-      ),
+      'fill-color' => '#9FC63C',
     ),
     'f' => NULL,
     't' => '',
@@ -45,32 +20,7 @@ return array (
     'v' => NULL,
     's' => 
     array (
-      'format' => 
-      array (
-        'format-num-id' => 0,
-        'format-pattern' => 'General',
-        'format-category' => 'general',
-      ),
-      'font' => 
-      array (
-        'font-size' => '10',
-        'font-name' => 'Arial',
-        'font-family' => '2',
-        'font-charset' => '1',
-      ),
-      'fill' => 
-      array (
-        'fill-pattern' => 'solid',
-        'fill-color' => '#3C636F',
-      ),
-      'border' => 
-      array (
-        'border-left-style' => NULL,
-        'border-right-style' => NULL,
-        'border-top-style' => NULL,
-        'border-bottom-style' => NULL,
-        'border-diagonal-style' => NULL,
-      ),
+      'fill-color' => '#3C636F',
     ),
     'f' => NULL,
     't' => '',
@@ -81,32 +31,7 @@ return array (
     'v' => NULL,
     's' => 
     array (
-      'format' => 
-      array (
-        'format-num-id' => 0,
-        'format-pattern' => 'General',
-        'format-category' => 'general',
-      ),
-      'font' => 
-      array (
-        'font-size' => '10',
-        'font-name' => 'Arial',
-        'font-family' => '2',
-        'font-charset' => '1',
-      ),
-      'fill' => 
-      array (
-        'fill-pattern' => 'solid',
-        'fill-color' => '#9FC3F6',
-      ),
-      'border' => 
-      array (
-        'border-left-style' => NULL,
-        'border-right-style' => NULL,
-        'border-top-style' => NULL,
-        'border-bottom-style' => NULL,
-        'border-diagonal-style' => NULL,
-      ),
+      'fill-color' => '#9FC3F6',
     ),
     'f' => NULL,
     't' => '',
@@ -117,32 +42,7 @@ return array (
     'v' => NULL,
     's' => 
     array (
-      'format' => 
-      array (
-        'format-num-id' => 0,
-        'format-pattern' => 'General',
-        'format-category' => 'general',
-      ),
-      'font' => 
-      array (
-        'font-size' => '10',
-        'font-name' => 'Arial',
-        'font-family' => '2',
-        'font-charset' => '1',
-      ),
-      'fill' => 
-      array (
-        'fill-pattern' => 'solid',
-        'fill-color' => '#63FC9F',
-      ),
-      'border' => 
-      array (
-        'border-left-style' => NULL,
-        'border-right-style' => NULL,
-        'border-top-style' => NULL,
-        'border-bottom-style' => NULL,
-        'border-diagonal-style' => NULL,
-      ),
+      'fill-color' => '#63FC9F',
     ),
     'f' => NULL,
     't' => '',
@@ -153,32 +53,7 @@ return array (
     'v' => NULL,
     's' => 
     array (
-      'format' => 
-      array (
-        'format-num-id' => 0,
-        'format-pattern' => 'General',
-        'format-category' => 'general',
-      ),
-      'font' => 
-      array (
-        'font-size' => '10',
-        'font-name' => 'Arial',
-        'font-family' => '2',
-        'font-charset' => '1',
-      ),
-      'fill' => 
-      array (
-        'fill-pattern' => 'solid',
-        'fill-color' => '#3C69CF',
-      ),
-      'border' => 
-      array (
-        'border-left-style' => NULL,
-        'border-right-style' => NULL,
-        'border-top-style' => NULL,
-        'border-bottom-style' => NULL,
-        'border-diagonal-style' => NULL,
-      ),
+      'fill-color' => '#3C69CF',
     ),
     'f' => NULL,
     't' => '',
@@ -415,39 +290,7 @@ return array (
     'v' => '#',
     's' => 
     array (
-      'format' => 
-      array (
-        'format-num-id' => 0,
-        'format-pattern' => 'General',
-        'format-category' => 'general',
-        'format-align-horizontal' => 'center',
-        'format-align-vertical' => 'center',
-      ),
-      'font' => 
-      array (
-        'font-size' => '10',
-        'font-name' => 'Arial',
-        'font-family' => '2',
-        'font-charset' => '1',
-        'font-style-bold' => 1,
-      ),
-      'fill' => 
-      array (
-        'fill-pattern' => 'solid',
-        'fill-color' => '#EEEEEE',
-      ),
-      'border' => 
-      array (
-        'border-left-style' => 'thick',
-        'border-right-style' => 'thin',
-        'border-top-style' => 'thick',
-        'border-bottom-style' => 'thin',
-        'border-diagonal-style' => NULL,
-        'border-left-color' => '#000000',
-        'border-right-color' => '#000000',
-        'border-top-color' => '#000000',
-        'border-bottom-color' => '#000000',
-      ),
+      'fill-color' => '#EEEEEE',
     ),
     'f' => NULL,
     't' => 'string',
@@ -458,39 +301,7 @@ return array (
     'v' => 'People',
     's' => 
     array (
-      'format' => 
-      array (
-        'format-num-id' => 0,
-        'format-pattern' => 'General',
-        'format-category' => 'general',
-        'format-align-horizontal' => 'center',
-        'format-align-vertical' => 'center',
-      ),
-      'font' => 
-      array (
-        'font-size' => '10',
-        'font-name' => 'Arial',
-        'font-family' => '2',
-        'font-charset' => '1',
-        'font-style-bold' => 1,
-      ),
-      'fill' => 
-      array (
-        'fill-pattern' => 'solid',
-        'fill-color' => '#EEEEEE',
-      ),
-      'border' => 
-      array (
-        'border-left-style' => 'thin',
-        'border-right-style' => 'thin',
-        'border-top-style' => 'thick',
-        'border-bottom-style' => 'thin',
-        'border-diagonal-style' => NULL,
-        'border-left-color' => '#000000',
-        'border-right-color' => '#000000',
-        'border-top-color' => '#000000',
-        'border-bottom-color' => '#000000',
-      ),
+      'fill-color' => '#EEEEEE',
     ),
     'f' => NULL,
     't' => 'string',
@@ -501,39 +312,7 @@ return array (
     'v' => NULL,
     's' => 
     array (
-      'format' => 
-      array (
-        'format-num-id' => 0,
-        'format-pattern' => 'General',
-        'format-category' => 'general',
-        'format-align-horizontal' => 'center',
-        'format-align-vertical' => 'center',
-      ),
-      'font' => 
-      array (
-        'font-size' => '10',
-        'font-name' => 'Arial',
-        'font-family' => '2',
-        'font-charset' => '1',
-        'font-style-bold' => 1,
-      ),
-      'fill' => 
-      array (
-        'fill-pattern' => 'solid',
-        'fill-color' => '#EEEEEE',
-      ),
-      'border' => 
-      array (
-        'border-left-style' => 'thin',
-        'border-right-style' => 'thin',
-        'border-top-style' => 'thick',
-        'border-bottom-style' => 'thin',
-        'border-diagonal-style' => NULL,
-        'border-left-color' => '#000000',
-        'border-right-color' => '#000000',
-        'border-top-color' => '#000000',
-        'border-bottom-color' => '#000000',
-      ),
+      'fill-color' => '#EEEEEE',
     ),
     'f' => NULL,
     't' => '',
@@ -544,39 +323,7 @@ return array (
     'v' => 'Birthday',
     's' => 
     array (
-      'format' => 
-      array (
-        'format-num-id' => 0,
-        'format-pattern' => 'General',
-        'format-category' => 'general',
-        'format-align-horizontal' => 'center',
-        'format-align-vertical' => 'center',
-      ),
-      'font' => 
-      array (
-        'font-size' => '10',
-        'font-name' => 'Arial',
-        'font-family' => '2',
-        'font-charset' => '1',
-        'font-style-bold' => 1,
-      ),
-      'fill' => 
-      array (
-        'fill-pattern' => 'solid',
-        'fill-color' => '#EEEEEE',
-      ),
-      'border' => 
-      array (
-        'border-left-style' => 'thin',
-        'border-right-style' => 'thin',
-        'border-top-style' => 'thick',
-        'border-bottom-style' => 'thin',
-        'border-diagonal-style' => NULL,
-        'border-left-color' => '#000000',
-        'border-right-color' => '#000000',
-        'border-top-color' => '#000000',
-        'border-bottom-color' => '#000000',
-      ),
+      'fill-color' => '#EEEEEE',
     ),
     'f' => NULL,
     't' => 'string',
@@ -587,39 +334,7 @@ return array (
     'v' => 'Age',
     's' => 
     array (
-      'format' => 
-      array (
-        'format-num-id' => 0,
-        'format-pattern' => 'General',
-        'format-category' => 'general',
-        'format-align-horizontal' => 'center',
-        'format-align-vertical' => 'center',
-      ),
-      'font' => 
-      array (
-        'font-size' => '10',
-        'font-name' => 'Arial',
-        'font-family' => '2',
-        'font-charset' => '1',
-        'font-style-bold' => 1,
-      ),
-      'fill' => 
-      array (
-        'fill-pattern' => 'solid',
-        'fill-color' => '#EEEEEE',
-      ),
-      'border' => 
-      array (
-        'border-left-style' => 'thin',
-        'border-right-style' => 'thin',
-        'border-top-style' => 'thick',
-        'border-bottom-style' => 'thin',
-        'border-diagonal-style' => NULL,
-        'border-left-color' => '#000000',
-        'border-right-color' => '#000000',
-        'border-top-color' => '#000000',
-        'border-bottom-color' => '#000000',
-      ),
+      'fill-color' => '#EEEEEE',
     ),
     'f' => NULL,
     't' => 'string',
@@ -630,39 +345,7 @@ return array (
     'v' => NULL,
     's' => 
     array (
-      'format' => 
-      array (
-        'format-num-id' => 0,
-        'format-pattern' => 'General',
-        'format-category' => 'general',
-        'format-align-horizontal' => 'center',
-        'format-align-vertical' => 'center',
-      ),
-      'font' => 
-      array (
-        'font-size' => '10',
-        'font-name' => 'Arial',
-        'font-family' => '2',
-        'font-charset' => '1',
-        'font-style-bold' => 1,
-      ),
-      'fill' => 
-      array (
-        'fill-pattern' => 'solid',
-        'fill-color' => '#EEEEEE',
-      ),
-      'border' => 
-      array (
-        'border-left-style' => 'thick',
-        'border-right-style' => 'thin',
-        'border-top-style' => 'thin',
-        'border-bottom-style' => 'thick',
-        'border-diagonal-style' => NULL,
-        'border-left-color' => '#000000',
-        'border-right-color' => '#000000',
-        'border-top-color' => '#000000',
-        'border-bottom-color' => '#000000',
-      ),
+      'fill-color' => '#EEEEEE',
     ),
     'f' => NULL,
     't' => '',
@@ -673,39 +356,7 @@ return array (
     'v' => 'First Name',
     's' => 
     array (
-      'format' => 
-      array (
-        'format-num-id' => 0,
-        'format-pattern' => 'General',
-        'format-category' => 'general',
-        'format-align-horizontal' => 'center',
-        'format-align-vertical' => 'center',
-      ),
-      'font' => 
-      array (
-        'font-size' => '10',
-        'font-name' => 'Arial',
-        'font-family' => '2',
-        'font-charset' => '1',
-        'font-style-bold' => 1,
-      ),
-      'fill' => 
-      array (
-        'fill-pattern' => 'solid',
-        'fill-color' => '#EEEEEE',
-      ),
-      'border' => 
-      array (
-        'border-left-style' => 'thin',
-        'border-right-style' => 'thin',
-        'border-top-style' => 'thin',
-        'border-bottom-style' => 'thick',
-        'border-diagonal-style' => NULL,
-        'border-left-color' => '#000000',
-        'border-right-color' => '#000000',
-        'border-top-color' => '#000000',
-        'border-bottom-color' => '#000000',
-      ),
+      'fill-color' => '#EEEEEE',
     ),
     'f' => NULL,
     't' => 'string',
@@ -716,39 +367,7 @@ return array (
     'v' => 'Last Name',
     's' => 
     array (
-      'format' => 
-      array (
-        'format-num-id' => 0,
-        'format-pattern' => 'General',
-        'format-category' => 'general',
-        'format-align-horizontal' => 'center',
-        'format-align-vertical' => 'center',
-      ),
-      'font' => 
-      array (
-        'font-size' => '10',
-        'font-name' => 'Arial',
-        'font-family' => '2',
-        'font-charset' => '1',
-        'font-style-bold' => 1,
-      ),
-      'fill' => 
-      array (
-        'fill-pattern' => 'solid',
-        'fill-color' => '#EEEEEE',
-      ),
-      'border' => 
-      array (
-        'border-left-style' => 'thin',
-        'border-right-style' => 'thin',
-        'border-top-style' => 'thin',
-        'border-bottom-style' => 'thick',
-        'border-diagonal-style' => NULL,
-        'border-left-color' => '#000000',
-        'border-right-color' => '#000000',
-        'border-top-color' => '#000000',
-        'border-bottom-color' => '#000000',
-      ),
+      'fill-color' => '#EEEEEE',
     ),
     'f' => NULL,
     't' => 'string',
@@ -759,39 +378,7 @@ return array (
     'v' => NULL,
     's' => 
     array (
-      'format' => 
-      array (
-        'format-num-id' => 0,
-        'format-pattern' => 'General',
-        'format-category' => 'general',
-        'format-align-horizontal' => 'center',
-        'format-align-vertical' => 'center',
-      ),
-      'font' => 
-      array (
-        'font-size' => '10',
-        'font-name' => 'Arial',
-        'font-family' => '2',
-        'font-charset' => '1',
-        'font-style-bold' => 1,
-      ),
-      'fill' => 
-      array (
-        'fill-pattern' => 'solid',
-        'fill-color' => '#EEEEEE',
-      ),
-      'border' => 
-      array (
-        'border-left-style' => 'thin',
-        'border-right-style' => 'thin',
-        'border-top-style' => 'thin',
-        'border-bottom-style' => 'thick',
-        'border-diagonal-style' => NULL,
-        'border-left-color' => '#000000',
-        'border-right-color' => '#000000',
-        'border-top-color' => '#000000',
-        'border-bottom-color' => '#000000',
-      ),
+      'fill-color' => '#EEEEEE',
     ),
     'f' => NULL,
     't' => '',
@@ -802,39 +389,7 @@ return array (
     'v' => NULL,
     's' => 
     array (
-      'format' => 
-      array (
-        'format-num-id' => 0,
-        'format-pattern' => 'General',
-        'format-category' => 'general',
-        'format-align-horizontal' => 'center',
-        'format-align-vertical' => 'center',
-      ),
-      'font' => 
-      array (
-        'font-size' => '10',
-        'font-name' => 'Arial',
-        'font-family' => '2',
-        'font-charset' => '1',
-        'font-style-bold' => 1,
-      ),
-      'fill' => 
-      array (
-        'fill-pattern' => 'solid',
-        'fill-color' => '#EEEEEE',
-      ),
-      'border' => 
-      array (
-        'border-left-style' => 'thin',
-        'border-right-style' => 'thin',
-        'border-top-style' => 'thin',
-        'border-bottom-style' => 'thick',
-        'border-diagonal-style' => NULL,
-        'border-left-color' => '#000000',
-        'border-right-color' => '#000000',
-        'border-top-color' => '#000000',
-        'border-bottom-color' => '#000000',
-      ),
+      'fill-color' => '#EEEEEE',
     ),
     'f' => NULL,
     't' => '',
