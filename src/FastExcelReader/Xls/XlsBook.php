@@ -36,6 +36,9 @@ class XlsBook extends AbstractBook
     /** Colour index => #RRGGBB, from the PALETTE record */
     protected array $palette = [];
 
+    /** Picture data by 1-based blip index, shared by every sheet */
+    protected array $blips = [];
+
     protected int $codepage = 1252;
 
     /**
@@ -151,6 +154,12 @@ class XlsBook extends AbstractBook
 
                 case BiffRecord::PALETTE:
                     $this->palette = XlsStyle::palette($record['data']);
+                    break;
+
+                case BiffRecord::MSODRAWINGGROUP:
+                    // the picture bytes for the whole workbook live here; sheets
+                    // only reference them by index
+                    $this->blips = XlsEscher::blipStore($record['data']);
                     break;
 
                 case BiffRecord::SST:
@@ -461,5 +470,55 @@ class XlsBook extends AbstractBook
     public function codepage(): int
     {
         return $this->codepage;
+    }
+
+    /**
+     * Picture data by 1-based blip index
+     *
+     * @param int $index
+     *
+     * @return array{ext: string, mime: string, data: string}|null
+     */
+    public function blip(int $index): ?array
+    {
+        return $this->blips[$index] ?? null;
+    }
+
+    /**
+     * Number of pictures stored in the workbook
+     *
+     * @return int
+     */
+    public function countImages(): int
+    {
+        $count = 0;
+        foreach ($this->sheets as $sheet) {
+            $count += $sheet->countImages();
+        }
+
+        return $count;
+    }
+
+    /**
+     * @return bool
+     */
+    public function hasImages(): bool
+    {
+        return $this->countImages() > 0;
+    }
+
+    /**
+     * @return array
+     */
+    public function getImageList(): array
+    {
+        $result = [];
+        foreach ($this->sheets as $sheet) {
+            if ($list = $sheet->getImageList()) {
+                $result[$sheet->name()] = $list;
+            }
+        }
+
+        return $result;
     }
 }

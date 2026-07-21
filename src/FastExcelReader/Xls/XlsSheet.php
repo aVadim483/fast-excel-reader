@@ -23,6 +23,8 @@ class XlsSheet extends AbstractSheet
     /** Master token arrays of shared formulas, keyed "row:col" of the anchor */
     private ?array $sharedFormulaTokens = null;
 
+    private bool $imagesLoaded = false;
+
     /**
      * @param string $name
      * @param string $sheetId
@@ -123,6 +125,194 @@ class XlsSheet extends AbstractSheet
         }
 
         return $this->mergedCells;
+    }
+
+    /**
+     * Read the picture shapes anchored on this sheet
+     *
+     * The bytes live once in the workbook drawing group; a sheet only names the
+     * blip index and the cell, so this fills in the local image list.
+     *
+     * @return void
+     */
+    private function loadImages(): void
+    {
+        if ($this->imagesLoaded) {
+            return;
+        }
+        $this->imagesLoaded = true;
+
+        foreach ($this->reader()->records() as $record) {
+            if ($record['type'] === BiffRecord::EOF) {
+                break;
+            }
+            if ($record['type'] !== BiffRecord::MSODRAWING) {
+                continue;
+            }
+            foreach (XlsEscher::shapes($record['data']) as $shape) {
+                $blip = $this->book->blip($shape['blip']);
+                if ($blip === null) {
+                    continue;
+                }
+                $cell = Helper::colLetter($shape['col'] + 1) . ($shape['row'] + 1);
+                $this->images[$cell] = [
+                    'image_name' => 'image' . $shape['blip'],
+                    'file_name' => 'image' . $shape['blip'] . '.' . $blip['ext'],
+                    'meta' => ['blip' => $shape['blip'], 'mime' => $blip['mime']],
+                ];
+            }
+        }
+    }
+
+    /**
+     * @return bool
+     */
+    public function hasDrawings(): bool
+    {
+        return $this->countImages() > 0;
+    }
+
+    /**
+     * @return int
+     */
+    public function countImages(): int
+    {
+        $this->loadImages();
+
+        return count($this->images);
+    }
+
+    /**
+     * Images of this sheet as [cell => ['image_name' => .., 'file_name' => ..]]
+     *
+     * @return array
+     */
+    public function getImageList(): array
+    {
+        $this->loadImages();
+
+        $result = [];
+        foreach ($this->images as $cell => $image) {
+            $result[$cell] = [
+                'image_name' => $image['image_name'],
+                'file_name' => $image['file_name'],
+            ];
+        }
+
+        return $result;
+    }
+
+    /**
+     * @param int|string $row
+     *
+     * @return array
+     */
+    public function getImageListByRow($row): array
+    {
+        $result = [];
+        foreach ($this->getImageList() as $cell => $image) {
+            if (preg_match('/^([A-Z]+)(\d+)$/', $cell, $m) && (int)$m[2] === (int)$row) {
+                $result[$cell] = $image;
+            }
+        }
+
+        return $result;
+    }
+
+    /**
+     * @param string $cell
+     *
+     * @return bool
+     */
+    public function hasImage(string $cell): bool
+    {
+        $this->loadImages();
+
+        return isset($this->images[strtoupper($cell)]);
+    }
+
+    /**
+     * @param string $cell
+     *
+     * @return string|null
+     */
+    public function getImageName(string $cell): ?string
+    {
+        $this->loadImages();
+
+        return $this->images[strtoupper($cell)]['image_name'] ?? null;
+    }
+
+    /**
+     * The picture type is recorded in the blip store, so unlike XLSX this needs
+     * no filesystem access and no fileinfo extension
+     *
+     * @param string $cell
+     *
+     * @return string|null
+     */
+    public function getImageMimeType(string $cell): ?string
+    {
+        $this->loadImages();
+
+        return $this->images[strtoupper($cell)]['meta']['mime'] ?? null;
+    }
+
+    /**
+     * @param string $cell
+     *
+     * @return string|null
+     */
+    public function getImageBlob(string $cell): ?string
+    {
+        $this->loadImages();
+
+        $index = $this->images[strtoupper($cell)]['meta']['blip'] ?? null;
+        if ($index === null) {
+            return null;
+        }
+        $blip = $this->book->blip($index);
+
+        return $blip['data'] ?? null;
+    }
+
+    /**
+     * @param string $cell
+     * @param string|null $filename
+     *
+     * @return string|null
+     */
+    public function saveImage(string $cell, ?string $filename = null): ?string
+    {
+        $contents = $this->getImageBlob($cell);
+        if ($contents === null) {
+            return null;
+        }
+        if (!$filename) {
+            $filename = $this->images[strtoupper($cell)]['file_name'];
+        }
+        if (file_put_contents($filename, $contents)) {
+            return realpath($filename);
+        }
+
+        return null;
+    }
+
+    /**
+     * @param string $cell
+     * @param string $dirname
+     *
+     * @return string|null
+     */
+    public function saveImageTo(string $cell, string $dirname): ?string
+    {
+        $this->loadImages();
+        $filename = $this->images[strtoupper($cell)]['file_name'] ?? null;
+        if ($filename === null) {
+            return null;
+        }
+
+        return $this->saveImage($cell, str_replace(['\\', '/'], DIRECTORY_SEPARATOR, $dirname) . DIRECTORY_SEPARATOR . $filename);
     }
 
     /**
