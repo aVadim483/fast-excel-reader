@@ -287,7 +287,8 @@ _Format date value_
 ---
 
 ```php
-public function from(string $topLeftCell, ?bool $firstRowKeys = false): Sheet
+public function from(string $topLeftCell, 
+                     ?bool $firstRowKeys = false): AbstractSheet
 ```
 _Set top left of read area_
 
@@ -381,7 +382,7 @@ _None_
 
 ```php
 public function getFirstSheet(?string $areaRange = null, 
-                              ?bool $firstRowKeys = false): Sheet
+                              ?bool $firstRowKeys = false): AbstractSheet
 ```
 _Returns the first sheet as default_
 
@@ -428,7 +429,7 @@ _None_
 
 ```php
 public function getSheet(?string $name = null, ?string $areaRange = null, 
-                         ?bool $firstRowKeys = false): Sheet
+                         ?bool $firstRowKeys = false): AbstractSheet
 ```
 _Get sheet object by name and optionally set read area and options_
 
@@ -446,7 +447,7 @@ _Get sheet object by name and optionally set read area and options_
 
 ```php
 public function getSheetById(int $sheetId, ?string $areaRange = null, 
-                             ?bool $firstRowKeys = false): Sheet
+                             ?bool $firstRowKeys = false): AbstractSheet
 ```
 _Returns a sheet by ID_
 
@@ -732,7 +733,7 @@ _None_
 
 ```php
 public function selectFirstSheet(?string $areaRange = null, 
-                                 ?bool $firstRowKeys = false): Sheet
+                                 ?bool $firstRowKeys = false): AbstractSheet
 ```
 _Selects the first sheet as default_
 
@@ -749,7 +750,7 @@ _Selects the first sheet as default_
 
 ```php
 public function selectSheet(string $name, ?string $areaRange = null, 
-                            ?bool $firstRowKeys = false): Sheet
+                            ?bool $firstRowKeys = false): AbstractSheet
 ```
 _Selects default sheet by name_
 
@@ -767,7 +768,7 @@ _Selects default sheet by name_
 
 ```php
 public function selectSheetById(int $sheetId, ?string $areaRange = null, 
-                                ?bool $firstRowKeys = false): Sheet
+                                ?bool $firstRowKeys = false): AbstractSheet
 ```
 _Selects default sheet by ID_
 
@@ -800,7 +801,7 @@ _Set date format for reading_
 
 ```php
 public function setReadArea(string $areaRange, 
-                            ?bool $firstRowKeys = false): Sheet
+                            ?bool $firstRowKeys = false): AbstractSheet
 ```
 _Set top left and right bottom of read area_
 
@@ -831,7 +832,7 @@ _Get string by index_
 ---
 
 ```php
-public function sheet(?string $name = null): ?Sheet
+public function sheet(?string $name = null): ?AbstractSheet
 ```
 _Get current or specified sheet_
 
