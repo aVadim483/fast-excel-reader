@@ -105,6 +105,10 @@ See more in the [Getting Started](docs/10-getting-started.md) guide.
 
 You can find more examples in the [*/demo*](demo) folder.
 
+### Changelog
+
+See [CHANGELOG.md](CHANGELOG.md) for the list of changes.
+
 ## Do you want to support FastExcelReader?
 
 if you find this package useful you can give me a star on GitHub.

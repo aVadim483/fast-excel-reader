@@ -1,5 +1,10 @@
 # Changelog
 
+🇬🇧 English · [🇷🇺 Русский](CHANGELOG.ru.md)
+
+<!-- NOTE for maintainers: this file exists in two languages.
+     When editing CHANGELOG.md, please update CHANGELOG.ru.md accordingly. -->
+
 All notable changes to this project are documented in this file.
 
 This file starts at version 3.2.0; for earlier history see the

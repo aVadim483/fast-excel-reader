@@ -103,6 +103,10 @@ foreach ($sheet->nextRow() as $rowNum => $rowData) {
 
 Больше примеров — в папке [*/demo*](demo).
 
+### История изменений
+
+Список изменений — в [CHANGELOG.ru.md](CHANGELOG.ru.md).
+
 ## Хотите поддержать FastExcelReader?
 
 Если этот пакет оказался полезным, вы можете поставить мне звезду на GitHub.
