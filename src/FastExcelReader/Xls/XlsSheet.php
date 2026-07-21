@@ -20,6 +20,9 @@ class XlsSheet extends AbstractSheet
     /** Absolute offset of this sheet's BOF inside the workbook stream */
     private int $bofOffset;
 
+    /** Master token arrays of shared formulas, keyed "row:col" of the anchor */
+    private ?array $sharedFormulaTokens = null;
+
     /**
      * @param string $name
      * @param string $sheetId
@@ -149,12 +152,19 @@ class XlsSheet extends AbstractSheet
             // the cached string result of the formula just seen
             if ($type === BiffRecord::STRING && $pendingFormula !== null) {
                 [$value] = BiffString::readLong($record['data'], 0);
-                $cells[$pendingFormula['col']] = $this->makeCell($value, $pendingFormula['style'], 'string', $pendingFormula['formula']);
+                $cells[Helper::colLetter($pendingFormula['col'])] = $this->makeCell($value, $pendingFormula['style'], 'string', $pendingFormula['formula']);
                 $pendingFormula = null;
 
                 continue;
             }
-            $pendingFormula = null;
+            if ($pendingFormula !== null) {
+                // a string-result formula with no cached STRING (an uncalculated
+                // file): keep the cell and its text rather than dropping it
+                if ($pendingFormula['col'] >= $readArea['col_min'] && $pendingFormula['col'] <= $readArea['col_max']) {
+                    $cells[Helper::colLetter($pendingFormula['col'])] = $this->makeCell('', $pendingFormula['style'], 'string', $pendingFormula['formula']);
+                }
+                $pendingFormula = null;
+            }
 
             if ($type === BiffRecord::ROW) {
                 if ($rowMode) {
@@ -309,8 +319,9 @@ class XlsSheet extends AbstractSheet
     private function parseFormula(string $data, int $row, int $col, int $style, ?array &$pendingFormula): array
     {
         $result = substr($data, 6, 8);
-        // formula text needs the RPN token array decompiled, which is not done yet
-        $formula = null;
+        // parseCellRecord() reports row and col one-based; the token decompiler
+        // works in the zero-based coordinates the file itself uses
+        $formula = $this->formulaText($data, $row - 1, $col - 1);
 
         if (substr($result, 6, 2) === "\xFF\xFF") {
             $kind = ord($result[0]);
@@ -332,6 +343,86 @@ class XlsSheet extends AbstractSheet
         }
 
         return [$col => $this->makeCell(unpack('e', $result)[1], $style, 'number', $formula)];
+    }
+
+    /**
+     * Reconstruct the A1 text of a formula, or null if it cannot be rendered
+     *
+     * The token array either holds the formula directly, or is a single tExp
+     * token pointing at the anchor of a shared formula whose master tokens live
+     * in a SHRFMLA record. Either way the tokens are decompiled relative to this
+     * cell, so B3 of a shared "=A+1" comes out as "=A3+1".
+     *
+     * @param string $data
+     * @param int $row
+     * @param int $col
+     *
+     * @return string|null
+     */
+    private function formulaText(string $data, int $row, int $col): ?string
+    {
+        $cce = unpack('v', substr($data, 20, 2))[1];
+        $tokens = substr($data, 22, $cce);
+        if ($tokens === '') {
+            return null;
+        }
+
+        // tExp: the real tokens are shared, keyed by the anchor it names
+        if (ord($tokens[0]) === 0x01) {
+            $anchorRow = unpack('v', substr($tokens, 1, 2))[1];
+            $anchorCol = unpack('v', substr($tokens, 3, 2))[1];
+            $tokens = $this->sharedFormula($anchorRow, $anchorCol);
+            if ($tokens === null) {
+                return null;
+            }
+        }
+
+        return (new FormulaParser($row, $col))->parse($tokens);
+    }
+
+    /**
+     * Master token array of the shared formula anchored at (row, col)
+     *
+     * @param int $row
+     * @param int $col
+     *
+     * @return string|null
+     */
+    private function sharedFormula(int $row, int $col): ?string
+    {
+        if ($this->sharedFormulaTokens === null) {
+            $this->loadSharedFormulas();
+        }
+
+        return $this->sharedFormulaTokens[$row . ':' . $col] ?? null;
+    }
+
+    /**
+     * Collect every SHRFMLA master token array in the sheet
+     *
+     * A SHRFMLA record follows the first cell of its group, so a forward scan
+     * gathers them all. The scan is cheap and cached, and only runs when a
+     * formula's text is actually requested.
+     *
+     * @return void
+     */
+    private function loadSharedFormulas(): void
+    {
+        $this->sharedFormulaTokens = [];
+
+        foreach ($this->reader()->records() as $record) {
+            if ($record['type'] === BiffRecord::EOF) {
+                break;
+            }
+            if ($record['type'] !== BiffRecord::SHRFMLA) {
+                continue;
+            }
+            $data = $record['data'];
+            $rowFirst = unpack('v', substr($data, 0, 2))[1];
+            $colFirst = ord($data[4]);
+            $cce = unpack('v', substr($data, 8, 2))[1];
+            $this->sharedFormulaTokens[$rowFirst . ':' . $colFirst] = substr($data, 10, $cce);
+        }
     }
 
     /**
