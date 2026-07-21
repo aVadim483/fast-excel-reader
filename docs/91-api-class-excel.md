@@ -717,7 +717,9 @@ _Returns cell values and styles as a two-dimensional array from default sheet \[
 public function readRows($columnKeys, ?int $resultMode = null, 
                          ?bool $styleIdxInclude = null): array
 ```
-_Returns cell values as a two-dimensional array from default sheet \[row]\[col]readRows()readRows(true)readRows(false, Excel::KEYS_ZERO_BASED)readRows(Excel::KEYS_ZERO_BASED | Excel::KEYS_RELATIVE)_
+_Returns cell values as a two-dimensional array from default sheet \[row]\[col]_
+
+_readRows()readRows(true)readRows(false, Excel::KEYS_ZERO_BASED)readRows(Excel::KEYS_ZERO_BASED | Excel::KEYS_RELATIVE)_
 
 ### Parameters
 
@@ -911,7 +913,11 @@ _None_
 ```php
 public function stat(): array
 ```
-_Returns statistics of the workbook: per-sheet breakdown and totals\['sheets' => \['<sheetName>' => \['rows' => \[...], 'cols' => \[...], 'cells' => \['total' => int, 'filled' => int]],...],'total' => \['sheets'  => int,   // number of sheets'visible' => int,   // number of visible sheets'hidden'  => int,   // number of hidden sheets'rows'    => int,   // sum of actual rows over all sheets'cells'   => \['total' => int, 'filled' => int],],]Note: scans every sheet fully (see Sheet::stat()); expensive on large workbooks._
+_Returns statistics of the workbook: per-sheet breakdown and totals_
+
+_\['sheets' => \['<sheetName>' => \['rows' => \[...], 'cols' => \[...], 'cells' => \['total' => int, 'filled' => int]],...],'total' => \['sheets'  => int,   // number of sheets'visible' => int,   // number of visible sheets'hidden'  => int,   // number of hidden sheets'rows'    => int,   // sum of actual rows over all sheets'cells'   => \['total' => int, 'filled' => int],],]_
+
+_Note: scans every sheet fully (see Sheet::stat()); expensive on large workbooks._
 
 ### Parameters
 

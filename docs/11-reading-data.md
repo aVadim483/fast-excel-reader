@@ -71,7 +71,17 @@ var_dump($result);
 ```php
 // Read rows and use the first row as column keys
 $result = $excel->readRows(true);
+
+// The same, written declaratively
+$result = $excel->sheet()->withHeader()->readRows();
+
+// Skip the header row but name the columns yourself, in column order
+$result = $excel->sheet()->withHeader(['col1', 'col2'])->readRows();
 ```
+Names passed to `withHeader()` are positional: the first name goes to the first column of the read
+area, so no column letters are involved and the same call works on a sheet whose data does not start
+at `A1`. A shorter list renames only the columns it covers; the rest keep the name from the header row.
+
 You will get this result:
 ```text
 Array

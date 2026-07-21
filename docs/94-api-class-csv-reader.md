@@ -229,7 +229,7 @@ public function setBufferSize(int $size): CsvReader
 ---
 
 ```php
-public function withHeader(): CsvReader
+public function withHeader(?array $columnNames = null): CsvReader
 ```
 _Enables header mode_
 
@@ -237,7 +237,7 @@ _Treats the first row of the CSV file as a header row and returns subsequentrows
 
 ### Parameters
 
-_None_
+* `$columnNames`
 
 ---
 

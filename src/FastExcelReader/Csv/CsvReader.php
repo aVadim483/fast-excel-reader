@@ -39,6 +39,9 @@ class CsvReader
     protected int $startCol = 1;
     protected bool $withHeader = false;
     protected array $withHeaderKeys = [];
+
+    /** Column names given to withHeader(), in column order */
+    protected ?array $withHeaderNames = null;
     protected array $lineErrors = [];
 
     /** @var callable|null  */
@@ -245,9 +248,10 @@ class CsvReader
      *
      * @return $this
      */
-    public function withHeader(): CsvReader
+    public function withHeader(?array $columnNames = null): CsvReader
     {
         $this->withHeader = true;
+        $this->withHeaderNames = $columnNames ? array_values($columnNames) : null;
 
         return $this;
     }
@@ -353,6 +357,18 @@ class CsvReader
                 }
                 else {
                     $columnKeys = array_replace($row, $columnKeys);
+                }
+                if ($this->withHeaderNames) {
+                    // withHeader([...]) names the columns by position, so the header
+                    // row is still consumed but its values are replaced
+                    $position = 0;
+                    foreach ($columnKeys as $index => $name) {
+                        if (!array_key_exists($position, $this->withHeaderNames)) {
+                            break;
+                        }
+                        $columnKeys[$index] = $this->withHeaderNames[$position];
+                        $position++;
+                    }
                 }
                 continue;
             }

@@ -27,6 +27,12 @@ This file starts at version 3.2.0; for earlier history see the
 * `AbstractBook` and `AbstractSheet`, holding the format-independent half of the readers: read areas,
   key modes, result-mode flags, the row generator and every `read*` helper. XLSX and XLS share one
   implementation of the whole public reading API.
+* `withHeader()` now accepts an optional list of column names: `withHeader(['name', 'birthday'])`. The
+  header row is still skipped, but the names come from the list instead of from its values. Names are
+  positional - the first name goes to the first column of the read area - so no column letters are
+  involved and the same call works on a sheet whose data does not start at `A1`. A shorter list renames
+  only the columns it covers. Supported for XLSX, XLS and CSV. Calling it with no argument is
+  unchanged. This mirrors the naming of `writeHeader()` in the sibling fast-excel-writer.
 
 ### Fixed
 

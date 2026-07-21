@@ -69,6 +69,16 @@ foreach ($rows as $rowNum => $row) {
 }
 ```
 
+You can also name the columns yourself. The header row is still skipped, but the names come from your
+list instead of from its values. Names are applied in column order, so no column letters are involved:
+
+```php
+$rows = $csv->withHeader(['id', 'name', 'city'])->readRows();
+// $row = ['id' => '1', 'name' => 'John', 'city' => 'New York']
+```
+
+A shorter list renames only the columns it covers; the rest keep the name from the header row.
+
 ### Reading via Generator (Memory Efficient)
 
 The `nextRow()` method returns a `\Generator`, which is ideal for processing large files without loading them entirely into memory.

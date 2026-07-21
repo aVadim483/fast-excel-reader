@@ -952,7 +952,9 @@ public function nextRow($columnKeys, ?int $resultMode = null,
                         ?bool $styleIdxInclude = null, 
                         ?int $rowLimit = 0): ?Generator
 ```
-_Read cell values row by row, returns either an array of values or an array of arraysnextRow(..., ...) : <rowNum> => \[<colNum1> => <value1>, <colNum2> => <value2>, ...]nextRow(..., ..., true) : <rowNum> => \[<colNum1> => \['v' => <value1>, 's' => <style1>], <colNum2> => \['v' => <value2>, 's' => <style2>], ...]_
+_Read cell values row by row, returns either an array of values or an array of arrays_
+
+_nextRow(..., ...) : <rowNum> => \[<colNum1> => <value1>, <colNum2> => <value2>, ...]nextRow(..., ..., true) : <rowNum> => \[<colNum1> => \['v' => <value1>, 's' => <style1>], <colNum2> => \['v' => <value2>, 's' => <style2>], ...]_
 
 ### Parameters
 
@@ -1192,7 +1194,9 @@ _Returns values and styles of cells of 1st row as array_
 public function readFirstRowCellsFrom(string $areaRange, 
                                       ?bool $styleIdxInclude = null): array
 ```
-_Set read area and returns cell values of 1st row as array \[address => value]Like readCellsFrom(), this method takes no column keys, because the result is keyed by cell address and renaming a column would corrupt it._
+_Set read area and returns cell values of 1st row as array \[address => value]_
+
+_Like readCellsFrom(), this method takes no column keys, because the result is keyed by cell address and renaming a column would corrupt it._
 
 ### Parameters
 
@@ -1274,7 +1278,9 @@ _None_
 public function readRows($columnKeys, ?int $resultMode = null, 
                          ?bool $styleIdxInclude = null): array
 ```
-_Returns cell values as a two-dimensional array\[1 => \['A' => _value_A1_], \['B' => _value_B1_]],\[2 => \['A' => _value_A2_], \['B' => _value_B2_]]readRows()readRows(true)readRows(false, Excel::KEYS_ZERO_BASED)readRows(Excel::KEYS_ZERO_BASED | Excel::KEYS_RELATIVE)_
+_Returns cell values as a two-dimensional array\[1 => \['A' => _value_A1_], \['B' => _value_B1_]],\[2 => \['A' => _value_A2_], \['B' => _value_B2_]]_
+
+_readRows()readRows(true)readRows(false, Excel::KEYS_ZERO_BASED)readRows(Excel::KEYS_ZERO_BASED | Excel::KEYS_RELATIVE)_
 
 ### Parameters
 
@@ -1312,7 +1318,9 @@ _Read rows from a given area $areaRange_
 public function readRowsWithStyles($columnKeys, 
                                    ?int $resultMode = null): array
 ```
-_Returns values, styles, and other info of cells as array\['v' => _value_,'s' => _styles_,'f' => _formula_,'t' => _type_,'o' => '_original_value_]_
+_Returns values, styles, and other info of cells as array_
+
+_\['v' => _value_,'s' => _styles_,'f' => _formula_,'t' => _type_,'o' => '_original_value_]_
 
 ### Parameters
 
@@ -1539,13 +1547,17 @@ _None_
 ---
 
 ```php
-public function withHeader(): AbstractSheet
+public function withHeader(?array $columnNames = null): AbstractSheet
 ```
-_Enables header modeTreats the first row of the read area as a header row and returns subsequent rowsas associative arrays keyed by column names_
+_Enables header mode_
+
+_Treats the first row of the read area as a header row and returns subsequent rowsas associative arrays keyed by column names._
+
+_Pass $columnNames to name the columns yourself: the first row is still skipped,but the names are taken from the list instead of from its values. Names areapplied in column order, starting at the first column of the read area, so theyneed no knowledge of column letters. Columns past the end of the list keep thename from the header row._
 
 ### Parameters
 
-_None_
+* `array|null $columnNames` – Column names in order, or NULL to use the header row values
 
 ---
 

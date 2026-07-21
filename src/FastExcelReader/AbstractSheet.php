@@ -475,15 +475,46 @@ abstract class AbstractSheet implements InterfaceSheetReader
      * Enables header mode
      *
      * Treats the first row of the read area as a header row and returns subsequent rows
-     * as associative arrays keyed by column names
+     * as associative arrays keyed by column names.
+     *
+     * Pass $columnNames to name the columns yourself: the first row is still skipped,
+     * but the names are taken from the list instead of from its values. Names are
+     * applied in column order, starting at the first column of the read area, so they
+     * need no knowledge of column letters. Columns past the end of the list keep the
+     * name from the header row.
+     *
+     * @param array|null $columnNames Column names in order, or NULL to use the header row values
      *
      * @return $this
      */
-    public function withHeader(): AbstractSheet
+    public function withHeader(?array $columnNames = null): AbstractSheet
     {
         $this->area['first_row_keys'] = true;
+        $this->area['header_names'] = $columnNames ? array_values($columnNames) : null;
 
         return $this;
+    }
+
+    /**
+     * Replace the names taken from the header row with the ones given to withHeader()
+     *
+     * @param array $columnKeys Column letter => name from the header row
+     * @param array $columnNames Names in column order
+     *
+     * @return array
+     */
+    protected static function _applyHeaderNames(array $columnKeys, array $columnNames): array
+    {
+        $position = 0;
+        foreach ($columnKeys as $colLetter => $name) {
+            if (!array_key_exists($position, $columnNames)) {
+                break;
+            }
+            $columnKeys[$colLetter] = $columnNames[$position];
+            $position++;
+        }
+
+        return $columnKeys;
     }
 
     /**
@@ -1111,6 +1142,11 @@ abstract class AbstractSheet implements InterfaceSheetReader
                     }
                     else {
                         $columnKeys = $rowData;
+                    }
+                    if (!empty($readArea['header_names'])) {
+                        // withHeader([...]) names the columns by position, so the
+                        // header row is still consumed but its values are replaced
+                        $columnKeys = self::_applyHeaderNames($columnKeys, $readArea['header_names']);
                     }
                     $rowData = $rowTemplate = $this->_rowTemplate($rowData, $columnKeys);
                 }
