@@ -81,6 +81,24 @@ abstract class AbstractSheet implements InterfaceSheetReader
     abstract public function getMergedCells(): ?array;
 
     /**
+     * Reset the read area to the whole sheet
+     *
+     * @return void
+     */
+    protected function initReadArea(): void
+    {
+        $this->area = [
+            'row_min' => 1,
+            'col_min' => 1,
+            'row_max' => Helper::EXCEL_2007_MAX_ROW,
+            'col_max' => Helper::EXCEL_2007_MAX_COL,
+            'first_row_keys' => false,
+            'col_keys' => [],
+            'col_names' => [],
+        ];
+    }
+
+    /**
      * Get sheet ID
      *
      * @return string
@@ -101,14 +119,14 @@ abstract class AbstractSheet implements InterfaceSheetReader
     }
 
     /**
-     * Get path to the sheet XML file in ZIP archive
+     * Where the sheet lives inside its container
+     *
+     * An inner file path for XLSX, a stream offset for a format that stores
+     * sheets as regions of one stream.
      *
      * @return string
      */
-    public function path(): string
-    {
-        return $this->pathInZip;
-    }
+    abstract public function path(): string;
 
     /**
      * Case-insensitive name checking
@@ -147,7 +165,7 @@ abstract class AbstractSheet implements InterfaceSheetReader
      *
      * @return $this
      */
-    public function setState(string $state): Sheet
+    public function setState(string $state): AbstractSheet
     {
         $this->state = $state;
 
@@ -334,7 +352,7 @@ abstract class AbstractSheet implements InterfaceSheetReader
      *
      * @return $this
      */
-    public function setDateFormat($dateFormat): Sheet
+    public function setDateFormat($dateFormat): AbstractSheet
     {
         $this->excel->setDateFormat($dateFormat);
 
@@ -395,7 +413,7 @@ abstract class AbstractSheet implements InterfaceSheetReader
      *  setReadArea('C3:AZ28'); // set top left and right bottom of read area
      *  setReadArea('C3'); // set top left only
      */
-    public function setReadArea(string $areaRange, ?bool $firstRowKeys = false): Sheet
+    public function setReadArea(string $areaRange, ?bool $firstRowKeys = false): AbstractSheet
     {
         if (preg_match('/^\w+$/', $areaRange)) {
             foreach ($this->excel->getDefinedNames() as $name => $range) {
@@ -424,7 +442,7 @@ abstract class AbstractSheet implements InterfaceSheetReader
      *
      * @return $this
      */
-    public function from(string $topLeftCell, ?bool $firstRowKeys = false): Sheet
+    public function from(string $topLeftCell, ?bool $firstRowKeys = false): AbstractSheet
     {
         if (strpos($topLeftCell, ':') !== false) {
             throw new Exception('Wrong address of top left cell "' . $topLeftCell . '"');
@@ -441,7 +459,7 @@ abstract class AbstractSheet implements InterfaceSheetReader
      *
      * @return $this
      */
-    public function setReadAreaColumns(string $columnsRange, ?bool $firstRowKeys = false): Sheet
+    public function setReadAreaColumns(string $columnsRange, ?bool $firstRowKeys = false): AbstractSheet
     {
         $area = self::_areaRange($columnsRange);
         if ($area) {
@@ -461,7 +479,7 @@ abstract class AbstractSheet implements InterfaceSheetReader
      *
      * @return $this
      */
-    public function withHeader(): Sheet
+    public function withHeader(): AbstractSheet
     {
         $this->area['first_row_keys'] = true;
 

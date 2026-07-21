@@ -340,7 +340,8 @@ _None_
 ---
 
 ```php
-public function from(string $topLeftCell, ?bool $firstRowKeys = false): Sheet
+public function from(string $topLeftCell, 
+                     ?bool $firstRowKeys = false): AbstractSheet
 ```
 _Set top left of read area. Alias of setReadArea()_
 
@@ -951,9 +952,7 @@ public function nextRow($columnKeys, ?int $resultMode = null,
                         ?bool $styleIdxInclude = null, 
                         ?int $rowLimit = 0): ?Generator
 ```
-_Read cell values row by row, returns either an array of values or an array of arrays_
-
-_nextRow(..., ...) : <rowNum> => \[<colNum1> => <value1>, <colNum2> => <value2>, ...]nextRow(..., ..., true) : <rowNum> => \[<colNum1> => \['v' => <value1>, 's' => <style1>], <colNum2> => \['v' => <value2>, 's' => <style2>], ...]_
+_Read cell values row by row, returns either an array of values or an array of arraysnextRow(..., ...) : <rowNum> => \[<colNum1> => <value1>, <colNum2> => <value2>, ...]nextRow(..., ..., true) : <rowNum> => \[<colNum1> => \['v' => <value1>, 's' => <style1>], <colNum2> => \['v' => <value2>, 's' => <style2>], ...]_
 
 ### Parameters
 
@@ -1193,9 +1192,7 @@ _Returns values and styles of cells of 1st row as array_
 public function readFirstRowCellsFrom(string $areaRange, 
                                       ?bool $styleIdxInclude = null): array
 ```
-_Set read area and returns cell values of 1st row as array \[address => value]_
-
-_Like readCellsFrom(), this method takes no column keys, because the result is keyed by cell address and renaming a column would corrupt it._
+_Set read area and returns cell values of 1st row as array \[address => value]Like readCellsFrom(), this method takes no column keys, because the result is keyed by cell address and renaming a column would corrupt it._
 
 ### Parameters
 
@@ -1277,9 +1274,7 @@ _None_
 public function readRows($columnKeys, ?int $resultMode = null, 
                          ?bool $styleIdxInclude = null): array
 ```
-_Returns cell values as a two-dimensional array\[1 => \['A' => _value_A1_], \['B' => _value_B1_]],\[2 => \['A' => _value_A2_], \['B' => _value_B2_]]_
-
-_readRows()readRows(true)readRows(false, Excel::KEYS_ZERO_BASED)readRows(Excel::KEYS_ZERO_BASED | Excel::KEYS_RELATIVE)_
+_Returns cell values as a two-dimensional array\[1 => \['A' => _value_A1_], \['B' => _value_B1_]],\[2 => \['A' => _value_A2_], \['B' => _value_B2_]]readRows()readRows(true)readRows(false, Excel::KEYS_ZERO_BASED)readRows(Excel::KEYS_ZERO_BASED | Excel::KEYS_RELATIVE)_
 
 ### Parameters
 
@@ -1317,9 +1312,7 @@ _Read rows from a given area $areaRange_
 public function readRowsWithStyles($columnKeys, 
                                    ?int $resultMode = null): array
 ```
-_Returns values, styles, and other info of cells as array_
-
-_\['v' => _value_,'s' => _styles_,'f' => _formula_,'t' => _type_,'o' => '_original_value_]_
+_Returns values, styles, and other info of cells as array\['v' => _value_,'s' => _styles_,'f' => _formula_,'t' => _type_,'o' => '_original_value_]_
 
 ### Parameters
 
@@ -1423,7 +1416,7 @@ _Save image to a directory_
 ---
 
 ```php
-public function setDateFormat($dateFormat): Sheet
+public function setDateFormat($dateFormat): AbstractSheet
 ```
 _Set date format_
 
@@ -1454,7 +1447,7 @@ _Set default row height_
 
 ```php
 public function setReadArea(string $areaRange, 
-                            ?bool $firstRowKeys = false): Sheet
+                            ?bool $firstRowKeys = false): AbstractSheet
 ```
 _Set top left and right bottom of read area_
 
@@ -1481,7 +1474,7 @@ setReadArea('C3'); // set top left only
 
 ```php
 public function setReadAreaColumns(string $columnsRange, 
-                                   ?bool $firstRowKeys = false): Sheet
+                                   ?bool $firstRowKeys = false): AbstractSheet
 ```
 _setReadArea('C:AZ') - set left and right columns of read areasetReadArea('C') - set left column only_
 
@@ -1497,7 +1490,7 @@ _setReadArea('C:AZ') - set left and right columns of read areasetReadArea('C') -
 ---
 
 ```php
-public function setState(string $state): Sheet
+public function setState(string $state): AbstractSheet
 ```
 _Set sheet state (visible, hidden, veryHidden)_
 
@@ -1546,11 +1539,9 @@ _None_
 ---
 
 ```php
-public function withHeader(): Sheet
+public function withHeader(): AbstractSheet
 ```
-_Enables header mode_
-
-_Treats the first row of the read area as a header row and returns subsequent rowsas associative arrays keyed by column names_
+_Enables header modeTreats the first row of the read area as a header row and returns subsequent rowsas associative arrays keyed by column names_
 
 ### Parameters
 

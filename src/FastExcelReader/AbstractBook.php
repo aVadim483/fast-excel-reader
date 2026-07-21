@@ -97,6 +97,16 @@ abstract class AbstractBook implements InterfaceBookReader
     abstract public static function setTempDir($tempDir);
 
     /**
+     * Fill $this->styles['_'] with the complete style tables
+     *
+     * The expected shape is the one getCompleteStyleByIdx() composes from:
+     * 'numFmts', 'fonts', 'fills', 'borders', 'cellStyleXfs' and 'cellXfs'.
+     *
+     * @return void
+     */
+    abstract protected function _loadCompleteStyles();
+
+    /**
      * Excel constructor
      *
      * @param string|null $file
@@ -288,7 +298,7 @@ abstract class AbstractBook implements InterfaceBookReader
      *
      * @return $this
      */
-    public function setDateFormat(string $dateFormat): Excel
+    public function setDateFormat(string $dateFormat): AbstractBook
     {
         $this->dateFormat = $dateFormat;
 
@@ -330,7 +340,7 @@ abstract class AbstractBook implements InterfaceBookReader
      *
      * @return $this
      */
-    public function dateFormatter($formatter): Excel
+    public function dateFormatter($formatter): AbstractBook
     {
         if ($formatter === false || $formatter === null) {
             $this->dateFormatter = $formatter;

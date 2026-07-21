@@ -5,6 +5,7 @@ namespace avadim\FastExcelReader;
 use avadim\FastExcelHelper\Helper;
 use avadim\FastExcelReader\Csv\CsvOptions;
 use avadim\FastExcelReader\Csv\CsvReader;
+use avadim\FastExcelReader\Xls\XlsBook;
 use avadim\FastExcelReader\Interfaces\InterfaceSheetReader;
 use avadim\FastExcelReader\Interfaces\InterfaceXmlReader;
 
@@ -720,15 +721,55 @@ class Excel extends AbstractBook
     }
 
     /**
-     * Open XLSX file
+     * Open a spreadsheet, choosing the reader by the file signature
+     *
+     * A ZIP container is XLSX, the OLE2 magic number is a legacy XLS workbook. The file extension is not consulted, because it is often wrong on files arriving from other systems.
      *
      * @param string $file
      *
-     * @return Excel
+     * @return AbstractBook
      */
-    public static function open(string $file): Excel
+    public static function open(string $file): AbstractBook
     {
+        if (self::isXls($file)) {
+            return XlsBook::open($file);
+        }
+
         return new self($file);
+    }
+
+    /**
+     * Open an XLS (Excel 97-2003, BIFF8) file
+     *
+     * @param string $file
+     *
+     * @return XlsBook
+     */
+    public static function openXls(string $file): XlsBook
+    {
+        return XlsBook::open($file);
+    }
+
+    /**
+     * TRUE if the file starts with the OLE2 compound file signature
+     *
+     * @param string $file
+     *
+     * @return bool
+     */
+    public static function isXls(string $file): bool
+    {
+        if (!is_readable($file) || is_dir($file)) {
+            return false;
+        }
+        $handle = fopen($file, 'rb');
+        if (!$handle) {
+            return false;
+        }
+        $signature = (string)fread($handle, 8);
+        fclose($handle);
+
+        return $signature === "\xD0\xCF\x11\xE0\xA1\xB1\x1A\xE1";
     }
 
     /**

@@ -7,8 +7,10 @@
 * [colNum()](#colnum) – Converts an alphabetic column index to a numeric
 * [createReader()](#createreader) – Create XML reader object
 * [createSheet()](#createsheet) – Create sheet object
-* [open()](#open) – Open XLSX file
+* [isXls()](#isxls) – TRUE if the file starts with the OLE2 compound file signature
+* [open()](#open) – Open a spreadsheet, choosing the reader by the file signature
 * [openCsv()](#opencsv) – Open CSV file
+* [openXls()](#openxls) – Open an XLS (Excel 97-2003, BIFF8) file
 * [setTempDir()](#settempdir) – Set directory for temporary files
 * [validate()](#validate) – Validate XLSX file
 * [countExtraImages()](#countextraimages) – Count "extra" images (images that are in the media folder but not in the drawings)
@@ -143,14 +145,31 @@ _Create sheet object_
 
 ---
 
+## isXls()
+
+---
+
+```php
+public static function isXls(string $file): bool
+```
+_TRUE if the file starts with the OLE2 compound file signature_
+
+### Parameters
+
+* `string $file`
+
+---
+
 ## open()
 
 ---
 
 ```php
-public static function open(string $file): Excel
+public static function open(string $file): AbstractBook
 ```
-_Open XLSX file_
+_Open a spreadsheet, choosing the reader by the file signature_
+
+_A ZIP container is XLSX, the OLE2 magic number is a legacy XLS workbook. The file extension is not consulted, because it is often wrong on files arriving from other systems._
 
 ### Parameters
 
@@ -171,6 +190,21 @@ _Open CSV file_
 
 * `string $file`
 * `CsvOptions|array|null $options`
+
+---
+
+## openXls()
+
+---
+
+```php
+public static function openXls(string $file): Xls\XlsBook
+```
+_Open an XLS (Excel 97-2003, BIFF8) file_
+
+### Parameters
+
+* `string $file`
 
 ---
 
@@ -255,7 +289,7 @@ _None_
 ---
 
 ```php
-public function dateFormatter($formatter): Excel
+public function dateFormatter($formatter): AbstractBook
 ```
 _Set custom date formatter_
 
@@ -683,9 +717,7 @@ _Returns cell values and styles as a two-dimensional array from default sheet \[
 public function readRows($columnKeys, ?int $resultMode = null, 
                          ?bool $styleIdxInclude = null): array
 ```
-_Returns cell values as a two-dimensional array from default sheet \[row]\[col]_
-
-_readRows()readRows(true)readRows(false, Excel::KEYS_ZERO_BASED)readRows(Excel::KEYS_ZERO_BASED | Excel::KEYS_RELATIVE)_
+_Returns cell values as a two-dimensional array from default sheet \[row]\[col]readRows()readRows(true)readRows(false, Excel::KEYS_ZERO_BASED)readRows(Excel::KEYS_ZERO_BASED | Excel::KEYS_RELATIVE)_
 
 ### Parameters
 
@@ -785,7 +817,7 @@ _Selects default sheet by ID_
 ---
 
 ```php
-public function setDateFormat(string $dateFormat): Excel
+public function setDateFormat(string $dateFormat): AbstractBook
 ```
 _Set date format for reading_
 
@@ -879,11 +911,7 @@ _None_
 ```php
 public function stat(): array
 ```
-_Returns statistics of the workbook: per-sheet breakdown and totals_
-
-_\['sheets' => \['<sheetName>' => \['rows' => \[...], 'cols' => \[...], 'cells' => \['total' => int, 'filled' => int]],...],'total' => \['sheets'  => int,   // number of sheets'visible' => int,   // number of visible sheets'hidden'  => int,   // number of hidden sheets'rows'    => int,   // sum of actual rows over all sheets'cells'   => \['total' => int, 'filled' => int],],]_
-
-_Note: scans every sheet fully (see Sheet::stat()); expensive on large workbooks._
+_Returns statistics of the workbook: per-sheet breakdown and totals\['sheets' => \['<sheetName>' => \['rows' => \[...], 'cols' => \[...], 'cells' => \['total' => int, 'filled' => int]],...],'total' => \['sheets'  => int,   // number of sheets'visible' => int,   // number of visible sheets'hidden'  => int,   // number of hidden sheets'rows'    => int,   // sum of actual rows over all sheets'cells'   => \['total' => int, 'filled' => int],],]Note: scans every sheet fully (see Sheet::stat()); expensive on large workbooks._
 
 ### Parameters
 

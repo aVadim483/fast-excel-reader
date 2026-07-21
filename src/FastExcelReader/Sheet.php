@@ -75,15 +75,17 @@ class Sheet extends AbstractSheet
         $this->zipFilename = $file;
         $this->pathInZip = $path;
 
-        $this->area = [
-            'row_min' => 1,
-            'col_min' => 1,
-            'row_max' => Helper::EXCEL_2007_MAX_ROW,
-            'col_max' => Helper::EXCEL_2007_MAX_COL,
-            'first_row_keys' => false,
-            'col_keys' => [],
-            'col_names' => [],
-        ];
+        $this->initReadArea();
+    }
+
+    /**
+     * Get path to the sheet XML file in ZIP archive
+     *
+     * @return string
+     */
+    public function path(): string
+    {
+        return $this->pathInZip;
     }
 
     /**
