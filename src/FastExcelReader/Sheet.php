@@ -15,6 +15,10 @@ use avadim\FastExcelReader\Interfaces\InterfaceXmlReader;
  */
 class Sheet extends AbstractSheet
 {
+    /** Character masks used by strspn() to split a cell address into column and row */
+    private const COL_LETTERS = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz';
+    private const ROW_DIGITS = '0123456789';
+
     protected string $zipFilename;
 
     protected string $pathInZip;
@@ -97,7 +101,7 @@ class Sheet extends AbstractSheet
     protected function _cellValue($cell, ?array &$additionalData = [])
     {
         // Determine data type and style index
-        $attributeT = $dataType = (string)$cell->getAttribute('t');
+        $dataType = (string)$cell->getAttribute('t');
         $styleIdx = (int)$cell->getAttribute('s');
         $address = $cell->attributes['r']->value;
 
@@ -115,13 +119,127 @@ class Sheet extends AbstractSheet
                     break;
                 }
             }
-            if ($cellValue === null) {
-                $cellValue = $formula;
-            }
         }
         elseif ($styleIdx) {
             //$cellValue = '';
             // cell is empty, so $cellValue = null;
+        }
+
+        // inline rich text is the only case that needs the text of the whole subtree
+        $textContent = ($dataType === 'inlineStr') ? $cell->textContent : null;
+
+        return $this->_makeCellValue($dataType, $styleIdx, $cellValue, $formula, $textContent, $additionalData);
+    }
+
+    /**
+     * Read the cell the reader stands on without materialising a DOM node
+     *
+     * XMLReader::expand() copies the node into a DOMDocument and wraps it in a
+     * DOMElement, so on a sheet of a million cells it is a million allocate/free
+     * pairs spent to read two attributes and the text of <v>. Walking the
+     * children with read() yields the same raw parts at about half the cost.
+     *
+     * On return the reader stands on </c> (or is still on <c/> for an empty
+     * cell), so the read() loop of the caller continues exactly as before.
+     *
+     * @param InterfaceXmlReader $xmlReader
+     * @param string $address
+     * @param array|null $additionalData
+     *
+     * @return mixed
+     */
+    protected function _cellValueFast(InterfaceXmlReader $xmlReader, string $address, ?array &$additionalData = [])
+    {
+        $dataType = (string)$xmlReader->getAttribute('t');
+        $styleIdx = (int)$xmlReader->getAttribute('s');
+
+        $cellValue = $formula = $textContent = null;
+
+        if (!$xmlReader->isEmptyElement) {
+            $cellDepth = $xmlReader->depth;
+            $inlineStr = ($dataType === 'inlineStr');
+            $capture = null;
+            $formulaText = $formulaType = $formulaSi = $formulaRef = null;
+
+            while ($xmlReader->read()) {
+                $nodeType = $xmlReader->nodeType;
+
+                if ($nodeType === \XMLReader::TEXT || $nodeType === \XMLReader::CDATA
+                    || $nodeType === \XMLReader::SIGNIFICANT_WHITESPACE || $nodeType === \XMLReader::WHITESPACE) {
+                    if ($capture === 'v') {
+                        // libxml may split long text into several nodes, and DOMNode::nodeValue
+                        // of <v> is the concatenation of them all - so append, do not assign
+                        $cellValue .= $xmlReader->value;
+                    }
+                    elseif ($capture === 'f') {
+                        $formulaText .= $xmlReader->value;
+                    }
+                    if ($inlineStr) {
+                        // reproduces DOMNode::textContent of the whole cell
+                        $textContent .= $xmlReader->value;
+                    }
+                    continue;
+                }
+
+                if ($nodeType === \XMLReader::ELEMENT) {
+                    $capture = null;
+                    // only direct children of <c> carry the value and the formula
+                    if ($xmlReader->depth === $cellDepth + 1) {
+                        if ($cellValue === null && $xmlReader->name === 'v') {
+                            $cellValue = '';
+                            $capture = 'v';
+                        }
+                        elseif ($formulaText === null && $xmlReader->name === 'f') {
+                            $formulaText = '';
+                            $formulaType = (string)$xmlReader->getAttribute('t');
+                            $formulaSi = (string)$xmlReader->getAttribute('si');
+                            $formulaRef = (string)$xmlReader->getAttribute('ref');
+                            $capture = 'f';
+                        }
+                    }
+                    if ($xmlReader->isEmptyElement) {
+                        // <v/> and <f/> have no text node to visit and no END_ELEMENT to close them
+                        $capture = null;
+                    }
+                    continue;
+                }
+
+                if ($nodeType === \XMLReader::END_ELEMENT) {
+                    if ($xmlReader->depth === $cellDepth) { // </c>
+                        break;
+                    }
+                    $capture = null;
+                }
+            }
+
+            if ($formulaText !== null) {
+                $formula = $this->_makeCellFormula($formulaType, $formulaSi, $formulaRef, $formulaText, $address);
+            }
+        }
+
+        return $this->_makeCellValue($dataType, $styleIdx, $cellValue, $formula, $textContent, $additionalData);
+    }
+
+    /**
+     * Cast the raw parts of a cell to the resulting value and fill $additionalData
+     *
+     * Deliberately knows nothing about XML nodes, so that the DOM branch and the
+     * streaming fast path share one set of casting rules.
+     *
+     * @param string $dataType Value of the "t" attribute
+     * @param int $styleIdx Value of the "s" attribute
+     * @param string|null $cellValue Text of <v>, NULL when the cell has none
+     * @param string|null $formula Formula already resolved by _makeCellFormula()
+     * @param string|null $textContent Text of the whole cell, needed for inline strings only
+     * @param array|null $additionalData
+     *
+     * @return mixed
+     */
+    protected function _makeCellValue(string $dataType, int $styleIdx, ?string $cellValue, ?string $formula, ?string $textContent, ?array &$additionalData = [])
+    {
+        $attributeT = $dataType;
+        if ($cellValue === null) {
+            $cellValue = $formula;
         }
 
         // Value is a shared string
@@ -154,7 +272,7 @@ class Sheet extends AbstractSheet
 
             case 'inlineStr':
                 // Value is rich text inline
-                $value = $cell->textContent;
+                $value = (string)$textContent;
                 if ($value && $originalValue === null) {
                     $originalValue = $value;
                 }
@@ -244,16 +362,36 @@ class Sheet extends AbstractSheet
      */
     protected function _cellFormula($node, string $address): string
     {
-        $shared = (string)$node->getAttribute('t') === 'shared';
-        $si = (string)$node->getAttribute('si');
-        $formula = $node->nodeValue;
+        return $this->_makeCellFormula(
+            (string)$node->getAttribute('t'),
+            (string)$node->getAttribute('si'),
+            (string)$node->getAttribute('ref'),
+            $node->nodeValue,
+            $address
+        );
+    }
+
+    /**
+     * Resolve a formula from the raw attributes and text of <f>, without a DOM node
+     *
+     * @param string $type Value of the "t" attribute of <f>
+     * @param string $si Value of the "si" attribute of <f>
+     * @param string $refAttr Value of the "ref" attribute of <f>
+     * @param string|null $formula Text of <f>
+     * @param string $address
+     *
+     * @return string
+     */
+    protected function _makeCellFormula(string $type, string $si, string $refAttr, ?string $formula, string $address): string
+    {
+        $shared = ($type === 'shared');
+        $formula = (string)$formula;
         if ($formula) {
             if ($formula[0] !== '=') {
                 $formula = '=' . $formula;
             }
             if ($shared && $si > '') {
-                $ref = (string)$node->getAttribute('ref');
-                if ($ref && preg_match('/^([a-z]+)\$?(\d+)(:\$?([a-z]+)\$?(\d+))?$/i', $ref, $m)) {
+                if ($refAttr && preg_match('/^([a-z]+)\$?(\d+)(:\$?([a-z]+)\$?(\d+))?$/i', $refAttr, $m)) {
                     $ref = ['col_num' => Helper::colNumber($m[1]), 'row_num' => (int)$m[2]];
                 }
                 else {
@@ -887,6 +1025,10 @@ class Sheet extends AbstractSheet
         $rowCnt = -1;
         $cells = [];
 
+        // readNodeFunc hands raw DOM nodes to user callbacks, which is what expand() is for;
+        // everything else can take the streaming path of _cellValueFast()
+        $fastPath = !$this->readNodeFunc;
+
         if ($this->preReadFunc) {
             ($this->preReadFunc)($xmlReader);
         }
@@ -939,16 +1081,26 @@ class Sheet extends AbstractSheet
 
                     elseif ($xmlReader->name === 'c') { // <c ...> - tag cell begins
                         $addr = $xmlReader->getAttribute('r');
-                        if ($addr && preg_match('/^([A-Za-z]+)(\d+)$/', $addr, $m)) {
-                            //
-                            if ($m[2] < $readArea['row_min'] || $m[2] > $readArea['row_max']) {
+                        // splitting "AB12" by hand rather than by preg_match(): this runs once
+                        // per cell, and a regex here costs more than the whole address check
+                        $addrLen = $addr ? strlen($addr) : 0;
+                        $letters = $addrLen ? strspn($addr, self::COL_LETTERS) : 0;
+                        if ($letters && $letters < $addrLen && strspn($addr, self::ROW_DIGITS, $letters) === $addrLen - $letters) {
+                            $colLetter = substr($addr, 0, $letters);
+                            $cellRowNum = (int)substr($addr, $letters);
+                            if ($cellRowNum < $readArea['row_min'] || $cellRowNum > $readArea['row_max']) {
                                 continue;
                             }
-                            $colNum = Excel::colNum($m[1]);
+                            $colNum = Excel::colNum($colLetter);
 
                             if ($colNum >= $readArea['col_min'] && $colNum <= $readArea['col_max']) {
-                                $this->_cellValue($xmlReader->expand(), $additionalData);
-                                $cells[$m[1]] = $additionalData;
+                                if ($fastPath) {
+                                    $this->_cellValueFast($xmlReader, $addr, $additionalData);
+                                }
+                                else {
+                                    $this->_cellValue($xmlReader->expand(), $additionalData);
+                                }
+                                $cells[$colLetter] = $additionalData;
                             }
                         }
                     } // <c ...> - tag cell end
