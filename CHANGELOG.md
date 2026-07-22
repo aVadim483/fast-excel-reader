@@ -10,7 +10,7 @@ All notable changes to this project are documented in this file.
 This file starts at version 3.2.0; for earlier history see the
 [releases page](https://github.com/aVadim483/fast-excel-reader/releases).
 
-## Unreleased
+## 4.0.0
 
 ### Added
 
@@ -41,9 +41,13 @@ This file starts at version 3.2.0; for earlier history see the
 * `Sheet::readCellsWithStyles($styleKey)` never narrowed the result to the requested property. The key
   was looked up on the nested style, where properties sit inside their group, so `'fill-color'` - the
   example in the method's own docblock - always returned the complete style instead.
+* Complete cell styles - `getCompleteStyleByIdx()`, `readCellsWithStyles()` and everything built on
+  them - died with `Call to undefined method DOMText::getAttribute()` on workbooks whose `styles.xml`
+  is written with indentation, which several writers do.
 
 ### Changed
 
+* **Reading XLSX is about 1.5 times faster.** Values, types and peak memory are unchanged.
 * The accessors that returned a concrete `Sheet` now return `AbstractSheet`, and the fluent setters on
   the workbook return `AbstractBook`. The objects handed back are unchanged, and a subclass may still
   narrow the return type back, so this only affects explicit type declarations in calling code.
