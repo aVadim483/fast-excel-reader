@@ -21,6 +21,9 @@ final class XlsxBuilder
     /** @var array<int, array<string, string>> */
     private $rows = [];
 
+    /** @var string|null */
+    private $stylesXml = null;
+
     /** @var string[] */
     private static $tempFiles = [];
 
@@ -35,6 +38,20 @@ final class XlsxBuilder
         $builder->rows = $rows;
 
         return $builder;
+    }
+
+    /**
+     * Replace the default styles.xml, e.g. to write it pretty-printed
+     *
+     * @param string $stylesXml
+     *
+     * @return self
+     */
+    public function withStyles(string $stylesXml): self
+    {
+        $this->stylesXml = $stylesXml;
+
+        return $this;
     }
 
     /**
@@ -56,7 +73,7 @@ final class XlsxBuilder
         $zip->addFromString('_rels/.rels', self::rootRels());
         $zip->addFromString('xl/workbook.xml', self::workbook());
         $zip->addFromString('xl/_rels/workbook.xml.rels', self::workbookRels());
-        $zip->addFromString('xl/styles.xml', self::styles());
+        $zip->addFromString('xl/styles.xml', $this->stylesXml ?? self::styles());
         $zip->addFromString('xl/worksheets/sheet1.xml', $this->sheet());
         $zip->close();
 

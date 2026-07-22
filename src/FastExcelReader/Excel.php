@@ -439,6 +439,30 @@ class Excel extends AbstractBook
 
 
     /**
+     * Element children of a node, without the text nodes between the tags
+     *
+     * styles.xml is often pretty-printed, and then childNodes also holds the
+     * whitespace between the tags. Those are not styles: they answer no
+     * getAttribute(), and counting them would shift the position that every
+     * fontId/fillId/borderId/xfId reference relies on.
+     *
+     * @param \DOMNode $node
+     *
+     * @return \DOMElement[]
+     */
+    protected static function _elementChildren($node): array
+    {
+        $elements = [];
+        foreach ($node->childNodes as $child) {
+            if ($child->nodeType === XML_ELEMENT_NODE) {
+                $elements[] = $child;
+            }
+        }
+
+        return $elements;
+    }
+
+    /**
      * @param $root
      * @param $tagName
      *
@@ -454,7 +478,7 @@ class Excel extends AbstractBook
             ];
         }
         if ($root) {
-            foreach ($root->childNodes as $child) {
+            foreach (self::_elementChildren($root) as $child) {
                 $numFmtId = $child->getAttribute('numFmtId');
                 $formatCode = $child->getAttribute('formatCode');
                 if ($numFmtId !== '' && $formatCode !== '') {
@@ -477,9 +501,9 @@ class Excel extends AbstractBook
      */
     protected function _loadStyleFonts($root, $tagName)
     {
-        foreach ($root->childNodes as $font) {
+        foreach (self::_elementChildren($root) as $font) {
             $node = [];
-            foreach ($font->childNodes as $fontStyle) {
+            foreach (self::_elementChildren($font) as $fontStyle) {
                 if ($fontStyle->nodeName === 'b') {
                     $node['font-style-bold'] = 1;
                 }
@@ -520,9 +544,9 @@ class Excel extends AbstractBook
      */
     protected function _loadStyleFills($root, $tagName)
     {
-        foreach ($root->childNodes as $fill) {
+        foreach (self::_elementChildren($root) as $fill) {
             $node = [];
-            foreach ($fill->childNodes as $patternFill) {
+            foreach (self::_elementChildren($fill) as $patternFill) {
                 if (($v = $patternFill->getAttribute('patternType')) !== '') {
                     $node['fill-pattern'] = $v;
                 }
@@ -610,9 +634,9 @@ class Excel extends AbstractBook
      */
     protected function _loadStyleBorders($root, $tagName)
     {
-        foreach ($root->childNodes as $border) {
+        foreach (self::_elementChildren($root) as $border) {
             $node = [];
-            foreach ($border->childNodes as $side) {
+            foreach (self::_elementChildren($border) as $side) {
                 if (($v = $side->getAttribute('style')) !== '') {
                     $node['border-' . $side->nodeName . '-style'] = $v;
                 }
@@ -649,7 +673,7 @@ class Excel extends AbstractBook
     protected function _loadStyleCellXfs($root, $tagName)
     {
         $attributes = ['numFmtId', 'fontId', 'fillId', 'borderId', 'xfId'];
-        foreach ($root->childNodes as $xf) {
+        foreach (self::_elementChildren($root) as $xf) {
             $node = [];
             foreach ($attributes as $attribute) {
                 if (($v = $xf->getAttribute($attribute)) !== '') {

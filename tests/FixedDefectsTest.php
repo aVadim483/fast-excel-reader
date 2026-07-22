@@ -6,6 +6,7 @@ namespace avadim\FastExcelReader\Tests;
 
 use avadim\FastExcelReader\Excel;
 use avadim\FastExcelReader\Tests\Support\GuardTestCase;
+use avadim\FastExcelReader\Tests\Support\XlsxBuilder;
 
 /**
  * Regression tests for defects found while building the refactoring safety net.
@@ -293,5 +294,106 @@ final class FixedDefectsTest extends GuardTestCase
         $unknown = Excel::open(self::fixture('demo-04-styles.xlsx'))
             ->sheet()->setReadArea('A1:B2')->readCellsWithStyles('no-such-property');
         $this->assertArrayHasKey('font', $unknown['A1']['s']);
+    }
+
+    /**
+     * The complete styles were parsed by walking childNodes of <fonts>, <fills>,
+     * <borders> and <cellXfs>, which in a pretty-printed styles.xml also holds
+     * the whitespace between the tags. Every writer that indents its output -
+     * and several do - made getCompleteStyleByIdx() and readCellsWithStyles()
+     * die with "Call to undefined method DOMText::getAttribute()".
+     *
+     * Only element children are styles now. Indentation must therefore make no
+     * difference at all, which is exactly what this compares.
+     *
+     * @return void
+     */
+    public function testCompleteStylesIgnoreIndentationInStylesXml(): void
+    {
+        $rows = [1 => ['A' => 'first'], 2 => ['A' => 2]];
+
+        $indented = XlsxBuilder::withRows($rows)->withStyles(self::indentedStyles())->build();
+        // same document, only the whitespace between the tags is gone
+        $compact = XlsxBuilder::withRows($rows)
+            ->withStyles((string)preg_replace('/>\s+</', '><', self::indentedStyles()))
+            ->build();
+
+        $fromIndented = Excel::open($indented)->getCompleteStyleByIdx(1);
+        $fromCompact = Excel::open($compact)->getCompleteStyleByIdx(1);
+
+        $this->assertSame($fromCompact, $fromIndented);
+
+        // and the second entry of every table is really the one that was picked,
+        // i.e. the text nodes did not shift the indexes either
+        $this->assertSame('14', $fromIndented['font']['font-size']);
+        $this->assertSame(1, $fromIndented['font']['font-style-bold']);
+        $this->assertSame('#00FF00', $fromIndented['fill']['fill-color']);
+        $this->assertSame('thin', $fromIndented['border']['border-left-style']);
+        $this->assertSame('0.000', $fromIndented['format']['format-pattern']);
+    }
+
+    /**
+     * A styles.xml with two entries in every table, written the way an indenting
+     * writer would write it
+     *
+     * @return string
+     */
+    private static function indentedStyles(): string
+    {
+        return <<<'XML'
+<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<styleSheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main">
+  <numFmts count="1">
+    <numFmt numFmtId="164" formatCode="0.000"/>
+  </numFmts>
+  <fonts count="2">
+    <font>
+      <sz val="11"/>
+      <name val="Calibri"/>
+    </font>
+    <font>
+      <b/>
+      <sz val="14"/>
+      <color rgb="FFFF0000"/>
+      <name val="Arial"/>
+    </font>
+  </fonts>
+  <fills count="2">
+    <fill>
+      <patternFill patternType="none"/>
+    </fill>
+    <fill>
+      <patternFill patternType="solid">
+        <fgColor rgb="FF00FF00"/>
+      </patternFill>
+    </fill>
+  </fills>
+  <borders count="2">
+    <border>
+      <left/>
+      <right/>
+      <top/>
+      <bottom/>
+      <diagonal/>
+    </border>
+    <border>
+      <left style="thin"/>
+      <right style="thin"/>
+      <top/>
+      <bottom/>
+      <diagonal/>
+    </border>
+  </borders>
+  <cellStyleXfs count="1">
+    <xf numFmtId="0" fontId="0" fillId="0" borderId="0"/>
+  </cellStyleXfs>
+  <cellXfs count="2">
+    <xf numFmtId="0" fontId="0" fillId="0" borderId="0" xfId="0"/>
+    <xf numFmtId="164" fontId="1" fillId="1" borderId="1" xfId="0" applyFont="1">
+      <alignment horizontal="center"/>
+    </xf>
+  </cellXfs>
+</styleSheet>
+XML;
     }
 }
