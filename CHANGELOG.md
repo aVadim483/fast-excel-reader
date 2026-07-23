@@ -10,6 +10,14 @@ All notable changes to this project are documented in this file.
 This file starts at version 3.2.0; for earlier history see the
 [releases page](https://github.com/aVadim483/fast-excel-reader/releases).
 
+## 4.0.1
+
+### Fixed
+
+* XLS now reports formula text with the leading `=`, like XLSX always has. The `f` field of a formula
+  cell has the same shape whichever format the file came from, so code no longer needs to special-case
+  XLS. Formulas whose text cannot be recovered still report `null`, not `"="`.
+
 ## 4.0.0
 
 ### Added

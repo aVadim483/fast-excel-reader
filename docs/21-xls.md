@@ -102,7 +102,6 @@ These are properties of the formats, not of the reader:
   written in the XML, for example `'30681.222951388889'` (a string). XLS only ever stored a binary
   double, so it returns a float. The numeric values agree; the exact digits of the original text do not
   exist in the file.
-* **Formula text has no leading `=`.** The `f` field is `A2+1` for XLS and `=A2+1` for XLSX.
 * **Image names.** XLSX preserves the shape name given by the application (`Picture 4`); XLS reports a
   generated name. The image bytes, the anchor cell and the file name are identical.
 

@@ -15,9 +15,12 @@ use avadim\FastExcelReader\Xls\FormulaParser;
  * for a stack machine; FormulaParser runs that machine backwards to recover the
  * A1 text. Parity is against the same formula read from the XLSX counterpart.
  *
- * XLSX keeps the leading "=" in the 'f' field, XLS does not, so comparisons
- * strip it. Everything after the "=" must match exactly, including the absence
- * of spaces around operators, which is how Excel itself stores them.
+ * Both readers keep the leading "=" in the 'f' field, so the texts are compared
+ * as-is. Everything after the "=" must match exactly, including the absence of
+ * spaces around operators, which is how Excel itself stores them.
+ *
+ * The "=" is added by XlsSheet, above FormulaParser: the parser still returns
+ * the bare A1 text, so the low-level parser tests below expect no "=".
  */
 final class XlsFormulaTest extends GuardTestCase
 {
@@ -44,11 +47,8 @@ final class XlsFormulaTest extends GuardTestCase
                 continue;
             }
             $this->assertArrayHasKey($address, $xls);
-            $this->assertSame(
-                ltrim($cell['f'], '='),
-                (string)$xls[$address]['f'],
-                $address
-            );
+            // both formats now report the formula with the leading "="
+            $this->assertSame($cell['f'], $xls[$address]['f'], $address);
             $compared++;
         }
 
@@ -68,21 +68,21 @@ final class XlsFormulaTest extends GuardTestCase
         $xlsx = Excel::open(self::fixture('xls-formulas-source.xlsx'))->sheet()->readCells(true);
 
         $expected = [
-            'B1' => 'A1+B1*2',
-            'B2' => '(A1+B1)*2',
-            'B3' => 'SUM(A1:A5)',
-            'B4' => 'IF(A1>10,"big","small")',
-            'B5' => 'ROUND(A1/B1,2)',
-            'B6' => '-A1',
-            'B7' => 'A1&"x"&B1',
-            'B8' => 'MAX(A1,B1,100)',
-            'B9' => 'A1<=B1',
-            'B10' => 'ABS(A1-B1)',
+            'B1' => '=A1+B1*2',
+            'B2' => '=(A1+B1)*2',
+            'B3' => '=SUM(A1:A5)',
+            'B4' => '=IF(A1>10,"big","small")',
+            'B5' => '=ROUND(A1/B1,2)',
+            'B6' => '=-A1',
+            'B7' => '=A1&"x"&B1',
+            'B8' => '=MAX(A1,B1,100)',
+            'B9' => '=A1<=B1',
+            'B10' => '=ABS(A1-B1)',
         ];
 
         foreach ($expected as $address => $formula) {
             $this->assertSame($formula, (string)$xls[$address]['f'], $address . ' from xls');
-            $this->assertSame($formula, ltrim($xlsx[$address]['f'], '='), $address . ' from xlsx (guard)');
+            $this->assertSame($formula, (string)$xlsx[$address]['f'], $address . ' from xlsx (guard)');
         }
     }
 
@@ -96,7 +96,7 @@ final class XlsFormulaTest extends GuardTestCase
         $cells = Excel::open(self::XLS_DIR . 'formulas.xls')->sheet()->readCells(true);
 
         $b2 = $cells['B2'];
-        $this->assertSame('A2+1', $b2['f']);
+        $this->assertSame('=A2+1', $b2['f']);
         $this->assertSame('number', $b2['t']);
         $this->assertIsInt($b2['v']);
     }

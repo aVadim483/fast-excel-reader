@@ -567,7 +567,11 @@ class XlsSheet extends AbstractSheet
             }
         }
 
-        return (new FormulaParser($row, $col))->parse($tokens);
+        $formula = (new FormulaParser($row, $col))->parse($tokens);
+
+        // the XLSX reader returns formulas with a leading "="; match it, so that
+        // the "f" field has the same shape whichever format the cell came from
+        return $formula === null ? null : '=' . $formula;
     }
 
     /**
