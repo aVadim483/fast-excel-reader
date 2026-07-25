@@ -76,6 +76,14 @@ abstract class AbstractBook implements InterfaceBookReader
 
     protected array $builtinFormats = [];
 
+    /**
+     * Locale-derived patterns for the built-in date codes (numFmtId 14-22),
+     * or NULL when the deterministic defaults are used. Enabled via useLocaleFormats().
+     *
+     * @var array<int, string>|null
+     */
+    protected ?array $localeFormats = null;
+
     protected array $names = [];
 
     /**
@@ -145,25 +153,10 @@ abstract class AbstractBook implements InterfaceBookReader
             49 => ['pattern' => '@', 'category' => 'string'],
         ];
 
-        if (class_exists('IntlDateFormatter', false)) {
-            $formatter = new \IntlDateFormatter(null, \IntlDateFormatter::SHORT, \IntlDateFormatter::NONE);
-            $pattern = $formatter->getPattern();
-            $this->builtinFormats[14]['pattern'] = str_replace('#', 'yy', str_replace(['M', 'y'], ['m', 'yyyy'], str_replace('yy', '#', $pattern)));
-            if (preg_match('/([^a-z])/i', $pattern, $m)) {
-                $dateDelim = $m[1];
-                $this->builtinFormats[15]['pattern'] = str_replace('-', $dateDelim, $this->builtinFormats[15]['pattern']);
-                $this->builtinFormats[16]['pattern'] = str_replace('-', $dateDelim, $this->builtinFormats[16]['pattern']);
-                $this->builtinFormats[17]['pattern'] = str_replace('-', $dateDelim, $this->builtinFormats[17]['pattern']);
-            }
-
-            $formatter = new \IntlDateFormatter(null, \IntlDateFormatter::NONE, \IntlDateFormatter::SHORT);
-            $this->builtinFormats[20]['pattern'] = str_replace('HH', 'h', $formatter->getPattern());
-
-            $formatter = new \IntlDateFormatter(null, \IntlDateFormatter::NONE, \IntlDateFormatter::MEDIUM);
-            $this->builtinFormats[21]['pattern'] = str_replace('HH', 'h', $formatter->getPattern());
-
-            $this->builtinFormats[22]['pattern'] = $this->builtinFormats[14]['pattern'] . ' ' . $this->builtinFormats[20]['pattern'];
-        }
+        // The built-in date codes 14-22 keep the deterministic ECMA-376 patterns declared above.
+        // They are NOT overwritten from the ambient ICU locale here: doing so made the formatted
+        // output of a single file depend on the server locale and on whether ext-intl was loaded.
+        // Callers that want locale-dependent rendering opt in explicitly via useLocaleFormats().
 
         $this->timezone = date_default_timezone_get();
         $this->dateFormatter = function ($value, $format = null) {
@@ -380,6 +373,61 @@ abstract class AbstractBook implements InterfaceBookReader
     public function getDateFormatter()
     {
         return $this->dateFormatter;
+    }
+
+    /**
+     * Opt in to locale-dependent patterns for the built-in date codes (numFmtId 14-22).
+     *
+     * By default these codes resolve to fixed, deterministic patterns, so the same file yields the same output on any server. Call this to render them with ICU locale patterns instead (the pre-4.x behaviour, but now explicit and with a chosen locale). Requires ext-intl.
+     *
+     * @param string|null $locale ICU locale name (e.g. 'ru_RU'); NULL uses the process default locale
+     *
+     * @return $this
+     */
+    public function useLocaleFormats(?string $locale = null): AbstractBook
+    {
+        if (!class_exists('IntlDateFormatter', false)) {
+            throw new Exception('Locale-based date formats require the intl extension');
+        }
+        $this->localeFormats = $this->_buildLocaleFormats($locale);
+
+        return $this;
+    }
+
+    /**
+     * Build the ICU-locale patterns for the built-in date codes 14-22.
+     *
+     * @param string|null $locale
+     *
+     * @return array<int, string>
+     */
+    protected function _buildLocaleFormats(?string $locale): array
+    {
+        $formats = [];
+
+        $formatter = new \IntlDateFormatter($locale, \IntlDateFormatter::SHORT, \IntlDateFormatter::NONE);
+        $pattern = $formatter->getPattern();
+        $formats[14] = str_replace('#', 'yy', str_replace(['M', 'y'], ['m', 'yyyy'], str_replace('yy', '#', $pattern)));
+
+        $formats[15] = 'd-mmm-yy';
+        $formats[16] = 'd-mmm';
+        $formats[17] = 'mmm-yy';
+        if (preg_match('/([^a-z])/i', $pattern, $m)) {
+            $dateDelim = $m[1];
+            $formats[15] = str_replace('-', $dateDelim, $formats[15]);
+            $formats[16] = str_replace('-', $dateDelim, $formats[16]);
+            $formats[17] = str_replace('-', $dateDelim, $formats[17]);
+        }
+
+        $formatter = new \IntlDateFormatter($locale, \IntlDateFormatter::NONE, \IntlDateFormatter::SHORT);
+        $formats[20] = str_replace('HH', 'h', $formatter->getPattern());
+
+        $formatter = new \IntlDateFormatter($locale, \IntlDateFormatter::NONE, \IntlDateFormatter::MEDIUM);
+        $formats[21] = str_replace('HH', 'h', $formatter->getPattern());
+
+        $formats[22] = $formats[14] . ' ' . $formats[20];
+
+        return $formats;
     }
 
     /**
@@ -1037,6 +1085,16 @@ abstract class AbstractBook implements InterfaceBookReader
      */
     public function getDateFormatPattern(int $styleIdx): ?string
     {
+        if ($this->localeFormats !== null) {
+            $style = $this->getCompleteStyleByIdx($styleIdx);
+            $numFmtId = $style['format']['format-num-id'] ?? null;
+            // Built-in codes carry no explicit pattern in the file, so they are the only ones
+            // resolved against the locale; a file's own numFmt override keeps its declared pattern.
+            if ($numFmtId !== null && isset($this->localeFormats[$numFmtId])) {
+                return $this->_convertDateFormatPattern($this->localeFormats[$numFmtId]);
+            }
+        }
+
         $pattern = $this->getFormatPattern($styleIdx);
         if ($pattern) {
             return $this->_convertDateFormatPattern($pattern);

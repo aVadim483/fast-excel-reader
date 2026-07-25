@@ -10,6 +10,23 @@ All notable changes to this project are documented in this file.
 This file starts at version 3.2.0; for earlier history see the
 [releases page](https://github.com/aVadim483/fast-excel-reader/releases).
 
+## 4.1.0
+
+### Fixed
+
+* Built-in date formats (numFmtId 14-22, such as the "short date" code 14) are now rendered
+  deterministically. Previously the reader overwrote their patterns from the ambient ICU locale
+  whenever `ext-intl` was loaded, so the same file produced different strings depending on the
+  server locale and on whether the extension was installed ([#53](https://github.com/aVadim483/fast-excel-reader/issues/53)).
+  These codes now resolve to fixed patterns regardless of environment. Formats that a file spells
+  out explicitly are unaffected.
+
+### Added
+
+* `useLocaleFormats(?string $locale = null)` — opt in to locale-dependent rendering of the built-in
+  date codes (the previous behaviour, now explicit). Pass a locale for reproducible output, or nothing
+  to use the process default locale. Requires `ext-intl`.
+
 ## 4.0.1
 
 ### Fixed

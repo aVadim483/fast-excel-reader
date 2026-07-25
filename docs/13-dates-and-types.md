@@ -16,7 +16,6 @@ $cells = $sheet->readCells();
 echo $cells['C5']; // -2205187200
 
 // If argument TRUE is passed, then all dates will be formatted as specified in cell styles
-// IMPORTANT! The datetime format depends on the locale
 $excel->dateFormatter(true);
 $cells = $sheet->readCells();
 echo $cells['C5']; // '14.02.1900'
@@ -55,6 +54,37 @@ $excel->dateFormatter(function($value, $format, $styleIdx) use($excel) {
     return $result;
 });
 ```
+
+### Built-in date formats and locale
+
+Some cells use a *built-in* number format (numFmtId 14-22, e.g. the "short date" code 14) that carries
+no explicit pattern in the file — Excel renders those against the regional settings of whoever opens the
+workbook. Because this is a server-side reader, it resolves such codes to **fixed, deterministic patterns**,
+so the same file produces the same output on any server, regardless of the process locale or of whether the
+`intl` extension is installed:
+
+```php
+$excel = Excel::open($file);
+$excel->dateFormatter(true);
+$cells = $excel->readCells();
+echo $cells['B2']; // '01-23-85' — always, for a code-14 short date
+```
+
+If you do want locale-dependent rendering of these built-in codes, opt in explicitly with
+`useLocaleFormats()` (requires the `intl` extension). Passing a locale makes the output reproducible;
+passing nothing uses the process default locale:
+
+```php
+$excel->useLocaleFormats('ru_RU')->dateFormatter(true);
+echo $excel->readCells()['B2']; // '23.01.1985'
+
+$excel->useLocaleFormats('en_US')->dateFormatter(true);
+echo $excel->readCells()['B2']; // '1/23/85'
+```
+
+> Note: this affects only the built-in codes 14-22. Formats that the file spells out explicitly (a custom
+> `numFmt`) are always used as written and are never touched by the locale.
+
 Sometimes, if a cell's format is specified as a date but does not contain a date, the library may misinterpret this value. To avoid this, you can disable date formatting
 
 ![demo date](../demo/files/img3.jpg)

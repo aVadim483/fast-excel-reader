@@ -10,10 +10,11 @@ use PHPUnit\Framework\TestCase;
  * Base class for the refactoring safety net.
  *
  * Pins everything environment-dependent so that snapshots stay portable between
- * machines. Excel::__construct() builds its builtin date formats from
- * IntlDateFormatter using the default locale, and stores the default timezone,
- * so an unpinned locale silently bakes machine-specific date patterns into the
- * expected values.
+ * machines. Excel stores the default timezone at construction, so an unpinned
+ * timezone would bake machine-specific date values into the expected results.
+ * The locale is pinned too: the built-in date patterns are deterministic by
+ * default (issue #53), but useLocaleFormats() and any other locale-sensitive
+ * code must observe a fixed locale for the snapshots to remain reproducible.
  */
 abstract class GuardTestCase extends TestCase
 {

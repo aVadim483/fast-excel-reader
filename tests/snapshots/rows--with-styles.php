@@ -241,7 +241,7 @@ return array (
         'format' => 
         array (
           'format-num-id' => 14,
-          'format-pattern' => 'm/d/yy',
+          'format-pattern' => 'mm-dd-yy',
           'format-category' => 'date',
         ),
         'font' => 
@@ -388,7 +388,7 @@ return array (
         'format' => 
         array (
           'format-num-id' => 14,
-          'format-pattern' => 'm/d/yy',
+          'format-pattern' => 'mm-dd-yy',
           'format-category' => 'date',
         ),
         'font' => 
@@ -535,7 +535,7 @@ return array (
         'format' => 
         array (
           'format-num-id' => 14,
-          'format-pattern' => 'm/d/yy',
+          'format-pattern' => 'mm-dd-yy',
           'format-category' => 'date',
         ),
         'font' => 

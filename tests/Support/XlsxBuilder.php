@@ -21,6 +21,9 @@ final class XlsxBuilder
     /** @var array<int, array<string, string>> */
     private $rows = [];
 
+    /** @var array<string, int> [cellAddress => numFmtId] */
+    private $cellFormats = [];
+
     /** @var string|null */
     private $stylesXml = null;
 
@@ -55,6 +58,41 @@ final class XlsxBuilder
     }
 
     /**
+     * Apply a built-in numFmtId to specific cells, e.g. code 14 (short date).
+     *
+     * A cellXf is generated per distinct format so the cell carries an "s" attribute;
+     * the reader then resolves the built-in code itself. Cannot be combined with
+     * a custom styles.xml passed to withStyles().
+     *
+     * @param array<string, int> $cellFormats [cellAddress => numFmtId]
+     *
+     * @return self
+     */
+    public function withCellFormats(array $cellFormats): self
+    {
+        $this->cellFormats = $cellFormats;
+
+        return $this;
+    }
+
+    /**
+     * Map each distinct numFmtId in use to its generated cellXfs index (0 is the default xf).
+     *
+     * @return array<int, int> [numFmtId => xfIndex]
+     */
+    private function numFmtXfIndex(): array
+    {
+        $ids = array_values(array_unique(array_values($this->cellFormats)));
+        sort($ids);
+        $map = [];
+        foreach ($ids as $i => $id) {
+            $map[$id] = $i + 1; // 0 is reserved for the default xf
+        }
+
+        return $map;
+    }
+
+    /**
      * Write the workbook to a temporary file and return its path.
      * The file is removed when the process ends.
      *
@@ -73,7 +111,10 @@ final class XlsxBuilder
         $zip->addFromString('_rels/.rels', self::rootRels());
         $zip->addFromString('xl/workbook.xml', self::workbook());
         $zip->addFromString('xl/_rels/workbook.xml.rels', self::workbookRels());
-        $zip->addFromString('xl/styles.xml', $this->stylesXml ?? self::styles());
+        if ($this->stylesXml !== null && $this->cellFormats) {
+            throw new \RuntimeException('withStyles() and withCellFormats() cannot be combined');
+        }
+        $zip->addFromString('xl/styles.xml', $this->stylesXml ?? $this->styles());
         $zip->addFromString('xl/worksheets/sheet1.xml', $this->sheet());
         $zip->close();
 
@@ -106,18 +147,24 @@ final class XlsxBuilder
             . '<worksheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main">'
             . '<dimension ref="' . $dimension . '"/><sheetData>';
 
+        $xfIndex = $this->numFmtXfIndex();
+
         foreach ($this->rows as $rowNum => $cells) {
             $xml .= '<row r="' . (int)$rowNum . '">';
             foreach ($cells as $col => $value) {
                 $addr = $col . (int)$rowNum;
+                $style = '';
+                if (isset($this->cellFormats[$addr])) {
+                    $style = ' s="' . $xfIndex[$this->cellFormats[$addr]] . '"';
+                }
                 if ($value === null) {
-                    $xml .= '<c r="' . $addr . '"/>';
+                    $xml .= '<c r="' . $addr . '"' . $style . '/>';
                 }
                 elseif (is_int($value) || is_float($value)) {
-                    $xml .= '<c r="' . $addr . '"><v>' . $value . '</v></c>';
+                    $xml .= '<c r="' . $addr . '"' . $style . '><v>' . $value . '</v></c>';
                 }
                 else {
-                    $xml .= '<c r="' . $addr . '" t="inlineStr"><is><t xml:space="preserve">'
+                    $xml .= '<c r="' . $addr . '"' . $style . ' t="inlineStr"><is><t xml:space="preserve">'
                         . htmlspecialchars((string)$value, ENT_QUOTES | ENT_XML1) . '</t></is></c>';
                 }
             }
@@ -179,8 +226,15 @@ final class XlsxBuilder
     /**
      * @return string
      */
-    private static function styles(): string
+    private function styles(): string
     {
+        $xfIndex = $this->numFmtXfIndex();
+        // xf 0 is the default; one extra xf per distinct built-in numFmtId in use
+        $cellXfs = '<xf numFmtId="0" fontId="0" fillId="0" borderId="0" xfId="0"/>';
+        foreach ($xfIndex as $numFmtId => $_) {
+            $cellXfs .= '<xf numFmtId="' . (int)$numFmtId . '" fontId="0" fillId="0" borderId="0" xfId="0" applyNumberFormat="1"/>';
+        }
+
         return '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>'
             . '<styleSheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main">'
             . '<numFmts count="0"/>'
@@ -188,7 +242,7 @@ final class XlsxBuilder
             . '<fills count="1"><fill><patternFill patternType="none"/></fill></fills>'
             . '<borders count="1"><border><left/><right/><top/><bottom/><diagonal/></border></borders>'
             . '<cellStyleXfs count="1"><xf numFmtId="0" fontId="0" fillId="0" borderId="0"/></cellStyleXfs>'
-            . '<cellXfs count="1"><xf numFmtId="0" fontId="0" fillId="0" borderId="0" xfId="0"/></cellXfs>'
+            . '<cellXfs count="' . (count($xfIndex) + 1) . '">' . $cellXfs . '</cellXfs>'
             . '</styleSheet>';
     }
 }

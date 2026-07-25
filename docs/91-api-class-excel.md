@@ -58,6 +58,7 @@
 * [stat()](#stat) – Returns statistics of the workbook: per-sheet breakdown and totals
 * [styleByIdx()](#stylebyidx) – Get style array by style index
 * [timestamp()](#timestamp) – Convert date to timestamp
+* [useLocaleFormats()](#uselocaleformats) – Opt in to locale-dependent patterns for the built-in date codes (numFmtId 14-22).
 * [visibleSheets()](#visiblesheets) – Array of visible sheets only
 
 ---
@@ -952,6 +953,23 @@ _Convert date to timestamp_
 ### Parameters
 
 * `$excelDateTime`
+
+---
+
+## useLocaleFormats()
+
+---
+
+```php
+public function useLocaleFormats(?string $locale = null): AbstractBook
+```
+_Opt in to locale-dependent patterns for the built-in date codes (numFmtId 14-22)._
+
+_By default these codes resolve to fixed, deterministic patterns, so the same file yields the same output on any server. Call this to render them with ICU locale patterns instead (the pre-4.x behaviour, but now explicit and with a chosen locale). Requires ext-intl._
+
+### Parameters
+
+* `string|null $locale` – ICU locale name (e.g. 'ru_RU'); NULL uses the process default locale
 
 ---
 

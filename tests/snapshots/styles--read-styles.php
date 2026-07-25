@@ -69,25 +69,25 @@ return array (
     14 => 
     array (
       'format-num-id' => 14,
-      'format-pattern' => 'm/d/yy',
+      'format-pattern' => 'mm-dd-yy',
       'format-category' => 'date',
     ),
     15 => 
     array (
       'format-num-id' => 15,
-      'format-pattern' => 'd/mmm/yy',
+      'format-pattern' => 'd-mmm-yy',
       'format-category' => 'date',
     ),
     16 => 
     array (
       'format-num-id' => 16,
-      'format-pattern' => 'd/mmm',
+      'format-pattern' => 'd-mmm',
       'format-category' => 'date',
     ),
     17 => 
     array (
       'format-num-id' => 17,
-      'format-pattern' => 'mmm/yy',
+      'format-pattern' => 'mmm-yy',
       'format-category' => 'date',
     ),
     18 => 
@@ -105,19 +105,19 @@ return array (
     20 => 
     array (
       'format-num-id' => 20,
-      'format-pattern' => 'h:mm a',
+      'format-pattern' => 'h:mm',
       'format-category' => 'date',
     ),
     21 => 
     array (
       'format-num-id' => 21,
-      'format-pattern' => 'h:mm:ss a',
+      'format-pattern' => 'h:mm:ss',
       'format-category' => 'date',
     ),
     22 => 
     array (
       'format-num-id' => 22,
-      'format-pattern' => 'm/d/yy h:mm a',
+      'format-pattern' => 'm/d/yy h:mm',
       'format-category' => 'date',
     ),
     37 => 
