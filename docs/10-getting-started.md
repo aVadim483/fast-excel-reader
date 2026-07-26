@@ -9,9 +9,9 @@ use \avadim\FastExcelReader\Excel;
 
 $file = __DIR__ . '/files/demo-00-simple.xlsx';
 
-// Open a spreadsheet: the reader is chosen by the file signature, so XLSX and
-// legacy XLS (Office 97-2003) are both opened the same way.
-// See docs/21-xls.md for what differs when reading XLS.
+// Open a spreadsheet: the reader is chosen by the file signature, so XLSX,
+// legacy XLS (Office 97-2003) and CSV are all opened the same way.
+// See docs/21-xls.md and docs/20-csv.md for what differs per format.
 $excel = Excel::open($file);
 // Read all values as a flat array from current sheet
 $result = $excel->readCells();
