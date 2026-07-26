@@ -55,7 +55,7 @@ foreach ($csv->nextRow() as $rowNum => $row) {
 
 ### Opening a CSV as a workbook with `Excel::open()`
 
-Since v4.1.0 the generic `Excel::open()` entry point also accepts CSV files and returns a normal
+Since v4.2.0 the generic `Excel::open()` entry point also accepts CSV files and returns a normal
 workbook, so a CSV behaves like any other spreadsheet: it exposes a single sheet through the same
 `sheet()`, `nextRow()`, `readRows()`, `readColumns()`, `setReadArea()`, `withHeader()` and key-mode
 API as XLSX and XLS. This is what lets format-agnostic code accept CSV without special cases.
