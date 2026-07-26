@@ -927,4 +927,45 @@ class CsvHelper
 
         return null;
     }
+
+    /**
+     * Heuristic: does a byte sample look like a binary (non-text) file?
+     *
+     * A NUL byte is the strong signal used by tools like git to classify binary
+     * content; images, executables and binary office files all carry one in
+     * their first bytes. As a fallback a high share of C0 control characters
+     * (excluding tab/LF/CR) also marks the sample as binary. High bytes
+     * (>= 0x80) are NOT counted - they are normal in UTF-8 and single-byte
+     * encodings such as Windows-1251 or Shift_JIS.
+     *
+     * The caller must skip this for UTF-16/UTF-32, whose text is full of NUL
+     * bytes by design.
+     *
+     * @param string $sample
+     * @param float $controlRatio Share of control bytes above which the sample is binary
+     *
+     * @return bool
+     */
+    public static function looksBinary(string $sample, float $controlRatio = 0.3): bool
+    {
+        if ($sample === '') {
+            return false;
+        }
+        if (strpos($sample, "\x00") !== false) {
+            return true;
+        }
+        $len = strlen($sample);
+        $control = 0;
+        for ($i = 0; $i < $len; $i++) {
+            $o = ord($sample[$i]);
+            if ($o === 9 || $o === 10 || $o === 13) { // tab, LF, CR are text
+                continue;
+            }
+            if ($o < 32 || $o === 127) {
+                $control++;
+            }
+        }
+
+        return ($control / $len) > $controlRatio;
+    }
 }

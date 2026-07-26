@@ -80,6 +80,11 @@ $book = Excel::open('data.txt', ['delimiter' => "\t", 'encoding' => 'Windows-125
 $book = Excel::open($file, ['format' => 'csv']); // force CSV regardless of signature
 ```
 
+Because detection is by exclusion, a non-spreadsheet file reaches the CSV reader. Binary input — a NUL
+byte, or a high share of control characters — is rejected up front with a clear error instead of being
+parsed into garbage; UTF-16/UTF-32 text is exempt (its NUL bytes are legitimate). Set
+`['allow_binary' => true]` to skip that guard.
+
 **`open()` vs `openCsv()`.** Both read the same file; they differ in what you get back and in the
 default column keys:
 
@@ -189,6 +194,7 @@ Available options:
 | `trim_fields`      | `bool`   | `true`     | Whether to trim leading/trailing whitespace from unquoted fields.            |
 | `skip_empty_lines` | `bool`   | `true`     | Whether to skip lines that are empty.                                        |
 | `comment_prefix`   | `string` | `null`     | Character(s) that indicate a comment line (e.g., `#`).                       |
+| `allow_binary`     | `bool`   | `false`    | Read binary-looking input instead of rejecting it (a NUL byte or many control chars normally throws). |
 
 ### Automatic Delimiter Detection
 

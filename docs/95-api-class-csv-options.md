@@ -7,6 +7,7 @@
 * [__isset()](#__isset) – Magic isset for options
 * [__set()](#__set) – Magic setter for options
 * [create()](#create) – Create CsvOptions instance
+* [setAllowBinary()](#setallowbinary) – Allow binary input instead of rejecting it
 * [setCommentPrefix()](#setcommentprefix) – Set comment prefix
 * [setDelimiter()](#setdelimiter) – Set column delimiter character (null for auto-detect)
 * [setDoubleQuotes()](#setdoublequotes) – Set whether to handle double quotes
@@ -94,6 +95,23 @@ _Create CsvOptions instance_
 ### Parameters
 
 * `array $options`
+
+---
+
+## setAllowBinary()
+
+---
+
+```php
+public function setAllowBinary(bool $enable): CsvOptions
+```
+_Allow binary input instead of rejecting it_
+
+_By default the reader throws when the file looks binary (a NUL byte, or ahigh share of control characters). Set this to skip that guard, e.g. toforce-parse an unusual text file._
+
+### Parameters
+
+* `bool $enable`
 
 ---
 

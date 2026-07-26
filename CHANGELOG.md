@@ -24,12 +24,18 @@ This file starts at version 3.2.0; for earlier history see the
   or images; those accessors return empty results instead of throwing. See [docs/20-csv.md](docs/20-csv.md).
 * `Excel::isXlsx()` — signature check (`PK\x03\x04`) telling a real XLSX/ZIP package apart from plain
   text, which `open()` then reads as CSV.
+* CSV: binary input (a NUL byte, or a high share of control characters) is now rejected up front with a
+  clear "file appears to be binary" error instead of failing deep in the parser. UTF-16/UTF-32 text is
+  exempt. The new `allow_binary` option (`CsvOptions::setAllowBinary()`) turns the guard off.
 
 ### Changed
 
 * `Excel::open(string $file, $options = [])` takes an optional second argument (BC-safe). A file that
   is neither an OLE2 nor a ZIP container is now read as CSV instead of being pushed into the XLSX
   reader (where it used to fail) — a fix in behaviour for non-spreadsheet input.
+* A ZIP that is not an XLSX (a DOCX/PPTX, or a plain archive) now fails with a clear "Not an XLSX
+  workbook: the ZIP archive has no xl/workbook.xml" message — with a DOCX/PPTX hint — instead of the
+  cryptic "Internal file not found: xl/_rels/workbook.xml.rels".
 
 ### Fixed
 

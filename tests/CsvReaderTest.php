@@ -94,6 +94,7 @@ class CsvReaderTest extends TestCase
         $csvOptions = new CsvOptions($options);
         $expected = $options;
         $expected['stream_filter'] = null;
+        $expected['allow_binary'] = false;
         $this->assertEquals($expected, $csvOptions->toArray());
     }
 

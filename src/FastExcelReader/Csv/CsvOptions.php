@@ -55,6 +55,7 @@ class CsvOptions
         'skip_empty_lines' => true,
         'stream_filter' => null,
         'comment_prefix' => null,
+        'allow_binary' => false,
     ];
 
     /**
@@ -271,6 +272,24 @@ class CsvOptions
     public function setCommentPrefix(?string $value): CsvOptions
     {
         $this->options['comment_prefix'] = $value;
+
+        return $this;
+    }
+
+    /**
+     * Allow binary input instead of rejecting it
+     *
+     * By default the reader throws when the file looks binary (a NUL byte, or a
+     * high share of control characters). Set this to skip that guard, e.g. to
+     * force-parse an unusual text file.
+     *
+     * @param bool $enable
+     *
+     * @return $this
+     */
+    public function setAllowBinary(bool $enable): CsvOptions
+    {
+        $this->options['allow_binary'] = $enable;
 
         return $this;
     }

@@ -130,6 +130,22 @@ class Excel extends AbstractBook
     {
         $this->xmlReader = static::createReader($file);
         $this->fileList = $this->xmlReader->fileList();
+
+        // A ZIP that carries no xl/workbook.xml is not an XLSX: report that
+        // plainly instead of failing later on a missing inner part. open() routes
+        // every ZIP here by signature, so this is where a DOCX/PPTX or a plain
+        // archive is caught.
+        if (!$this->checkInnerFile('xl/workbook.xml')) {
+            $hint = '';
+            if ($this->checkInnerFile('word/document.xml')) {
+                $hint = ' (it looks like a DOCX file)';
+            }
+            elseif ($this->checkInnerFile('ppt/presentation.xml')) {
+                $hint = ' (it looks like a PPTX file)';
+            }
+            throw new Exception('Not an XLSX workbook: the ZIP archive has no xl/workbook.xml' . $hint);
+        }
+
         foreach ($this->fileList as $fileName) {
             if (strpos($fileName, 'xl/drawings/drawing') === 0) {
                 $this->relations['drawings'][] = $fileName;

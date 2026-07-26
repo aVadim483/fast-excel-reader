@@ -23,6 +23,7 @@ class CsvReader
     protected bool $trimFields = true;
     protected bool $skipEmptyLines = false;
     protected bool $strictMode = true;
+    protected bool $allowBinary = false;
 
     protected string $buffer = '';
     protected int $bufferPos = 0;
@@ -92,6 +93,19 @@ class CsvReader
         if ($this->encoding === null) {
             $this->encoding = CsvHelper::detectEncoding($sample);
         }
+
+        // Reject binary input early with a clear message, rather than failing
+        // deep inside the parser with something like "Unexpected quotes". The
+        // check runs on the raw sample (before it is transcoded below) and is
+        // skipped for UTF-16/UTF-32, whose text is full of NUL bytes by design;
+        // by now the encoding has been resolved from the BOM or the sample.
+        if (!$this->allowBinary
+            && stripos((string)$this->encoding, 'UTF-16') !== 0
+            && stripos((string)$this->encoding, 'UTF-32') !== 0
+            && CsvHelper::looksBinary($sample)) {
+            throw new Exception("The file appears to be binary, not a text/CSV file: $file");
+        }
+
         if ($this->delimiter === null) {
             if ($this->encoding !== 'UTF-8' && $this->encoding !== null) {
                 $sample = mb_convert_encoding($sample, 'UTF-8', $this->encoding);
@@ -156,6 +170,10 @@ class CsvReader
                     case 'comment_prefix':
                     case 'commentPrefix':
                         $this->commentPrefix = $value;
+                        break;
+                    case 'allow_binary':
+                    case 'allowBinary':
+                        $this->allowBinary = (bool)$value;
                         break;
                 }
             }
