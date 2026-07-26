@@ -10,6 +10,15 @@ All notable changes to this project are documented in this file.
 This file starts at version 3.2.0; for earlier history see the
 [releases page](https://github.com/aVadim483/fast-excel-reader/releases).
 
+## 4.3.0
+
+### Changed
+
+* An empty (zero-byte) file passed to `Excel::open()` now fails up front with a clear "File ... is
+  empty" error, instead of being silently opened as a zero-row CSV — `open()` guesses the format by
+  signature and an empty file matches none. `Excel::openCsv()` is unchanged and still reads an empty
+  file as a valid, zero-row CSV.
+
 ## 4.2.0
 
 ### Added

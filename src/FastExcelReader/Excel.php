@@ -777,6 +777,13 @@ class Excel extends AbstractBook
      */
     public static function open(string $file, $options = []): AbstractBook
     {
+        // An empty file is not a valid spreadsheet or CSV. Report it plainly
+        // here, instead of silently opening a zero-row CSV further down (open()
+        // dispatches by signature, and an empty file matches neither XLS nor
+        // XLSX, so it would otherwise fall through to the CSV backend).
+        if (is_file($file) && filesize($file) === 0) {
+            throw new Exception("File $file is empty");
+        }
         if (is_array($options) && isset($options['format']) && strtolower((string)$options['format']) === 'csv') {
             return new CsvBook($file, $options);
         }
