@@ -184,6 +184,14 @@ class CsvReader
             }
         }
 
+        // Reset the read state too, not just the file handle: rewind() reopens
+        // through here, and a stale buffer/pushback left from a previous
+        // (possibly partial) pass would be replayed before the file is re-read.
+        $this->buffer = '';
+        $this->bufferPos = 0;
+        $this->bufferLen = 0;
+        $this->pushback = null;
+        $this->currentLine = '';
         $this->lineNo = 0;
         $this->colNo = 0;
 
@@ -457,6 +465,50 @@ class CsvReader
         return $data;
     }
 
+    /**
+     * Physical line number of the row last returned by getCsvLine()/nextRawRow()
+     *
+     * One based, and unaffected by skipping: empty and comment lines advance it
+     * too, so it matches the row addressing the sheet layer expects.
+     *
+     * @return int
+     */
+    public function getLineNo(): int
+    {
+        return $this->lineNo;
+    }
+
+    /**
+     * Read the next physical row of fields, low level
+     *
+     * Honours skip-empty-lines and the comment prefix, and returns the raw field
+     * array with no column-key or result-mode transformation - that belongs to
+     * the sheet/read-area layer. Returns FALSE at EOF. This is what CsvSheet
+     * drives its rawRows() from, so that the whole read API can be shared with
+     * the XLSX and XLS backends instead of duplicated.
+     *
+     * @return array|false
+     */
+    public function nextRawRow()
+    {
+        while (($row = $this->getCsvLine()) !== false) {
+            if (count($row) === 0) {
+                if ($this->skipEmptyLines) {
+                    continue;
+                }
+                $row = [];
+            }
+            if ($this->commentPrefix !== null && $this->commentPrefix !== ''
+                && strpos($this->currentLine, $this->commentPrefix) === 0) {
+                continue;
+            }
+
+            return $row;
+        }
+
+        return false;
+    }
+
     private function newLine()
     {
         $this->lineNo++;
@@ -480,12 +532,16 @@ class CsvReader
         }
 
         if (($this->bufferPos >= $this->bufferLen)) {
-            if (!feof($this->fp)) {
-                $this->buffer = fread($this->fp, $this->bufferSize);
-                $this->bufferLen = strlen($this->buffer);
-                $this->bufferPos = 0;
+            if (feof($this->fp)) {
+                return false;
             }
-            else {
+            $this->buffer = fread($this->fp, $this->bufferSize);
+            $this->bufferLen = strlen($this->buffer);
+            $this->bufferPos = 0;
+            // fread() can return '' when the previous read consumed exactly up to
+            // EOF (feof() only trips after that read), and for an empty file the
+            // very first read is empty. Either way there is no char to hand back.
+            if ($this->bufferLen === 0) {
                 return false;
             }
         }

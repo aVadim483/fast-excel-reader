@@ -20,12 +20,32 @@ This file starts at version 3.2.0; for earlier history see the
   server locale and on whether the extension was installed ([#53](https://github.com/aVadim483/fast-excel-reader/issues/53)).
   These codes now resolve to fixed patterns regardless of environment. Formats that a file spells
   out explicitly are unaffected.
+* CSV: an empty file (or one whose length is an exact multiple of the read buffer) no longer emits a
+  PHP warning and a phantom trailing row — it is now correctly read as zero rows.
+* CSV: `CsvReader::rewind()` now fully resets the read state, so re-reading a file after a partial pass
+  no longer replays a stale buffer.
 
 ### Added
 
+* **Reading CSV through `Excel::open()`.** `open()` now opens CSV files too, returning a `Csv\CsvBook`
+  — a normal one-sheet workbook that exposes the same `AbstractSheet` reading API (key modes, read
+  areas, `withHeader()`, `readColumns()`, ...) as XLSX and XLS. Format is chosen by signature (OLE2 →
+  XLS, ZIP → XLSX, otherwise CSV); pass `Excel::open($file, $options)` to configure the CSV reader or
+  force it with `['format' => 'csv']`. Through `open()` the default column keys are Excel letters, for
+  parity with XLSX. `openCsv()` is unchanged and still returns the low-level `Csv\CsvReader` engine
+  (also reachable via `CsvBook::getReader()`). CSV carries no styles, number/date typing, merged cells
+  or images; those accessors return empty results instead of throwing. See [docs/20-csv.md](docs/20-csv.md).
+* `Excel::isXlsx()` — signature check (`PK\x03\x04`) telling a real XLSX/ZIP package apart from plain
+  text, which `open()` then reads as CSV.
 * `useLocaleFormats(?string $locale = null)` — opt in to locale-dependent rendering of the built-in
   date codes (the previous behaviour, now explicit). Pass a locale for reproducible output, or nothing
   to use the process default locale. Requires `ext-intl`.
+
+### Changed
+
+* `Excel::open(string $file, $options = [])` takes an optional second argument (BC-safe). A file that
+  is neither an OLE2 nor a ZIP container is now read as CSV instead of being pushed into the XLSX
+  reader (where it used to fail) — a fix in behaviour for non-spreadsheet input.
 
 ## 4.0.1
 

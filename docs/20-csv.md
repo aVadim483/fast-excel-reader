@@ -53,6 +53,52 @@ foreach ($csv->nextRow() as $rowNum => $row) {
 }
 ```
 
+### Opening a CSV as a workbook with `Excel::open()`
+
+Since v4.1.0 the generic `Excel::open()` entry point also accepts CSV files and returns a normal
+workbook, so a CSV behaves like any other spreadsheet: it exposes a single sheet through the same
+`sheet()`, `nextRow()`, `readRows()`, `readColumns()`, `setReadArea()`, `withHeader()` and key-mode
+API as XLSX and XLS. This is what lets format-agnostic code accept CSV without special cases.
+
+```php
+use avadim\FastExcelReader\Excel;
+
+$book  = Excel::open('data.csv');          // returns a Csv\CsvBook
+$sheet = $book->sheet();                    // the single CSV sheet, named "CSV"
+
+$rows = $book->readRows();
+// keys are Excel column letters, exactly as for XLSX:
+// [1 => ['A' => 'ID', 'B' => 'Name'], 2 => ['A' => '1', 'B' => 'John'], ...]
+```
+
+The format is chosen by the file signature, not the extension: an OLE2 file is XLS, a ZIP file is
+XLSX, and anything else is read as delimited text. Pass options as the second argument — including any
+[configuration option](#configuration-options), and `['format' => 'csv']` to force the CSV reader:
+
+```php
+$book = Excel::open('data.txt', ['delimiter' => "\t", 'encoding' => 'Windows-1251']);
+$book = Excel::open($file, ['format' => 'csv']); // force CSV regardless of signature
+```
+
+**`open()` vs `openCsv()`.** Both read the same file; they differ in what you get back and in the
+default column keys:
+
+| | `Excel::open($csv)` | `Excel::openCsv($csv)` |
+|---|---|---|
+| Returns | `Csv\CsvBook` (a workbook) | `Csv\CsvReader` (the engine) |
+| Default column keys | Excel letters `A`, `B`, ... | zero-based integers `0`, `1`, ... |
+| API | full shared `AbstractSheet` API | the `CsvReader` low-level API |
+
+`openCsv()` is unchanged and remains the way to reach the low-level engine (`getCsvField()`,
+`getCsvLine()`, `onError()`, `setBufferSize()`, ...). From a `CsvBook` the same engine is available via
+`$book->getReader()`.
+
+**What a CSV does not have.** CSV stores no cell formats, so there is no automatic number/date typing
+(every value is a string) and no styles: `readRowsWithStyles()`, `readCellStyles()` and `readStyles()`
+return empty styles rather than throwing, and there are no merged cells or images. CSV also stores no
+dimension, so `dimension()` is empty until you ask for the actual extent with `actualDimension()`,
+`countRows()` or `countColumns()`, which scan the file once (the streaming `nextRow()` path never does).
+
 ## Advanced Reading
 
 ### Reading with Headers

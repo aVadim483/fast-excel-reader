@@ -3,6 +3,7 @@
 namespace avadim\FastExcelReader;
 
 use avadim\FastExcelHelper\Helper;
+use avadim\FastExcelReader\Csv\CsvBook;
 use avadim\FastExcelReader\Csv\CsvOptions;
 use avadim\FastExcelReader\Csv\CsvReader;
 use avadim\FastExcelReader\Xls\XlsBook;
@@ -747,19 +748,31 @@ class Excel extends AbstractBook
     /**
      * Open a spreadsheet, choosing the reader by the file signature
      *
-     * A ZIP container is XLSX, the OLE2 magic number is a legacy XLS workbook. The file extension is not consulted, because it is often wrong on files arriving from other systems.
+     * The OLE2 magic number is a legacy XLS workbook, a ZIP container is XLSX,
+     * and anything else is treated as delimited text (CSV). The file extension
+     * is not consulted, because it is often wrong on files arriving from other
+     * systems. Pass $options['format'] = 'csv' to force the CSV reader, and any
+     * CsvOptions keys (delimiter, enclosure, encoding, ...) to configure it.
      *
      * @param string $file
+     * @param CsvOptions|array|null $options
      *
      * @return AbstractBook
      */
-    public static function open(string $file): AbstractBook
+    public static function open(string $file, $options = []): AbstractBook
     {
+        if (is_array($options) && isset($options['format']) && strtolower((string)$options['format']) === 'csv') {
+            return new CsvBook($file, $options);
+        }
         if (self::isXls($file)) {
             return XlsBook::open($file);
         }
+        if (self::isXlsx($file)) {
+            return new self($file);
+        }
 
-        return new self($file);
+        // Neither OLE2 (XLS) nor ZIP (XLSX): treat as delimited text
+        return new CsvBook($file, $options);
     }
 
     /**
@@ -794,6 +807,32 @@ class Excel extends AbstractBook
         fclose($handle);
 
         return $signature === "\xD0\xCF\x11\xE0\xA1\xB1\x1A\xE1";
+    }
+
+    /**
+     * TRUE if the file starts with the ZIP local file header signature
+     *
+     * An XLSX package is a ZIP archive, so it begins with "PK\x03\x04". This is
+     * what lets open() tell a real XLSX apart from plain text, which is then
+     * read as CSV.
+     *
+     * @param string $file
+     *
+     * @return bool
+     */
+    public static function isXlsx(string $file): bool
+    {
+        if (!is_readable($file) || is_dir($file)) {
+            return false;
+        }
+        $handle = fopen($file, 'rb');
+        if (!$handle) {
+            return false;
+        }
+        $signature = (string)fread($handle, 4);
+        fclose($handle);
+
+        return $signature === "PK\x03\x04";
     }
 
     /**

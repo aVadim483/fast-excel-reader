@@ -8,6 +8,7 @@
 * [createReader()](#createreader) – Create XML reader object
 * [createSheet()](#createsheet) – Create sheet object
 * [isXls()](#isxls) – TRUE if the file starts with the OLE2 compound file signature
+* [isXlsx()](#isxlsx) – TRUE if the file starts with the ZIP local file header signature
 * [open()](#open) – Open a spreadsheet, choosing the reader by the file signature
 * [openCsv()](#opencsv) – Open CSV file
 * [openXls()](#openxls) – Open an XLS (Excel 97-2003, BIFF8) file
@@ -161,20 +162,38 @@ _TRUE if the file starts with the OLE2 compound file signature_
 
 ---
 
+## isXlsx()
+
+---
+
+```php
+public static function isXlsx(string $file): bool
+```
+_TRUE if the file starts with the ZIP local file header signature_
+
+_An XLSX package is a ZIP archive, so it begins with "PK\x03\x04". This iswhat lets open() tell a real XLSX apart from plain text, which is thenread as CSV._
+
+### Parameters
+
+* `string $file`
+
+---
+
 ## open()
 
 ---
 
 ```php
-public static function open(string $file): AbstractBook
+public static function open(string $file, $options): AbstractBook
 ```
 _Open a spreadsheet, choosing the reader by the file signature_
 
-_A ZIP container is XLSX, the OLE2 magic number is a legacy XLS workbook. The file extension is not consulted, because it is often wrong on files arriving from other systems._
+_The OLE2 magic number is a legacy XLS workbook, a ZIP container is XLSX,and anything else is treated as delimited text (CSV). The file extensionis not consulted, because it is often wrong on files arriving from othersystems. Pass $options\['format'] = 'csv' to force the CSV reader, and anyCsvOptions keys (delimiter, enclosure, encoding, ...) to configure it._
 
 ### Parameters
 
 * `string $file`
+* `CsvOptions|array|null $options`
 
 ---
 

@@ -45,6 +45,7 @@ memory usage.
 
 ### CSV format support
 
+* Openable via `Excel::open()` as a normal one-sheet workbook with the same reading API as XLSX/XLS, or via `Excel::openCsv()` for the low-level engine
 * Delimiter Detection: Automatic detection or manual specification of column delimiters.
 * Wide Encoding Support: Any encoding supported by your PHP environment
 * Supports fields with or without quotes, and escaped quotes (doubled quotes).
@@ -64,7 +65,7 @@ composer require avadim/fast-excel-reader
 ```php
 use \avadim\FastExcelReader\Excel;
 
-// XLSX and legacy XLS are both opened this way; the reader is chosen by the file signature
+// XLSX, legacy XLS and CSV are all opened this way; the reader is chosen by the file signature
 $excel = Excel::open(__DIR__ . '/files/demo.xlsx');
 
 // Read all rows into a two-dimensional array (ROW x COL)

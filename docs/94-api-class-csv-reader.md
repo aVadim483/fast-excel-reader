@@ -9,7 +9,9 @@
 * [fromRow()](#fromrow)
 * [getCsvField()](#getcsvfield) – Get next field from CSV file
 * [getCsvLine()](#getcsvline) – Get line from CSV file as array of fields (null - empty field, false - EOF)
+* [getLineNo()](#getlineno) – Physical line number of the row last returned by getCsvLine()/nextRawRow()
 * [getOptions()](#getoptions)
+* [nextRawRow()](#nextrawrow) – Read the next physical row of fields, low level
 * [nextRow()](#nextrow)
 * [onError()](#onerror)
 * [readRows()](#readrows) – Read rows and return as 2D array
@@ -130,6 +132,23 @@ _None_
 
 ---
 
+## getLineNo()
+
+---
+
+```php
+public function getLineNo(): int
+```
+_Physical line number of the row last returned by getCsvLine()/nextRawRow()_
+
+_One based, and unaffected by skipping: empty and comment lines advance ittoo, so it matches the row addressing the sheet layer expects._
+
+### Parameters
+
+_None_
+
+---
+
 ## getOptions()
 
 ---
@@ -138,6 +157,23 @@ _None_
 public function getOptions(): CsvOptions
 ```
 
+
+### Parameters
+
+_None_
+
+---
+
+## nextRawRow()
+
+---
+
+```php
+public function nextRawRow(): array|false
+```
+_Read the next physical row of fields, low level_
+
+_Honours skip-empty-lines and the comment prefix, and returns the raw fieldarray with no column-key or result-mode transformation - that belongs tothe sheet/read-area layer. Returns FALSE at EOF. This is what CsvSheetdrives its rawRows() from, so that the whole read API can be shared withthe XLSX and XLS backends instead of duplicated._
 
 ### Parameters
 
