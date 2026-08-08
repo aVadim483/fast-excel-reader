@@ -67,9 +67,16 @@ class Reader extends \XMLReader implements InterfaceXmlReader
     }
 
     /**
-     * @return bool|string
+     * Create an empty temporary file and return its path
+     *
+     * Honours the directory set by setTempDir(), falling back to the system temp
+     * directory (or the current working directory when that is not writable). The
+     * caller owns the returned file and is responsible for deleting it; the
+     * instance method makeTempFile() wraps this and ties the lifetime to close().
+     *
+     * @return string
      */
-    protected function makeTempFile()
+    public static function tempFilename(): string
     {
         $name = uniqid('xlsx_reader_', true);
         if (!self::$tempDir) {
@@ -83,17 +90,25 @@ class Reader extends \XMLReader implements InterfaceXmlReader
         }
         $filename = $tempDir . '/' . $name . '.tmp';
         if (touch($filename, time(), time()) && is_writable($filename)) {
-            $filename = realpath($filename);
-            $this->tmpFiles[] = $filename;
-            return $filename;
+            return realpath($filename);
         }
-        else {
-            $error = 'Warning: tempdir ' . $tempDir . ' is not writeable';
-            if (!self::$tempDir) {
-                $error .= ', use ->setTempDir()';
-            }
-            throw new Exception($error);
+
+        $error = 'Warning: tempdir ' . $tempDir . ' is not writeable';
+        if (!self::$tempDir) {
+            $error .= ', use ->setTempDir()';
         }
+        throw new Exception($error);
+    }
+
+    /**
+     * @return bool|string
+     */
+    protected function makeTempFile()
+    {
+        $filename = self::tempFilename();
+        $this->tmpFiles[] = $filename;
+
+        return $filename;
     }
 
     /**

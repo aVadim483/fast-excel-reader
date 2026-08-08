@@ -799,6 +799,100 @@ class Excel extends AbstractBook
     }
 
     /**
+     * Open a spreadsheet held in a string, choosing the reader by its signature
+     *
+     * The content is written to a temporary file and then opened exactly like
+     * open() - format is detected from the bytes, not from any file name, so an
+     * XLSX/XLS/CSV payload each read back the same as its on-disk counterpart.
+     * The temporary file is removed on script shutdown. Handy for content coming
+     * from a database blob, an HTTP response body or an S3/Flysystem read.
+     *
+     * @param string $content Raw bytes of the workbook
+     * @param CsvOptions|array|null $options Same options as open()
+     *
+     * @return AbstractBook
+     */
+    public static function openString(string $content, $options = []): AbstractBook
+    {
+        if ($content === '') {
+            throw new Exception('Cannot open an empty string as a spreadsheet');
+        }
+        $tempFile = Reader::tempFilename();
+        if (file_put_contents($tempFile, $content) === false) {
+            @unlink($tempFile);
+            throw new Exception('Cannot write the spreadsheet content to a temporary file');
+        }
+
+        return self::openTempFile($tempFile, $options);
+    }
+
+    /**
+     * Open a spreadsheet from an open stream resource
+     *
+     * The stream is copied (from its current position, without seeking, so
+     * non-rewindable streams such as HTTP wrappers work) into a temporary file
+     * and then opened like open(). This is the entry point for URLs
+     * (fopen('https://...')), php://memory and Flysystem/S3 read streams. The
+     * caller keeps ownership of the stream; it is not closed here. The temporary
+     * file is removed on script shutdown.
+     *
+     * @param resource $stream An open, readable stream resource
+     * @param CsvOptions|array|null $options Same options as open()
+     *
+     * @return AbstractBook
+     */
+    public static function openStream($stream, $options = []): AbstractBook
+    {
+        if (!is_resource($stream)) {
+            throw new Exception('openStream() expects an open stream resource');
+        }
+        $tempFile = Reader::tempFilename();
+        $out = fopen($tempFile, 'wb');
+        if (!$out) {
+            @unlink($tempFile);
+            throw new Exception('Cannot open a temporary file for the stream');
+        }
+        stream_copy_to_stream($stream, $out);
+        fclose($out);
+
+        if (filesize($tempFile) === 0) {
+            @unlink($tempFile);
+            throw new Exception('The stream produced no data');
+        }
+
+        return self::openTempFile($tempFile, $options);
+    }
+
+    /**
+     * Open a temporary file produced by openString()/openStream() and schedule
+     * its removal
+     *
+     * @param string $tempFile
+     * @param CsvOptions|array|null $options
+     *
+     * @return AbstractBook
+     */
+    protected static function openTempFile(string $tempFile, $options): AbstractBook
+    {
+        // Nothing owns this whole-workbook temporary file (the readers reopen it
+        // per inner entry), so remove it when the script ends. A guard keeps this
+        // safe if the file was already deleted.
+        register_shutdown_function(static function () use ($tempFile) {
+            if (is_file($tempFile)) {
+                @unlink($tempFile);
+            }
+        });
+
+        try {
+            return self::open($tempFile, $options);
+        }
+        catch (\Throwable $e) {
+            @unlink($tempFile);
+            throw $e;
+        }
+    }
+
+    /**
      * Open an XLS (Excel 97-2003, BIFF8) file
      *
      * @param string $file

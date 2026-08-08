@@ -80,6 +80,26 @@ Array
 )
 ```
 
+## Open from a string or a stream
+
+A workbook does not have to live on disk. When the bytes are already in memory —
+a database blob, an HTTP response body, an S3/Flysystem read — open them directly:
+
+```php
+// From a string (e.g. a BLOB column)
+$excel = Excel::openString($blob);
+
+// From an open stream resource (URL, php://memory, Flysystem read stream)
+$stream = fopen('https://example.com/report.xlsx', 'rb');
+$excel = Excel::openStream($stream);
+fclose($stream); // the caller keeps ownership of the stream
+```
+
+Both pick the reader by signature exactly like `open()`, so a string or stream
+holding XLSX, XLS or CSV reads back identically to the same file on disk. They
+accept the same `$options` as `open()` (e.g. `['format' => 'csv']`). Internally
+the content is copied to a temporary file, which is removed on script shutdown.
+
 ## See also
 
 * [Reading Data](11-reading-data.md) — row by row, array keys, empty cells

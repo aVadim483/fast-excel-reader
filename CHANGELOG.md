@@ -10,6 +10,19 @@ All notable changes to this project are documented in this file.
 This file starts at version 3.2.0; for earlier history see the
 [releases page](https://github.com/aVadim483/fast-excel-reader/releases).
 
+## 4.4.0
+
+### Added
+
+* **Opening a workbook from a string or a stream.** `Excel::openString($content)` reads a workbook
+  held in memory (a database BLOB, an HTTP body, an S3/Flysystem read), and `Excel::openStream($stream)`
+  reads it from an open stream resource (a URL via `fopen()`, `php://memory`, a Flysystem read stream).
+  Both pick the reader by signature exactly like `open()`, so a string/stream carrying XLSX, XLS or CSV
+  reads back identically to the same file on disk, and both accept the same `$options` as `open()`.
+  The content is copied to a temporary file (honouring `Excel::setTempDir()`), which is removed on
+  script shutdown; the stream passed to `openStream()` is not closed. See
+  [docs/10-getting-started.md](docs/10-getting-started.md).
+
 ## 4.3.0
 
 ### Changed
