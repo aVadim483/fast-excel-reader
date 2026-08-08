@@ -15,6 +15,7 @@
 * [dimensionArray()](#dimensionarray) – Get sheet dimension as an array
 * [extractConditionalFormatting()](#extractconditionalformatting) – Extracts conditional formatting rules from the sheet
 * [extractDataValidations()](#extractdatavalidations) – Extracts data validation rules from the sheet
+* [extractHyperlinks()](#extracthyperlinks) – Extracts the <hyperlinks> section of the sheet and resolves external targets from the sheet relationships file
 * [firstCol()](#firstcol) – Get letter of the first column in the read area
 * [firstRow()](#firstrow) – Get number of the first row in the read area
 * [from()](#from) – Set top left of read area. Alias of setReadArea()
@@ -26,6 +27,7 @@
 * [getConditionalFormatting()](#getconditionalformatting) – Get conditional formatting rules
 * [getDataValidations()](#getdatavalidations) – Get data validation rules
 * [getFreezePaneInfo()](#getfreezepaneinfo) – Get freeze pane info
+* [getHyperlinks()](#gethyperlinks) – Get cell hyperlinks, keyed by the cell (or range) they are anchored to
 * [getImageBlob()](#getimageblob) – Get image content as binary string
 * [getImageList()](#getimagelist) – Get image list
 * [getImageListByRow()](#getimagelistbyrow) – Get image list by row number
@@ -305,6 +307,21 @@ _None_
 
 ---
 
+## extractHyperlinks()
+
+---
+
+```php
+public function extractHyperlinks(): void
+```
+_Extracts the <hyperlinks> section of the sheet and resolves external targets from the sheet relationships file_
+
+### Parameters
+
+_None_
+
+---
+
 ## firstCol()
 
 ---
@@ -466,6 +483,23 @@ _None_
 public function getFreezePaneInfo(): ?array
 ```
 _Get freeze pane info_
+
+### Parameters
+
+_None_
+
+---
+
+## getHyperlinks()
+
+---
+
+```php
+public function getHyperlinks(): array
+```
+_Get cell hyperlinks, keyed by the cell (or range) they are anchored to_
+
+_Each entry is ['link' => string, 'location' => string, 'display' => string, 'tooltip' => string] where 'link' is the resolved external target (the URL from the sheet relationships), and 'location' is the in-document location - a cell reference like 'Sheet2!A1' for an internal link, or a fragment appended to an external target. Absent attributes are returned as empty strings._
 
 ### Parameters
 

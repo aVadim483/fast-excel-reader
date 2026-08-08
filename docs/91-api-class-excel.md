@@ -11,6 +11,8 @@
 * [isXlsx()](#isxlsx) – TRUE if the file starts with the ZIP local file header signature
 * [open()](#open) – Open a spreadsheet, choosing the reader by the file signature
 * [openCsv()](#opencsv) – Open CSV file
+* [openStream()](#openstream) – Open a spreadsheet from an open stream resource
+* [openString()](#openstring) – Open a spreadsheet held in a string, choosing the reader by its signature
 * [openXls()](#openxls) – Open an XLS (Excel 97-2003, BIFF8) file
 * [setTempDir()](#settempdir) – Set directory for temporary files
 * [validate()](#validate) – Validate XLSX file
@@ -28,6 +30,7 @@
 * [getFirstSheet()](#getfirstsheet) – Returns the first sheet as default
 * [getFormatPattern()](#getformatpattern) – Get format pattern by style index
 * [getImageList()](#getimagelist) – Get the list of images from the workbook
+* [getProperties()](#getproperties) – Get the document properties of the workbook
 * [getSheet()](#getsheet) – Get sheet object by name and optionally set read area and options
 * [getSheetById()](#getsheetbyid) – Returns a sheet by ID
 * [getSheetNames()](#getsheetnames) – Get names array of all sheets
@@ -209,6 +212,42 @@ _Open CSV file_
 ### Parameters
 
 * `string $file`
+* `CsvOptions|array|null $options`
+
+---
+
+## openStream()
+
+---
+
+```php
+public static function openStream($stream, $options): AbstractBook
+```
+_Open a spreadsheet from an open stream resource_
+
+_The stream is copied (from its current position, without seeking, so non-rewindable streams such as HTTP wrappers work) into a temporary file and then opened like open(). This is the entry point for URLs (fopen('https://...')), php://memory and Flysystem/S3 read streams. The caller keeps ownership of the stream; it is not closed here. The temporary file is removed on script shutdown._
+
+### Parameters
+
+* `resource $stream`
+* `CsvOptions|array|null $options`
+
+---
+
+## openString()
+
+---
+
+```php
+public static function openString(string $content, $options): AbstractBook
+```
+_Open a spreadsheet held in a string, choosing the reader by its signature_
+
+_The content is written to a temporary file and then opened exactly like open() - format is detected from the bytes, not from any file name, so an XLSX/XLS/CSV payload each read back the same as its on-disk counterpart. The temporary file is removed on script shutdown. Handy for content coming from a database blob, an HTTP response body or an S3/Flysystem read._
+
+### Parameters
+
+* `string $content`
 * `CsvOptions|array|null $options`
 
 ---
@@ -470,6 +509,23 @@ _Get format pattern by style index_
 public function getImageList(): array
 ```
 _Get the list of images from the workbook_
+
+### Parameters
+
+_None_
+
+---
+
+## getProperties()
+
+---
+
+```php
+public function getProperties(): array
+```
+_Get the document properties of the workbook_
+
+_Reads the core properties (docProps/core.xml) and the extended, application properties (docProps/app.xml) into a single associative array with normalised keys - 'creator', 'lastModifiedBy', 'created', 'modified', 'title', 'subject', 'description', 'keywords', 'category', 'revision', 'application', 'company', 'manager', ... Only the properties present in the file are returned; a workbook without a docProps part returns an empty array. The result is read on demand and cached._
 
 ### Parameters
 
