@@ -73,6 +73,31 @@ $excel->readCallback(function ($row, $col, $val) use(&$result) {
 var_dump($result);
 ```
 
+## Document properties
+
+Call `Excel::getProperties()` to read the workbook's document properties — the core properties
+(`docProps/core.xml`) and the extended, application properties (`docProps/app.xml`) — as a single
+associative array with normalised keys:
+
+```php
+$props = $excel->getProperties();
+```
+You will get an array like this:
+```text
+Array
+(
+    [lastModifiedBy] => 'Chris Holland'
+    [modified]       => '2025-02-21T00:23:41Z'
+    [application]    => 'Microsoft Macintosh Excel'
+    [appVersion]     => '16.0300'
+)
+```
+
+Recognised keys include `creator`, `lastModifiedBy`, `created`, `modified`, `title`, `subject`,
+`description`, `keywords`, `category`, `revision`, `language` (core) and `application`, `appVersion`,
+`company`, `manager` (app). Only the properties actually present in the file are returned; a workbook
+without a `docProps` part returns an empty array.
+
 ## See also
 
 * [Reading Data](11-reading-data.md) — row by row, array keys, empty cells

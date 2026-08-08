@@ -27,6 +27,11 @@ This file starts at version 3.2.0; for earlier history see the
   'tooltip' => ...]`. External targets are resolved from the sheet relationships file; internal links
   expose their in-document `location`. A sheet without hyperlinks returns an empty array. See
   [docs/16-sheet-metadata.md](docs/16-sheet-metadata.md).
+* **Reading workbook document properties.** `Excel::getProperties()` returns the core
+  (`docProps/core.xml`) and application (`docProps/app.xml`) properties as one associative array with
+  normalised keys — `creator`, `lastModifiedBy`, `created`, `modified`, `title`, `application`,
+  `company`, ... Only the properties present in the file are returned; a workbook without a `docProps`
+  part returns an empty array. See [docs/12-advanced-reading.md](docs/12-advanced-reading.md).
 
 ## 4.3.0
 

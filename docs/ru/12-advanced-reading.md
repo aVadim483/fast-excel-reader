@@ -73,6 +73,31 @@ $excel->readCallback(function ($row, $col, $val) use(&$result) {
 var_dump($result);
 ```
 
+## Свойства документа
+
+Вызовите `Excel::getProperties()`, чтобы прочитать свойства документа книги — базовые
+(`docProps/core.xml`) и расширенные, прикладные (`docProps/app.xml`) — как единый ассоциативный
+массив с нормализованными ключами:
+
+```php
+$props = $excel->getProperties();
+```
+Вы получите массив вида:
+```text
+Array
+(
+    [lastModifiedBy] => 'Chris Holland'
+    [modified]       => '2025-02-21T00:23:41Z'
+    [application]    => 'Microsoft Macintosh Excel'
+    [appVersion]     => '16.0300'
+)
+```
+
+Распознаются ключи `creator`, `lastModifiedBy`, `created`, `modified`, `title`, `subject`,
+`description`, `keywords`, `category`, `revision`, `language` (базовые) и `application`, `appVersion`,
+`company`, `manager` (прикладные). Возвращаются только реально присутствующие в файле свойства; книга
+без части `docProps` возвращает пустой массив.
+
 ## Смотрите также
 
 * [Чтение данных](11-reading-data.md) — построчно, ключи массивов, пустые ячейки

@@ -24,6 +24,11 @@
   'display' => ..., 'tooltip' => ...]`. Внешние цели разрешаются из файла связей листа; внутренние
   ссылки отдают своё местоположение `location` внутри документа. Лист без гиперссылок возвращает
   пустой массив. См. [docs/ru/16-sheet-metadata.md](docs/ru/16-sheet-metadata.md).
+* **Чтение свойств документа книги.** `Excel::getProperties()` возвращает базовые
+  (`docProps/core.xml`) и прикладные (`docProps/app.xml`) свойства единым ассоциативным массивом с
+  нормализованными ключами — `creator`, `lastModifiedBy`, `created`, `modified`, `title`,
+  `application`, `company`, … Возвращаются только присутствующие в файле свойства; книга без части
+  `docProps` возвращает пустой массив. См. [docs/ru/12-advanced-reading.md](docs/ru/12-advanced-reading.md).
 
 ## 4.3.0
 

@@ -110,6 +110,36 @@ class Excel extends AbstractBook
 
     protected int $countImages = -1; // -1 - unknown
 
+    protected ?array $properties = null;
+
+    /** docProps/core.xml element localName => normalised property key */
+    protected const CORE_PROPS_MAP = [
+        'creator' => 'creator',
+        'lastModifiedBy' => 'lastModifiedBy',
+        'created' => 'created',
+        'modified' => 'modified',
+        'title' => 'title',
+        'subject' => 'subject',
+        'description' => 'description',
+        'keywords' => 'keywords',
+        'category' => 'category',
+        'contentStatus' => 'contentStatus',
+        'revision' => 'revision',
+        'language' => 'language',
+        'identifier' => 'identifier',
+        'version' => 'version',
+    ];
+
+    /** docProps/app.xml element localName => normalised property key */
+    protected const APP_PROPS_MAP = [
+        'Application' => 'application',
+        'AppVersion' => 'appVersion',
+        'Company' => 'company',
+        'Manager' => 'manager',
+        'Template' => 'template',
+        'HyperlinkBase' => 'hyperlinkBase',
+    ];
+
 
 
     /**
@@ -1070,6 +1100,65 @@ class Excel extends AbstractBook
     public function innerFileList(): array
     {
         return $this->fileList;
+    }
+
+    /**
+     * Get the document properties of the workbook
+     *
+     * Reads the core properties (docProps/core.xml) and the extended,
+     * application properties (docProps/app.xml) into a single associative array
+     * with normalised keys - 'creator', 'lastModifiedBy', 'created', 'modified',
+     * 'title', 'subject', 'description', 'keywords', 'category', 'revision',
+     * 'application', 'company', 'manager', ... Only the properties present in the
+     * file are returned; a workbook without a docProps part returns an empty
+     * array. The result is read on demand and cached.
+     *
+     * @return array<string, string>
+     */
+    public function getProperties(): array
+    {
+        if ($this->properties === null) {
+            $this->properties = array_merge(
+                $this->_readDocProps('docProps/core.xml', self::CORE_PROPS_MAP),
+                $this->_readDocProps('docProps/app.xml', self::APP_PROPS_MAP)
+            );
+        }
+
+        return $this->properties;
+    }
+
+    /**
+     * Read one docProps part, keeping only the elements named in $map
+     *
+     * Matching is by local name, so the namespace prefix (cp:, dc:, dcterms:)
+     * does not matter. Elements outside the map - including the vt: vectors that
+     * app.xml wraps HeadingPairs/TitlesOfParts in - are skipped.
+     *
+     * @param string $innerFile
+     * @param array<string, string> $map local element name => result key
+     *
+     * @return array<string, string>
+     */
+    protected function _readDocProps(string $innerFile, array $map): array
+    {
+        $result = [];
+        $path = $this->checkInnerFile($innerFile);
+        if (!$path) {
+            return $result;
+        }
+
+        $this->xmlReader->openZip($path);
+        while ($this->xmlReader->read()) {
+            if ($this->xmlReader->nodeType === \XMLReader::ELEMENT) {
+                $local = $this->xmlReader->localName;
+                if (isset($map[$local])) {
+                    $result[$map[$local]] = $this->xmlReader->isEmptyElement ? '' : $this->xmlReader->readString();
+                }
+            }
+        }
+        $this->xmlReader->close();
+
+        return $result;
     }
 
     /**
