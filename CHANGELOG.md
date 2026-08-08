@@ -22,6 +22,11 @@ This file starts at version 3.2.0; for earlier history see the
   The content is copied to a temporary file (honouring `Excel::setTempDir()`), which is removed on
   script shutdown; the stream passed to `openStream()` is not closed. See
   [docs/10-getting-started.md](docs/10-getting-started.md).
+* **Reading cell hyperlinks.** `Sheet::getHyperlinks()` returns a sheet's hyperlinks keyed by the
+  cell (or range) they are anchored to, each as `['link' => ..., 'location' => ..., 'display' => ...,
+  'tooltip' => ...]`. External targets are resolved from the sheet relationships file; internal links
+  expose their in-document `location`. A sheet without hyperlinks returns an empty array. See
+  [docs/16-sheet-metadata.md](docs/16-sheet-metadata.md).
 
 ## 4.3.0
 

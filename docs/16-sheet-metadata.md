@@ -120,6 +120,36 @@ if ($sheet->isMerged('B3')) {
 }
 ```
 
+## Hyperlinks
+
+A worksheet can attach hyperlinks to cells. Call `Sheet::getHyperlinks()` to get them, keyed by the
+cell (or range) they are anchored to:
+
+```php
+$links = $sheet->getHyperlinks();
+```
+You will get an array like this:
+```text
+Array
+(
+    [A7] => Array
+        (
+            [link]     => 'https://go.servicetitan.com/'
+            [location] => '/new/reports/218?DateType=0&...'
+            [display]  => ''
+            [tooltip]  => ''
+        )
+)
+```
+
+* `link` — the resolved external target (the URL taken from the sheet relationships), or an empty
+  string for a purely internal link;
+* `location` — the in-document location: a cell reference such as `Sheet2!A1` for an internal link,
+  or a fragment appended to an external target;
+* `display`, `tooltip` — the corresponding attributes, or an empty string when absent.
+
+A sheet without hyperlinks returns an empty array.
+
 ## Count rows and columns
 
 Each sheet contains the ```dimension``` property with the range of the area in which the data is written. 

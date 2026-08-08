@@ -56,6 +56,8 @@ class Sheet extends AbstractSheet
 
     protected ?array $conditionals = null;
 
+    protected ?array $hyperlinks = null;
+
     protected ?array $rowHeights = null;
 
     protected ?array $colWidths = null;
@@ -1795,6 +1797,93 @@ class Sheet extends AbstractSheet
             'sqref' => $sqref,
             'attributes' => $attributes,
         ];
+    }
+
+    /**
+     * Get cell hyperlinks, keyed by the cell (or range) they are anchored to
+     *
+     * Each entry is
+     *   ['link' => string, 'location' => string, 'display' => string, 'tooltip' => string]
+     * where 'link' is the resolved external target (the URL from the sheet
+     * relationships), and 'location' is the in-document location - a cell
+     * reference like 'Sheet2!A1' for an internal link, or a fragment appended to
+     * an external target. Absent attributes are returned as empty strings.
+     *
+     * @return array<string, array{link: string, location: string, display: string, tooltip: string}>
+     */
+    public function getHyperlinks(): array
+    {
+        if ($this->hyperlinks === null) {
+            $this->extractHyperlinks();
+        }
+
+        return $this->hyperlinks;
+    }
+
+    /**
+     * Extracts the <hyperlinks> section of the sheet and resolves external
+     * targets from the sheet relationships file
+     */
+    public function extractHyperlinks(): void
+    {
+        $links = [];
+        $xmlReader = $this->xmlReaderOpenZip($this->pathInZip);
+        while ($xmlReader->read()) {
+            if ($xmlReader->nodeType === \XMLReader::ELEMENT && $xmlReader->name === 'hyperlink') {
+                $ref = (string)$xmlReader->getAttribute('ref');
+                if ($ref === '') {
+                    continue;
+                }
+                $links[$ref] = [
+                    // 'r:id' is resolved to 'link' below and then dropped
+                    'r:id' => (string)$xmlReader->getAttribute('r:id'),
+                    'link' => '',
+                    'location' => (string)$xmlReader->getAttribute('location'),
+                    'display' => (string)$xmlReader->getAttribute('display'),
+                    'tooltip' => (string)$xmlReader->getAttribute('tooltip'),
+                ];
+            }
+        }
+        $this->xmlReaderClose($xmlReader);
+
+        if ($links) {
+            $targets = $this->_readHyperlinkTargets();
+            foreach ($links as $ref => $info) {
+                if ($info['r:id'] !== '' && isset($targets[$info['r:id']])) {
+                    $links[$ref]['link'] = $targets[$info['r:id']];
+                }
+                unset($links[$ref]['r:id']);
+            }
+        }
+
+        $this->hyperlinks = $links;
+    }
+
+    /**
+     * Map relationship id -> external hyperlink target from the sheet .rels file
+     *
+     * @return array<string, string>
+     */
+    protected function _readHyperlinkTargets(): array
+    {
+        $relsPath = dirname($this->pathInZip) . '/_rels/' . basename($this->pathInZip) . '.rels';
+        if (!in_array($relsPath, $this->excel->innerFileList(), true)) {
+            return [];
+        }
+
+        $targets = [];
+        $xmlReader = $this->xmlReaderOpenZip($relsPath);
+        while ($xmlReader->read()) {
+            if ($xmlReader->nodeType === \XMLReader::ELEMENT && $xmlReader->name === 'Relationship') {
+                $id = (string)$xmlReader->getAttribute('Id');
+                if ($id !== '' && basename((string)$xmlReader->getAttribute('Type')) === 'hyperlink') {
+                    $targets[$id] = (string)$xmlReader->getAttribute('Target');
+                }
+            }
+        }
+        $this->xmlReaderClose($xmlReader);
+
+        return $targets;
     }
 
     /**
