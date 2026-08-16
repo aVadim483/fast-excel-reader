@@ -10,6 +10,18 @@ All notable changes to this project are documented in this file.
 This file starts at version 3.2.0; for earlier history see the
 [releases page](https://github.com/aVadim483/fast-excel-reader/releases).
 
+## 4.4.1
+
+### Fixed
+
+* Characters stored as `_xHHHH_` are decoded back to the character they stand for. XML cannot carry
+  control characters (and normalizes CR), so a spreadsheet keeps them escaped — a cell holding a CR
+  is stored as `_x000D_`, and Excel as well as the sibling `fast-excel-writer` writes it that way.
+  The reader used to return the literal text `_x000D_`, so such a value did not survive a write/read
+  round trip. Text that literally reads `_xHHHH_` is stored as `_x005F_xHHHH_` and still comes back
+  unchanged; both forms are resolved in a single pass, so a decoded value is never decoded twice.
+  Requires `avadim/fast-excel-helper` 1.4 or above.
+
 ## 4.4.0
 
 ### Added
