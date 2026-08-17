@@ -237,30 +237,76 @@ class XlsBook extends AbstractBook
     protected function styleFromFormatIndex(int $formatIndex): ?array
     {
         $pattern = $this->numberFormats[$formatIndex] ?? '';
+        $category = $this->categoryFromPattern($formatIndex, $pattern);
 
-        if ($this->_isDatePattern($formatIndex, $pattern)) {
+        // 'd' and 'n' rather than the category names: these are the short codes
+        // the XLSX reader writes, and both readers feed the same consumers
+        if ($category === 'date') {
             return ['format' => $pattern, 'formatType' => 'd'];
         }
         if ($pattern !== '') {
-            if ($this->_isNumberPattern($formatIndex, $pattern)) {
+            if ($category === 'number') {
                 return ['format' => $pattern, 'formatType' => 'n'];
             }
             // XLS writers often register a custom format whose pattern is one of
             // the builtin ones - "@" in particular - instead of referencing the
             // builtin index. Classify by the pattern so that such a cell is
             // typed the same as it would be in XLSX.
-            $category = $this->categoryByPattern($pattern);
-            if ($category !== null && $category !== '') {
+            if ($category !== '') {
                 return ['format' => $pattern, 'formatType' => $category];
             }
 
             return ['format' => $pattern];
         }
-        if ($formatIndex > 0 && isset($this->builtinFormats[$formatIndex]['category'])) {
-            return ['formatType' => $this->builtinFormats[$formatIndex]['category']];
+
+        if ($formatIndex > 0 && $category !== '') {
+            return ['formatType' => $category];
         }
 
         return null;
+    }
+
+    /**
+     * Category of a format index, honouring a FORMAT record registered for it
+     *
+     * The number of a format only describes a builtin one for as long as the
+     * file has not redefined it. XLSX may rely on the number alone because
+     * there custom formats start at 164 by the standard, but BIFF puts an
+     * arbitrary ifmt into a FORMAT record, and real writers (1C for one) do
+     * take indexes from 50 up - which the shared helper reads as one of the
+     * builtin (localized) date formats. So whenever the file brings a pattern
+     * of its own, that pattern - not the index - says what the format is.
+     *
+     * An unrecognized pattern is NOT classified by the index: _isDatePattern()
+     * already accepts every localized date mask, both the "[$-419]" prefixed
+     * ones and those spelled with yy/mm/dd/h/ss, so what is left over is not a
+     * date. Falling back to the index here would bring the misreading back for
+     * any custom numeric mask the pattern regexps do not match, such as
+     * '#,##0.00" pcs"'.
+     *
+     * @param int $formatIndex
+     * @param string $pattern
+     *
+     * @return string
+     */
+    protected function categoryFromPattern(int $formatIndex, string $pattern): string
+    {
+        if ($pattern !== '') {
+            if ($this->_isDatePattern(null, $pattern)) {
+                return 'date';
+            }
+            if ($this->_isNumberPattern(null, $pattern)) {
+                return 'number';
+            }
+
+            return (string)$this->categoryByPattern($pattern);
+        }
+
+        if ($this->_isDatePattern($formatIndex, '')) {
+            return 'date';
+        }
+
+        return (string)($this->builtinFormats[$formatIndex]['category'] ?? '');
     }
 
     /**
@@ -302,17 +348,12 @@ class XlsBook extends AbstractBook
             ];
         }
         foreach ($this->numberFormats as $index => $pattern) {
-            if ($this->_isDatePattern($index, $pattern)) {
-                $category = 'date';
-            }
-            else {
-                // custom formats that merely restate a builtin pattern keep its category
-                $category = (string)$this->categoryByPattern($pattern);
-            }
             $numFmts[$index] = [
                 'format-num-id' => $index,
                 'format-pattern' => $pattern,
-                'format-category' => $category,
+                // the pattern the file registered decides, not the index it was
+                // registered under - see categoryFromPattern()
+                'format-category' => $this->categoryFromPattern($index, $pattern),
             ];
         }
 

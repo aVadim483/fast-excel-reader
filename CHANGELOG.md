@@ -10,6 +10,21 @@ All notable changes to this project are documented in this file.
 This file starts at version 3.2.0; for earlier history see the
 [releases page](https://github.com/aVadim483/fast-excel-reader/releases).
 
+## 4.4.2
+
+### Fixed
+
+* A number format the file declares itself is no longer mistaken for the builtin format its
+  index stands for. The format numbers 14-22, 27-36, 45-47, 50-58 and 71-81 are reserved for
+  builtin date formats, several of them localized, so a cell using one carries no format code
+  of its own. But a file may register a code for such a number - XLS writers do it routinely,
+  1C among them, and a workbook converted from XLS keeps doing it in XLSX - and it has then
+  redefined that number. The reader typed such cells by the number alone, so an article number
+  like `043`, stored as 43 under the custom pattern `000`, came back as a timestamp of
+  1900-02-12 with no error raised. The declared pattern now decides, for the cell value as well
+  as for `format-category` of the cell style; a number used without a declaration still means
+  the builtin format it always did.
+
 ## 4.4.1
 
 ### Fixed

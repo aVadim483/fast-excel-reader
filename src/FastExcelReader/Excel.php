@@ -365,7 +365,12 @@ class Excel extends AbstractBook
                 elseif ($nodeName === 'xf') {
                     $numFmtId = (int)$this->xmlReader->getAttribute('numFmtId');
                     $formatCode = $numFmts[$numFmtId] ?? '';
-                    if ($this->_isDatePattern($numFmtId, $formatCode)) {
+                    // A number only stands for a builtin format for as long as the file has not
+                    // redefined it. Custom ids start at 164 by the standard, but converters - a
+                    // workbook that came from XLS in particular - do declare a numFmt for a lower
+                    // id, and some of those ids are reserved for builtin (localized) dates. So
+                    // when the file brings a format code of its own, that code decides.
+                    if ($this->_isDatePattern($formatCode === '' ? $numFmtId : null, $formatCode)) {
                         $this->styles[$styleType][] = ['format' => $formatCode, 'formatType' => 'd'];
                     }
                     elseif ($formatCode) {
@@ -532,7 +537,8 @@ class Excel extends AbstractBook
                     $node = [
                         'format-num-id' => (int)$numFmtId,
                         'format-pattern' => $formatCode,
-                        'format-category' => $this->_isDatePattern($numFmtId, $formatCode) ? 'date' : '',
+                        // the declared format code decides, not the id it was declared under
+                        'format-category' => $this->_isDatePattern(null, $formatCode) ? 'date' : '',
                     ];
                     $this->styles['_'][$tagName][$node['format-num-id']] = $node;
                 }

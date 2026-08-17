@@ -24,6 +24,9 @@ final class XlsxBuilder
     /** @var array<string, int> [cellAddress => numFmtId] */
     private $cellFormats = [];
 
+    /** @var array<int, string> [numFmtId => formatCode] declared in <numFmts> */
+    private $numberFormats = [];
+
     /** @var string|null */
     private $stylesXml = null;
 
@@ -71,6 +74,24 @@ final class XlsxBuilder
     public function withCellFormats(array $cellFormats): self
     {
         $this->cellFormats = $cellFormats;
+
+        return $this;
+    }
+
+    /**
+     * Declare format codes of a workbook's own, as <numFmt> elements.
+     *
+     * Any id may be used, including one below 164: the standard reserves those
+     * for the builtin formats, but converted files do declare them, and the
+     * reader must then honour the declared code rather than the id.
+     *
+     * @param array<int, string> $numberFormats [numFmtId => formatCode]
+     *
+     * @return self
+     */
+    public function withNumberFormats(array $numberFormats): self
+    {
+        $this->numberFormats = $numberFormats;
 
         return $this;
     }
@@ -235,9 +256,15 @@ final class XlsxBuilder
             $cellXfs .= '<xf numFmtId="' . (int)$numFmtId . '" fontId="0" fillId="0" borderId="0" xfId="0" applyNumberFormat="1"/>';
         }
 
+        $numFmts = '';
+        foreach ($this->numberFormats as $numFmtId => $formatCode) {
+            $numFmts .= '<numFmt numFmtId="' . (int)$numFmtId . '" formatCode="'
+                . htmlspecialchars($formatCode, ENT_QUOTES | ENT_XML1) . '"/>';
+        }
+
         return '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>'
             . '<styleSheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main">'
-            . '<numFmts count="0"/>'
+            . '<numFmts count="' . count($this->numberFormats) . '">' . $numFmts . '</numFmts>'
             . '<fonts count="1"><font><sz val="11"/><name val="Calibri"/></font></fonts>'
             . '<fills count="1"><fill><patternFill patternType="none"/></fill></fills>'
             . '<borders count="1"><border><left/><right/><top/><bottom/><diagonal/></border></borders>'

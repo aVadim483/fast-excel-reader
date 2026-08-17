@@ -115,4 +115,35 @@ final class BuiltinDateFormatTest extends GuardTestCase
         $this->expectException(\avadim\FastExcelReader\Exception::class);
         Excel::open($file)->useLocaleFormats('ru_RU');
     }
+
+    /**
+     * A numFmt the file declares wins over the builtin meaning of its id.
+     *
+     * Ids 14-22, 27-36, 45-47, 50-58 and 71-81 stand for builtin date formats,
+     * several of them localized, and a cell using one carries no format code.
+     * A file that declares a code for such an id has redefined it, though -
+     * converters coming from XLS do exactly that - and then the declared code
+     * is what the cell is formatted with. Reading it by id turned an article
+     * number like 043, stored as 43 under the pattern "000", into a date.
+     *
+     * @return void
+     */
+    public function testDeclaredFormatCodeWinsOverABuiltinId(): void
+    {
+        $file = XlsxBuilder::withRows([2 => ['A' => 43, 'B' => self::SERIAL, 'C' => self::SERIAL]])
+            ->withNumberFormats([51 => '000', 52 => 'dd\.mm\.yyyy'])
+            ->withCellFormats(['A2' => 51, 'B2' => 52, 'C2' => 14])
+            ->build();
+
+        $cells = Excel::open($file)->sheet()->readCells(true);
+
+        $this->assertSame(43, $cells['A2']['v']);
+        $this->assertSame('number', $cells['A2']['t']);
+
+        // a genuine date declared under the same range of ids stays a date
+        $this->assertSame('date', $cells['B2']['t']);
+
+        // and an id used without a declaration still means the builtin format
+        $this->assertSame('date', $cells['C2']['t']);
+    }
 }

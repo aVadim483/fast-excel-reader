@@ -270,6 +270,71 @@ final class XlsStyleTest extends GuardTestCase
     }
 
     /**
+     * A FORMAT record wins over the meaning its index has as a builtin format
+     *
+     * XLSX may type a cell by numFmtId alone, because there a custom format
+     * starts at 164 by the standard. BIFF has no such guarantee: a FORMAT
+     * record carries an arbitrary ifmt, and real writers - 1C among them - do
+     * take indexes from 50 up, which is one of the ranges reserved for builtin
+     * localized date formats. Reading those by index turned an article number
+     * such as 043, stored as 43 under the custom pattern "000", into a date.
+     *
+     * The fixture is a converted workbook whose format indexes were moved into
+     * the 50-58 range afterwards, since no converter writes them there.
+     *
+     * @return void
+     */
+    public function testFormatRecordOutweighsTheBuiltinMeaningOfItsIndex(): void
+    {
+        $cells = Excel::open(self::XLS_DIR . 'number-format-index.xls')->sheet()->readCells(true);
+
+        // ifmt 51, pattern "000": a number, not serial day 43 of 1900
+        $this->assertSame(43, $cells['A2']['v']);
+        $this->assertSame('number', $cells['A2']['t']);
+
+        // ifmt 52, pattern "dd.mm.yyyy": still a date
+        $this->assertSame('date', $cells['B2']['t']);
+
+        // ifmt 14 with no FORMAT record of its own: still a builtin date
+        $this->assertSame('date', $cells['C2']['t']);
+        $this->assertSame($cells['B2']['v'], $cells['C2']['v']);
+
+        // ifmt 53, pattern "@": text, as the builtin format 49 would be
+        $this->assertSame('43', $cells['D2']['v']);
+        $this->assertSame('string', $cells['D2']['t']);
+
+        // ifmt 54, pattern '#,##0.00" pcs"': a number the numeric regexp does
+        // not match either, so classifying by the index would make it a date
+        $this->assertSame(1234.5, $cells['E2']['v']);
+        $this->assertSame('number', $cells['E2']['t']);
+    }
+
+    /**
+     * The complete style tables classify such a format the same way
+     *
+     * They are built separately from the lightweight table that types values,
+     * so a fix applied to one of them alone leaves a cell whose value is a
+     * number while its style says it is a date.
+     *
+     * @return void
+     */
+    public function testFormatCategoryFollowsTheRegisteredPattern(): void
+    {
+        $styles = Excel::open(self::XLS_DIR . 'number-format-index.xls')->sheet()->readCellStyles(true);
+
+        $this->assertSame('000', $styles['A2']['format-pattern']);
+        $this->assertSame('number', $styles['A2']['format-category']);
+
+        $this->assertSame('date', $styles['B2']['format-category']);
+        $this->assertSame('date', $styles['C2']['format-category']);
+        $this->assertSame('string', $styles['D2']['format-category']);
+
+        // a custom mask that matches no builtin one stays uncategorized, the
+        // same as it does in XLSX - what matters is that it is not a date
+        $this->assertSame('', $styles['E2']['format-category']);
+    }
+
+    /**
      * A workbook with no PALETTE record must still resolve colours, from the
      * standard indexed table
      *
