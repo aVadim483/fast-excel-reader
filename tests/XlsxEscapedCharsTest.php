@@ -62,6 +62,58 @@ final class XlsxEscapedCharsTest extends GuardTestCase
     }
 
     /**
+     * A formula caches its string result in the cell as t="str", and that result carries
+     * the same escapes - a concatenation producing a line break is an everyday case.
+     *
+     * @return void
+     */
+    public function testFormulaStringResultIsDecoded(): void
+    {
+        $file = XlsxBuilder::withRows([
+            1 => [
+                'A' => 'line 1_x000D_line 2',
+                'B' => '_x005F_x000D_',
+            ],
+        ])->withFormulas([
+            'A1' => 'B1&amp;C1',
+            'B1' => 'C1',
+        ])->build();
+
+        $result = Excel::open($file)->readCells();
+
+        $this->assertSame("line 1\rline 2", $result['A1']);
+        $this->assertSame('_x000D_', $result['B1']);
+    }
+
+    /**
+     * Decoding must not change the type of a numeric formula result: "str" stays its own
+     * type, so a calculated number is still cast to int/float rather than returned as text.
+     *
+     * @return void
+     */
+    public function testNumericFormulaResultKeepsItsType(): void
+    {
+        $file = XlsxBuilder::withRows([
+            1 => [
+                'A' => 2,
+                'B' => 1.5,
+                'C' => '2',
+            ],
+        ])->withFormulas([
+            'A1' => '1+1',
+            'B1' => '3/2',
+            'C1' => '1+1',
+        ])->build();
+
+        $result = Excel::open($file)->readCells();
+
+        $this->assertSame(2, $result['A1']);
+        $this->assertSame(1.5, $result['B1']);
+        // Written as t="str", yet numeric - the reader casts it as it did before
+        $this->assertSame(2, $result['C1']);
+    }
+
+    /**
      * The same decoding applies to values taken from the shared string table
      *
      * @return void

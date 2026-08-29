@@ -348,7 +348,11 @@ class Sheet extends AbstractSheet
                     }
                 }
         }
-        if ($value && $dataType === 'string') {
+        // "str" is the cached string result of a formula. It is decoded like any other
+        // string, but it must keep its own type: the "default" branch above casts a
+        // numeric value to int/float only while the type is not "string", so calling it
+        // "string" here would turn the result of "=1+1" into '2'.
+        if ($value && ($dataType === 'string' || $dataType === 'str')) {
             $value = Helper::unescapeString($value);
         }
         $additionalData = ['v' => $value, 's' => $styleIdx, 'f' => $formula, 't' => $dataType, 'o' => $originalValue];

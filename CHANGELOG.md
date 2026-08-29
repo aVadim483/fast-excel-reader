@@ -10,6 +10,18 @@ All notable changes to this project are documented in this file.
 This file starts at version 3.2.0; for earlier history see the
 [releases page](https://github.com/aVadim483/fast-excel-reader/releases).
 
+## 4.4.3
+
+### Fixed
+
+* The cached string result of a formula is decoded like any other string. A calculated cell keeps
+  its result in the sheet under the type `str`, and version 4.4.1 taught the reader to turn
+  `_xHHHH_` sequences back into the characters they stand for - but only for shared and inline
+  strings, so formula results kept coming back escaped. A concatenation carrying a line break,
+  `=B1&C1` over cells holding one, returned the literal text `_x000D_` instead of a CR. The type
+  such a cell reports is unchanged: a numeric formula result is still cast to int or float, and
+  the cell metadata still says `str`.
+
 ## 4.4.2
 
 ### Fixed

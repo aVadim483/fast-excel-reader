@@ -27,6 +27,9 @@ final class XlsxBuilder
     /** @var array<int, string> [numFmtId => formatCode] declared in <numFmts> */
     private $numberFormats = [];
 
+    /** @var array<string, string> [cellAddress => formula] */
+    private $formulas = [];
+
     /** @var string|null */
     private $stylesXml = null;
 
@@ -92,6 +95,23 @@ final class XlsxBuilder
     public function withNumberFormats(array $numberFormats): self
     {
         $this->numberFormats = $numberFormats;
+
+        return $this;
+    }
+
+    /**
+     * Turn cells into formula cells, keeping their value from withRows() as the cached result.
+     *
+     * A string result is written with t="str" (the type Excel uses for it), a numeric one
+     * with no type attribute at all - exactly how a spreadsheet stores a calculated cell.
+     *
+     * @param array<string, string> $formulas [cellAddress => formula, without the leading "="]
+     *
+     * @return self
+     */
+    public function withFormulas(array $formulas): self
+    {
+        $this->formulas = $formulas;
 
         return $this;
     }
@@ -178,7 +198,17 @@ final class XlsxBuilder
                 if (isset($this->cellFormats[$addr])) {
                     $style = ' s="' . $xfIndex[$this->cellFormats[$addr]] . '"';
                 }
-                if ($value === null) {
+                if (isset($this->formulas[$addr])) {
+                    $formula = '<f>' . htmlspecialchars($this->formulas[$addr], ENT_QUOTES | ENT_XML1) . '</f>';
+                    if (is_int($value) || is_float($value)) {
+                        $xml .= '<c r="' . $addr . '"' . $style . '>' . $formula . '<v>' . $value . '</v></c>';
+                    }
+                    else {
+                        $xml .= '<c r="' . $addr . '"' . $style . ' t="str">' . $formula
+                            . '<v>' . htmlspecialchars((string)$value, ENT_QUOTES | ENT_XML1) . '</v></c>';
+                    }
+                }
+                elseif ($value === null) {
                     $xml .= '<c r="' . $addr . '"' . $style . '/>';
                 }
                 elseif (is_int($value) || is_float($value)) {
