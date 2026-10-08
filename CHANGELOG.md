@@ -10,6 +10,37 @@ All notable changes to this project are documented in this file.
 This file starts at version 3.2.0; for earlier history see the
 [releases page](https://github.com/aVadim483/fast-excel-reader/releases).
 
+## 4.5.0 (Unreleased)
+
+### Added
+
+* Explicit `openXlsx(): Excel`, `openCsvBook(): CsvBook` and `openCsvReader(): CsvReader`
+  factories. CSV factories preserve the constructor options and accept empty CSV files.
+* CI coverage for Windows and the lowest supported Composer dependencies.
+
+### Fixed
+
+* Workbook relationship targets are resolved relative to the workbook part without stripping
+  leading x/l characters. Absolute package paths and dot segments work; external relationships
+  are not opened as internal parts, and paths escaping the package are rejected.
+* Both `wrapText="1"` and `wrapText="true"` are recognised.
+* String/stream writes detect incomplete writes and reported copy failures, close owned output
+  streams even on exceptions, and remove temporary files on unsuccessful opening. Caller-owned
+  input streams stay open and are not rewound. ZIP fallback preserves XML parser properties.
+* `validate()` restores the libxml error mode, collects this call's XML errors across all parts,
+  supports special filenames through the ZIP fallback, and rejects missing required package parts.
+  It clears the shared libxml diagnostic buffer before/after the call; it is not schema validation.
+
+### Compatibility and migration
+
+* `openCsv()` continues to return `CsvReader` in 4.x. A return type change to `CsvBook` is
+  planned for 5.0. Use `openCsvReader()` for stable low-level access or `openCsvBook()` for
+  the book/sheet API. Existing successful reads and factory signatures remain unchanged.
+* `ext-dom` is now an explicit Composer requirement: XLSX parsing already uses DOM through
+  XMLReader::expand(). CSV/XLS-only installations without DOM must enable it before upgrading.
+* PHP remains >=7.4. Successful string/stream temporary files still live until process shutdown;
+  this release does not add book-level `close()` or a disk-backed shared string cache.
+
 ## 4.4.3
 
 ### Fixed

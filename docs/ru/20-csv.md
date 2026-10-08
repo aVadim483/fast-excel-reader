@@ -39,13 +39,33 @@
 
 ## Базовое использование
 
-Проще всего открыть CSV-файл через метод `Excel::openCsv()`.
+### Какую фабрику выбрать
+
+`Excel::openCsvBook($file, $options)` возвращает типизированную CSV-книгу с общим API
+`sheet()`/`readRows()`. `Excel::openCsvReader($file, $options)` открывает низкоуровневый
+движок с `getCsvLine()`/`fromRow()`. Обе фабрики принимают массив, `CsvOptions` или null
+и допускают пустой CSV. Универсальный `Excel::open()` определяет формат по содержимому
+и отклоняет пустой файл; `['format' => 'csv']` принудительно выбирает CSV.
+
+В 4.x старый `Excel::openCsv()` сохраняет возврат `CsvReader`. В 5.0 планируется возврат
+`CsvBook`: для сохранения низкоуровневого контракта замените имя на `openCsvReader()`.
+Для общего API книги сразу используйте `openCsvBook()`. Доступ к движку уже открытой
+книги остаётся доступен через `$book->getReader()`.
+
+```php
+$book = Excel::openCsvBook('data.csv', ['delimiter' => ';']);
+$rows = $book->sheet()->readRows();
+$reader = Excel::openCsvReader('data.csv', ['delimiter' => ';']);
+$line = $reader->getCsvLine();
+```
+
+Проще всего открыть CSV-файл через метод `Excel::openCsvReader()`.
 
 ```php
 use avadim\FastExcelReader\Excel;
 
 $file = 'data.csv';
-$csv = Excel::openCsv($file);
+$csv = Excel::openCsvReader($file);
 
 foreach ($csv->nextRow() as $rowNum => $row) {
     // $row — это простой числовой массив
@@ -89,7 +109,7 @@ NUL-байт или высокая доля управляющих символ�
 **`open()` против `openCsv()`.** Оба читают один и тот же файл; различаются тем, что возвращают, и
 ключами столбцов по умолчанию:
 
-| | `Excel::open($csv)` | `Excel::openCsv($csv)` |
+| | `Excel::open($csv)` | `Excel::openCsvReader($csv)` |
 |---|---|---|
 | Возвращает | `Csv\CsvBook` (объект файла) | `Csv\CsvReader` (движок) |
 | Ключи столбцов по умолчанию | буквы Excel `A`, `B`, ... | числа с нуля `0`, `1`, ... |
@@ -113,7 +133,7 @@ NUL-байт или высокая доля управляющих символ�
 Если в CSV есть строка заголовков, можно использовать метод `withHeader()`, чтобы значения первой строки стали ключами для последующих строк.
 
 ```php
-$csv = Excel::openCsv($file);
+$csv = Excel::openCsvReader($file);
 $rows = $csv->withHeader()->nextRow();
 
 foreach ($rows as $rowNum => $row) {
@@ -139,7 +159,7 @@ $rows = $csv->withHeader(['id', 'name', 'city'])->readRows();
 Метод `nextRow()` возвращает `\Generator`, что идеально для обработки больших файлов без загрузки их целиком в память.
 
 ```php
-$csv = Excel::openCsv($file);
+$csv = Excel::openCsvReader($file);
 $generator = $csv->nextRow();
 
 foreach ($generator as $row) {
@@ -152,7 +172,7 @@ foreach ($generator as $row) {
 Если файл небольшой и нужны все данные сразу:
 
 ```php
-$csv = Excel::openCsv($file);
+$csv = Excel::openCsvReader($file);
 $allRows = $csv->readRows();
 ```
 
@@ -171,7 +191,7 @@ $options = [
     'skip_empty_lines' => true,
 ];
 
-$csv = Excel::openCsv($file, $options);
+$csv = Excel::openCsvReader($file, $options);
 
 // Другие способы задать опции:
 $options = new CsvOptions($options)
@@ -182,7 +202,7 @@ $options = new CsvOptions($options)
     ->setSkipEmptyLines(true)
 ;
 
-$csv = Excel::openCsv($file, $options);
+$csv = Excel::openCsvReader($file, $options);
 ```
 
 Доступные опции:
@@ -218,7 +238,7 @@ $csv = Excel::openCsv($file, $options);
 Можно задать собственный обработчик ошибок для управления проблемами разбора, что особенно полезно в `tolerant`-режиме.
 
 ```php
-$csv = Excel::openCsv($file);
+$csv = Excel::openCsvReader($file);
 $csv->onError(function($code, $error, $line, $lineNo, $colNo) {
     echo "Error on line $lineNo, col $colNo: $error\n";
     echo "Line content: $line\n";
@@ -230,7 +250,7 @@ $csv->onError(function($code, $error, $line, $lineNo, $colNo) {
 ### Чтение файла с табуляцией (TSV)
 
 ```php
-$csv = Excel::openCsv('data.tsv', ['delimiter' => "\t"]);
+$csv = Excel::openCsvReader('data.tsv', ['delimiter' => "\t"]);
 foreach ($csv->nextRow() as $row) {
     // ...
 }
@@ -239,7 +259,7 @@ foreach ($csv->nextRow() as $row) {
 ### Обработка файлов в кодировке Windows-1251
 
 ```php
-$csv = Excel::openCsv('russian_data.csv', ['encoding' => 'Windows-1251']);
+$csv = Excel::openCsvReader('russian_data.csv', ['encoding' => 'Windows-1251']);
 foreach ($csv->nextRow() as $row) {
     // ...
 }
@@ -248,7 +268,7 @@ foreach ($csv->nextRow() as $row) {
 ### Пропуск комментариев
 
 ```php
-$csv = Excel::openCsv('config.csv', ['comment_prefix' => '#']);
+$csv = Excel::openCsvReader('config.csv', ['comment_prefix' => '#']);
 foreach ($csv->nextRow() as $row) {
     // Строки, начинающиеся с #, будут проигнорированы
 }

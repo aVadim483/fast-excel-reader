@@ -30,6 +30,7 @@
         "ext-mbstring": "*",
         "ext-ctype": "*",
         "ext-xmlreader": "*",
+        "ext-dom": "*",
         "avadim/fast-excel-helper": "^1.4"
     },
     "require-dev": {

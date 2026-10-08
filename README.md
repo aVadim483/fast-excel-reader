@@ -41,7 +41,7 @@ memory usage.
 * Supports legacy XLS format (Office 97-2003, BIFF8) with the same API as XLSX
 * Values, dates, cell styles, formula text and images are all returned in the same shape
 * The format is chosen by the file signature, not by the extension
-* Streaming as well: a sheet is read in one forward pass with constant memory
+* Streaming row iteration; workbook metadata, shared strings and images still consume memory
 
 ### CSV format support
 
@@ -79,6 +79,48 @@ foreach ($sheet->nextRow() as $rowNum => $rowData) {
 ```
 
 See more in the [Getting Started](docs/10-getting-started.md) guide.
+
+## Choosing an opening method
+
+Since 4.5, use an explicit factory when the format or API level is known:
+
+| Method | Returns | Use |
+|---|---|---|
+| `Excel::open($file, $options)` | `AbstractBook` | Detect XLSX/XLS/CSV by content |
+| `Excel::openXlsx($file)` | `Excel` | Require XLSX, without falling back to CSV |
+| `Excel::openXls($file)` | `XlsBook` | Require legacy BIFF8 XLS |
+| `Excel::openCsvBook($file, $options)` | `CsvBook` | CSV through the common book/sheet API |
+| `Excel::openCsvReader($file, $options)` | `CsvReader` | Low-level CSV engine |
+
+CSV options accept an array, `CsvOptions`, or null. Explicit CSV factories accept an
+empty CSV; the generic `open()` rejects empty input. `open()` only supports forcing
+`['format' => 'csv']`; use `openXlsx()` or `openXls()` to require those formats.
+
+**Preparing for 5.0:** `openCsv()` still returns `CsvReader` in 4.x, but is planned to
+return `CsvBook` in 5.0. Replace low-level calls with `openCsvReader()` to retain
+methods such as `getCsvLine()` and `fromRow()`. Choose `openCsvBook()` for book/sheet
+code; `getReader()` on that book also provides the low-level engine.
+
+`isXlsx()` checks a ZIP signature and `isXls()` an OLE2 signature; neither proves that
+an arbitrary container is a supported workbook. `validate()` checks required XLSX
+parts and XML well-formedness, not full OOXML schemas or formula correctness.
+
+## Format capabilities and resource limits
+
+| Capability | XLSX | XLS (BIFF8) | CSV |
+|---|---|---|---|
+| Common book/sheet API and row generators | Yes | Yes | Yes, one sheet |
+| Styles and embedded images | Yes | Yes, format limitations apply | No |
+| Formula text / cached results | Read, not calculated | Read, supported formula subset | Plain text |
+| Cell hyperlinks / document properties | Yes | Not exposed by these APIs | No |
+| Input encoding | XML encoding | BIFF strings/codepage | Auto or explicit CsvOptions |
+
+`readRows()` collects the result in memory; use `nextRow()` for large imports.
+Shared strings are loaded into memory for XLSX and XLS, and XLS also loads its global
+image store. Streaming rows therefore does not imply constant memory for the whole workbook.
+`openString()` and `openStream()` copy input to disk. Their successful temporary files
+live until process shutdown, including in long-running workers; destroying a book does
+not remove them immediately. A book-level `close()` is not available in 4.5.
 
 ## Documentation
 

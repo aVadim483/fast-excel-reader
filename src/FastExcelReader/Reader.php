@@ -3,6 +3,8 @@
 namespace avadim\FastExcelReader;
 
 use avadim\FastExcelReader\Interfaces\InterfaceXmlReader;
+use avadim\FastExcelReader\Internal\PackagePath;
+use avadim\FastExcelReader\Internal\StreamIO;
 
 /**
  * Class Reader
@@ -254,27 +256,38 @@ class Reader extends \XMLReader implements InterfaceXmlReader
             throw new Exception('Failed to open archive: ' . $this->xlsxFile);
         }
 
-        $st = $this->zip->getStream($innerPath);
-        if ($st === false) {
-            throw new Exception("Internal file not found: {$innerPath}");
+        $st = null;
+        $tmp = null;
+        try {
+            $st = $this->zip->getStream($innerPath);
+            if ($st === false) {
+                throw new Exception("Internal file not found: {$innerPath}");
+            }
+            $tmp = $this->makeTempFile();
+            StreamIO::copyToFile($st, $tmp);
+            if (!$this->open($tmp, $encoding, $options)) {
+                throw new Exception("XMLReader::open() failed to open {$tmp}");
+            }
+            foreach ($this->xmlParserProperties as $property => $value) {
+                $this->setParserProperty($property, $value);
+            }
+
+            return true;
         }
-
-        $tmp = $this->makeTempFile();
-        $out = fopen($tmp, 'wb');
-        if (!$out) {
-            fclose($st);
-            throw new Exception("Failed to create temporary file: {$tmp}");
+        catch (\Throwable $e) {
+            parent::close();
+            if ($tmp !== null) {
+                @unlink($tmp);
+                $this->tmpFiles = array_values(array_diff($this->tmpFiles, [$tmp]));
+            }
+            throw $e;
         }
-
-        stream_copy_to_stream($st, $out);
-        fclose($st);
-        fclose($out);
-
-        if (!$this->open($tmp, $encoding, $options)) {
-            throw new Exception("XMLReader::open() failed to open {$tmp}");
+        finally {
+            if (is_resource($st)) {
+                fclose($st);
+            }
+            $this->zip->close();
         }
-
-        return true;
     }
 
     /**
@@ -288,9 +301,9 @@ class Reader extends \XMLReader implements InterfaceXmlReader
             if ($this->innerFile) {
                 $this->innerFile = null;
             }
-            foreach ($this->tmpFiles as $tmp) {
-                if (is_file($tmp)) {
-                    @unlink($tmp);
+            foreach ($this->tmpFiles as $key => $tmp) {
+                if (!is_file($tmp) || @unlink($tmp)) {
+                    unset($this->tmpFiles[$key]);
                 }
             }
         }
@@ -315,7 +328,7 @@ class Reader extends \XMLReader implements InterfaceXmlReader
      */
     public function openSharedStrings(): bool
     {
-        return $this->zip->locateName('xl/sharedStrings.xml') !== false
+        return in_array('xl/sharedStrings.xml', $this->fileList(), true)
             && $this->openZip('xl/sharedStrings.xml');
     }
 
@@ -389,7 +402,8 @@ class Reader extends \XMLReader implements InterfaceXmlReader
 
         while ($this->read()) {
             if ($this->nodeType === \XMLReader::ELEMENT && $this->name === 'Relationship') {
-                if ($this->getAttribute('Id') === $rId) {
+                if ($this->getAttribute('Id') === $rId
+                    && strcasecmp((string)$this->getAttribute('TargetMode'), 'External') !== 0) {
                     $target = $this->getAttribute('Target'); // "worksheets/sheet1.xml"
                     break;
                 }
@@ -401,8 +415,7 @@ class Reader extends \XMLReader implements InterfaceXmlReader
             throw new Exception("Target not found by rId={$rId} in workbook.xml.rels");
         }
 
-        // относительный путь от xl/
-        $inner = 'xl/' . ltrim($target, '/');
+        $inner = PackagePath::resolve('xl/workbook.xml', $target);
 
         return $this->openZip($inner);
     }

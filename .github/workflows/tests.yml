@@ -2,19 +2,28 @@ name: Tests
 
 on:
   push:
-    branches: [ main ]
+    branches: [ main, dev ]
   pull_request:
     branches: [ main ]
 
 jobs:
   tests:
-    name: PHP ${{ matrix.php }}
-    runs-on: ubuntu-latest
+    name: PHP ${{ matrix.php }} / ${{ matrix.os }} / ${{ matrix.dependencies }}
+    runs-on: ${{ matrix.os }}
 
     strategy:
       fail-fast: false
       matrix:
         php: [ '7.4', '8.0', '8.1', '8.2', '8.3', '8.4', '8.5' ]
+        os: [ ubuntu-latest ]
+        dependencies: [ highest ]
+        include:
+          - php: '7.4'
+            os: ubuntu-latest
+            dependencies: lowest
+          - php: '8.4'
+            os: windows-latest
+            dependencies: highest
 
     steps:
       - name: Checkout code
@@ -24,16 +33,17 @@ jobs:
         uses: shivammathur/setup-php@v2
         with:
           php-version: ${{ matrix.php }}
-          extensions: zip, mbstring, ctype, xmlreader
+          extensions: zip, mbstring, ctype, xmlreader, dom
           coverage: none
 
       - name: Validate composer.json
         run: composer validate --strict --no-check-lock
 
-      # PHP 8.5 is not a stable release yet, so let dev dependencies that
-      # do not declare support for it install anyway.
       - name: Install dependencies
-        run: composer update --prefer-dist --no-progress --no-interaction ${{ matrix.php == '8.5' && '--ignore-platform-req=php+' || '' }}
+        run: composer update --prefer-dist --prefer-stable --no-progress --no-interaction ${{ matrix.dependencies == 'lowest' && '--prefer-lowest' || '' }}
+
+      - name: Check platform requirements
+        run: composer check-platform-reqs
 
       - name: Run tests
-        run: vendor/bin/phpunit tests
+        run: php vendor/phpunit/phpunit/phpunit tests

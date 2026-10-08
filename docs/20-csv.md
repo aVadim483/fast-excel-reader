@@ -39,13 +39,33 @@ A fast and efficient CSV reader for PHP, integrated into the `fast-excel-reader`
 
 ## Basic Usage
 
-The easiest way to open a CSV file is through the `Excel::openCsv()` method.
+### Which factory to choose
+
+`Excel::openCsvBook($file, $options)` returns a typed CSV workbook with the common
+`sheet()`/`readRows()` API. `Excel::openCsvReader($file, $options)` opens the low-level
+engine with `getCsvLine()`/`fromRow()`. Both accept an array, `CsvOptions`, or null,
+and allow empty CSV. The generic `Excel::open()` detects by content and rejects an
+empty file; `['format' => 'csv']` forces CSV.
+
+In 4.x, the old `Excel::openCsv()` retains its `CsvReader` return type. In 5.0 it is
+planned to return `CsvBook`: replace its name with `openCsvReader()` to keep the
+low-level contract. For the common book API, use `openCsvBook()` now. An existing
+CSV book also exposes the engine through `$book->getReader()`.
+
+```php
+$book = Excel::openCsvBook('data.csv', ['delimiter' => ';']);
+$rows = $book->sheet()->readRows();
+$reader = Excel::openCsvReader('data.csv', ['delimiter' => ';']);
+$line = $reader->getCsvLine();
+```
+
+The easiest way to open a CSV file is through the `Excel::openCsvReader()` method.
 
 ```php
 use avadim\FastExcelReader\Excel;
 
 $file = 'data.csv';
-$csv = Excel::openCsv($file);
+$csv = Excel::openCsvReader($file);
 
 foreach ($csv->nextRow() as $rowNum => $row) {
     // $row is a simple numerical array
@@ -88,7 +108,7 @@ parsed into garbage; UTF-16/UTF-32 text is exempt (its NUL bytes are legitimate)
 **`open()` vs `openCsv()`.** Both read the same file; they differ in what you get back and in the
 default column keys:
 
-| | `Excel::open($csv)` | `Excel::openCsv($csv)` |
+| | `Excel::open($csv)` | `Excel::openCsvReader($csv)` |
 |---|---|---|
 | Returns | `Csv\CsvBook` (a workbook) | `Csv\CsvReader` (the engine) |
 | Default column keys | Excel letters `A`, `B`, ... | zero-based integers `0`, `1`, ... |
@@ -111,7 +131,7 @@ dimension, so `dimension()` is empty until you ask for the actual extent with `a
 If your CSV has a header row, you can use the `withHeader()` method to use the first row values as keys for subsequent rows.
 
 ```php
-$csv = Excel::openCsv($file);
+$csv = Excel::openCsvReader($file);
 $rows = $csv->withHeader()->nextRow();
 
 foreach ($rows as $rowNum => $row) {
@@ -135,7 +155,7 @@ A shorter list renames only the columns it covers; the rest keep the name from t
 The `nextRow()` method returns a `\Generator`, which is ideal for processing large files without loading them entirely into memory.
 
 ```php
-$csv = Excel::openCsv($file);
+$csv = Excel::openCsvReader($file);
 $generator = $csv->nextRow();
 
 foreach ($generator as $row) {
@@ -148,7 +168,7 @@ foreach ($generator as $row) {
 If the file is small and you need all data at once:
 
 ```php
-$csv = Excel::openCsv($file);
+$csv = Excel::openCsvReader($file);
 $allRows = $csv->readRows();
 ```
 
@@ -167,7 +187,7 @@ $options = [
     'skip_empty_lines' => true,
 ];
 
-$csv = Excel::openCsv($file, $options);
+$csv = Excel::openCsvReader($file, $options);
 
 // Other ways to set options:
 $options = new CsvOptions($options)
@@ -178,7 +198,7 @@ $options = new CsvOptions($options)
     ->setSkipEmptyLines(true)
 ;
 
-$csv = Excel::openCsv($file, $options);
+$csv = Excel::openCsvReader($file, $options);
 ```
 
 Available options:
@@ -214,7 +234,7 @@ The reader automatically detects most common encodings including UTF-8, UTF-16, 
 You can define a custom error handler to manage parsing issues, especially useful in `tolerant` mode.
 
 ```php
-$csv = Excel::openCsv($file);
+$csv = Excel::openCsvReader($file);
 $csv->onError(function($code, $error, $line, $lineNo, $colNo) {
     echo "Error on line $lineNo, col $colNo: $error\n";
     echo "Line content: $line\n";
@@ -226,7 +246,7 @@ $csv->onError(function($code, $error, $line, $lineNo, $colNo) {
 ### Reading a Tab-Separated File (TSV)
 
 ```php
-$csv = Excel::openCsv('data.tsv', ['delimiter' => "\t"]);
+$csv = Excel::openCsvReader('data.tsv', ['delimiter' => "\t"]);
 foreach ($csv->nextRow() as $row) {
     // ...
 }
@@ -235,7 +255,7 @@ foreach ($csv->nextRow() as $row) {
 ### Handling Windows-1251 Encoded Files
 
 ```php
-$csv = Excel::openCsv('russian_data.csv', ['encoding' => 'Windows-1251']);
+$csv = Excel::openCsvReader('russian_data.csv', ['encoding' => 'Windows-1251']);
 foreach ($csv->nextRow() as $row) {
     // ...
 }
@@ -244,7 +264,7 @@ foreach ($csv->nextRow() as $row) {
 ### Skipping Comments
 
 ```php
-$csv = Excel::openCsv('config.csv', ['comment_prefix' => '#']);
+$csv = Excel::openCsvReader('config.csv', ['comment_prefix' => '#']);
 foreach ($csv->nextRow() as $row) {
     // Rows starting with # will be ignored
 }

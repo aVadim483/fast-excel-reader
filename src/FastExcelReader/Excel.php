@@ -3,6 +3,8 @@
 namespace avadim\FastExcelReader;
 
 use avadim\FastExcelHelper\Helper;
+use avadim\FastExcelReader\Internal\PackagePath;
+use avadim\FastExcelReader\Internal\StreamIO;
 use avadim\FastExcelReader\Csv\CsvBook;
 use avadim\FastExcelReader\Csv\CsvOptions;
 use avadim\FastExcelReader\Csv\CsvReader;
@@ -159,78 +161,86 @@ class Excel extends AbstractBook
     protected function _prepare(string $file): void
     {
         $this->xmlReader = static::createReader($file);
-        $this->fileList = $this->xmlReader->fileList();
+        try {
+            $this->fileList = $this->xmlReader->fileList();
 
-        // A ZIP that carries no xl/workbook.xml is not an XLSX: report that
-        // plainly instead of failing later on a missing inner part. open() routes
-        // every ZIP here by signature, so this is where a DOCX/PPTX or a plain
-        // archive is caught.
-        if (!$this->checkInnerFile('xl/workbook.xml')) {
-            $hint = '';
-            if ($this->checkInnerFile('word/document.xml')) {
-                $hint = ' (it looks like a DOCX file)';
+            // A ZIP that carries no xl/workbook.xml is not an XLSX: report that
+            // plainly instead of failing later on a missing inner part. open() routes
+            // every ZIP here by signature, so this is where a DOCX/PPTX or a plain
+            // archive is caught.
+            if (!$this->checkInnerFile('xl/workbook.xml')) {
+                $hint = '';
+                if ($this->checkInnerFile('word/document.xml')) {
+                    $hint = ' (it looks like a DOCX file)';
+                }
+                elseif ($this->checkInnerFile('ppt/presentation.xml')) {
+                    $hint = ' (it looks like a PPTX file)';
+                }
+                throw new Exception('Not an XLSX workbook: the ZIP archive has no xl/workbook.xml' . $hint);
             }
-            elseif ($this->checkInnerFile('ppt/presentation.xml')) {
-                $hint = ' (it looks like a PPTX file)';
-            }
-            throw new Exception('Not an XLSX workbook: the ZIP archive has no xl/workbook.xml' . $hint);
-        }
 
-        foreach ($this->fileList as $fileName) {
-            if (strpos($fileName, 'xl/drawings/drawing') === 0) {
-                $this->relations['drawings'][] = $fileName;
-            }
-            elseif (strpos($fileName, 'xl/media/') === 0) {
-                $this->relations['media'][] = $fileName;
-            }
-        }
-
-        $innerFile = 'xl/_rels/workbook.xml.rels';
-        $this->xmlReader->openZip($innerFile);
-        while ($this->xmlReader->read()) {
-            if ($this->xmlReader->nodeType === \XMLReader::ELEMENT && $this->xmlReader->name === 'Relationship') {
-                $type = basename($this->xmlReader->getAttribute('Type'));
-                if ($type) {
-                    $this->relations[$type][$this->xmlReader->getAttribute('Id')] = 'xl/' . ltrim($this->xmlReader->getAttribute('Target'), '/xl');
+            foreach ($this->fileList as $fileName) {
+                if (strpos($fileName, 'xl/drawings/drawing') === 0) {
+                    $this->relations['drawings'][] = $fileName;
+                }
+                elseif (strpos($fileName, 'xl/media/') === 0) {
+                    $this->relations['media'][] = $fileName;
                 }
             }
-        }
-        $this->xmlReader->close();
 
-        if (isset($this->relations['worksheet'])) {
-            $this->_loadSheets();
-        }
+            $innerFile = 'xl/_rels/workbook.xml.rels';
+            $this->xmlReader->openZip($innerFile);
+            while ($this->xmlReader->read()) {
+                if ($this->xmlReader->nodeType === \XMLReader::ELEMENT && $this->xmlReader->name === 'Relationship') {
+                    if (strcasecmp((string)$this->xmlReader->getAttribute('TargetMode'), 'External') === 0) {
+                        continue;
+                    }
+                    $type = basename($this->xmlReader->getAttribute('Type'));
+                    if ($type) {
+                        $this->relations[$type][$this->xmlReader->getAttribute('Id')] = PackagePath::resolve('xl/workbook.xml', (string)$this->xmlReader->getAttribute('Target'));
+                    }
+                }
+            }
+            $this->xmlReader->close();
 
-        if (isset($this->relations['sharedStrings'])) {
-            $innerFile = $this->checkInnerFile(reset($this->relations['sharedStrings']));
-            if ($innerFile) {
-                $this->_loadSharedStrings($innerFile);
+            if (isset($this->relations['worksheet'])) {
+                $this->_loadSheets();
+            }
+
+            if (isset($this->relations['sharedStrings'])) {
+                $innerFile = $this->checkInnerFile(reset($this->relations['sharedStrings']));
+                if ($innerFile) {
+                    $this->_loadSharedStrings($innerFile);
+                }
+            }
+
+            if (isset($this->relations['theme'])) {
+                $innerFile = $this->checkInnerFile(reset($this->relations['theme']));
+                if ($innerFile) {
+                    $this->_loadThemes($innerFile);
+                }
+            }
+
+            if (isset($this->relations['styles'])) {
+                $innerFile = $this->checkInnerFile(reset($this->relations['styles']));
+                if ($innerFile) {
+                    $this->_loadStyles($innerFile);
+                }
+            }
+
+            if (isset($this->relations['sheetMetadata'], $this->relations['richValueRel'])) {
+                $metadataFile = $this->checkInnerFile(reset($this->relations['sheetMetadata']));
+                $richValueRelFile = $this->checkInnerFile(reset($this->relations['richValueRel']));
+                $this->_loadMetadataImages($metadataFile, $richValueRelFile);
+            }
+
+            if ($this->sheets) {
+                // set current sheet
+                $this->selectFirstSheet();
             }
         }
-
-        if (isset($this->relations['theme'])) {
-            $innerFile = $this->checkInnerFile(reset($this->relations['theme']));
-            if ($innerFile) {
-                $this->_loadThemes($innerFile);
-            }
-        }
-
-        if (isset($this->relations['styles'])) {
-            $innerFile = $this->checkInnerFile(reset($this->relations['styles']));
-            if ($innerFile) {
-                $this->_loadStyles($innerFile);
-            }
-        }
-
-        if (isset($this->relations['sheetMetadata'], $this->relations['richValueRel'])) {
-            $metadataFile = $this->checkInnerFile(reset($this->relations['sheetMetadata']));
-            $richValueRelFile = $this->checkInnerFile(reset($this->relations['richValueRel']));
-            $this->_loadMetadataImages($metadataFile, $richValueRelFile);
-        }
-
-        if ($this->sheets) {
-            // set current sheet
-            $this->selectFirstSheet();
+        finally {
+            $this->xmlReader->close();
         }
     }
 
@@ -746,7 +756,7 @@ class Excel extends AbstractBook
                     if ($v = $child->getAttribute('vertical')) {
                         $node['format']['format-align-vertical'] = $v;
                     }
-                    if (($v = $child->getAttribute('wrapText')) && ($v === 'true')) {
+                    if (in_array($child->getAttribute('wrapText'), ['1', 'true'], true)) {
                         $node['format']['format-wrap-text'] = 1;
                     }
                 }
@@ -800,11 +810,7 @@ class Excel extends AbstractBook
     /**
      * Open a spreadsheet, choosing the reader by the file signature
      *
-     * The OLE2 magic number is a legacy XLS workbook, a ZIP container is XLSX,
-     * and anything else is treated as delimited text (CSV). The file extension
-     * is not consulted, because it is often wrong on files arriving from other
-     * systems. Pass $options['format'] = 'csv' to force the CSV reader, and any
-     * CsvOptions keys (delimiter, enclosure, encoding, ...) to configure it.
+     * The OLE2 magic number is a legacy XLS workbook, a ZIP container is XLSX, and anything else is treated as delimited text (CSV). The file extension is not consulted, because it is often wrong on files arriving from other systems. Pass $options['format'] = 'csv' to force the CSV reader, and any CsvOptions keys (delimiter, enclosure, encoding, ...) to configure it.
      *
      * @param string $file
      * @param CsvOptions|array|null $options
@@ -837,11 +843,7 @@ class Excel extends AbstractBook
     /**
      * Open a spreadsheet held in a string, choosing the reader by its signature
      *
-     * The content is written to a temporary file and then opened exactly like
-     * open() - format is detected from the bytes, not from any file name, so an
-     * XLSX/XLS/CSV payload each read back the same as its on-disk counterpart.
-     * The temporary file is removed on script shutdown. Handy for content coming
-     * from a database blob, an HTTP response body or an S3/Flysystem read.
+     * The content is written to a temporary file and then opened exactly like open() - format is detected from the bytes, not from any file name, so an XLSX/XLS/CSV payload each read back the same as its on-disk counterpart. The temporary file is removed on script shutdown. Handy for content coming from a database blob, an HTTP response body or an S3/Flysystem read.
      *
      * @param string $content Raw bytes of the workbook
      * @param CsvOptions|array|null $options Same options as open()
@@ -854,9 +856,12 @@ class Excel extends AbstractBook
             throw new Exception('Cannot open an empty string as a spreadsheet');
         }
         $tempFile = Reader::tempFilename();
-        if (file_put_contents($tempFile, $content) === false) {
+        try {
+            StreamIO::writeString($tempFile, $content);
+        }
+        catch (\Throwable $e) {
             @unlink($tempFile);
-            throw new Exception('Cannot write the spreadsheet content to a temporary file');
+            throw $e;
         }
 
         return self::openTempFile($tempFile, $options);
@@ -865,12 +870,7 @@ class Excel extends AbstractBook
     /**
      * Open a spreadsheet from an open stream resource
      *
-     * The stream is copied (from its current position, without seeking, so
-     * non-rewindable streams such as HTTP wrappers work) into a temporary file
-     * and then opened like open(). This is the entry point for URLs
-     * (fopen('https://...')), php://memory and Flysystem/S3 read streams. The
-     * caller keeps ownership of the stream; it is not closed here. The temporary
-     * file is removed on script shutdown.
+     * The stream is copied (from its current position, without seeking, so non-rewindable streams such as HTTP wrappers work) into a temporary file and then opened like open(). This is the entry point for URLs (fopen('https://...')), php://memory and Flysystem/S3 read streams. The caller keeps ownership of the stream; it is not closed here. The temporary file is removed on script shutdown.
      *
      * @param resource $stream An open, readable stream resource
      * @param CsvOptions|array|null $options Same options as open()
@@ -879,21 +879,18 @@ class Excel extends AbstractBook
      */
     public static function openStream($stream, $options = []): AbstractBook
     {
-        if (!is_resource($stream)) {
+        if (!is_resource($stream) || get_resource_type($stream) !== 'stream') {
             throw new Exception('openStream() expects an open stream resource');
         }
         $tempFile = Reader::tempFilename();
-        $out = fopen($tempFile, 'wb');
-        if (!$out) {
-            @unlink($tempFile);
-            throw new Exception('Cannot open a temporary file for the stream');
+        try {
+            if (StreamIO::copyToFile($stream, $tempFile) === 0) {
+                throw new Exception('The stream produced no data');
+            }
         }
-        stream_copy_to_stream($stream, $out);
-        fclose($out);
-
-        if (filesize($tempFile) === 0) {
+        catch (\Throwable $e) {
             @unlink($tempFile);
-            throw new Exception('The stream produced no data');
+            throw $e;
         }
 
         return self::openTempFile($tempFile, $options);
@@ -926,6 +923,45 @@ class Excel extends AbstractBook
             @unlink($tempFile);
             throw $e;
         }
+    }
+
+    /**
+     * Open an XLSX workbook without format detection
+     *
+     * @param string $file
+     * @return self
+     */
+    public static function openXlsx(string $file): self
+    {
+        return new self($file);
+    }
+
+    /**
+     * Open CSV as a single-sheet workbook without format detection
+     *
+     * Unlike open(), this factory also accepts an empty CSV file.
+     *
+     * @param string $file
+     * @param CsvOptions|array|null $options
+     * @return CsvBook
+     */
+    public static function openCsvBook(string $file, $options = []): CsvBook
+    {
+        return new CsvBook($file, $options);
+    }
+
+    /**
+     * Open the low-level CSV reader without a workbook wrapper
+     *
+     * Use this name to keep the CsvReader contract across the planned 5.0 change to openCsv(). For the common book/sheet API, use openCsvBook() instead.
+     *
+     * @param string $file
+     * @param CsvOptions|array|null $options
+     * @return CsvReader
+     */
+    public static function openCsvReader(string $file, $options = []): CsvReader
+    {
+        return new CsvReader($file, $options);
     }
 
     /**
@@ -989,7 +1025,9 @@ class Excel extends AbstractBook
     }
 
     /**
-     * Open CSV file
+     * Open CSV as the low-level CsvReader (4.x contract)
+     *
+     * In 5.0, openCsv() is planned to return CsvBook. Use openCsvReader() for stable low-level access, or openCsvBook() for the common book/sheet API.
      *
      * @param string $file
      * @param CsvOptions|array|null $options
@@ -1002,7 +1040,9 @@ class Excel extends AbstractBook
     }
 
     /**
-     * Validate XLSX file
+     * Check required XLSX package parts and XML well-formedness
+     *
+     * This is not OOXML schema validation. The libxml error mode is restored; its diagnostic buffer is cleared before and after validation. XML errors are returned in $errors; missing package parts return false without XML errors.
      *
      * @param string $file
      * @param array|null $errors
@@ -1011,27 +1051,53 @@ class Excel extends AbstractBook
      */
     public static function validate(string $file, ?array &$errors = []): bool
     {
-        $result = true;
-        $xmlReader = self::createReader($file, [\XMLReader::VALIDATE => true]);
-
-        if (extension_loaded('dom') && extension_loaded('libxml') && function_exists('libxml_use_internal_errors')) {
+        $errors = [];
+        $xmlReader = self::createReader($file);
+        $previous = libxml_use_internal_errors(true);
+        libxml_clear_errors();
+        try {
             $fileList = $xmlReader->fileList();
-            \libxml_use_internal_errors(true);
+            // Structural check only; this method does not validate OOXML schemas.
+            foreach (['[Content_Types].xml', '_rels/.rels', 'xl/workbook.xml', 'xl/_rels/workbook.xml.rels'] as $required) {
+                if (!in_array($required, $fileList, true)) {
+                    return false;
+                }
+            }
+            $result = true;
             foreach ($fileList as $innerFile) {
-                $ext = pathinfo($innerFile, PATHINFO_EXTENSION);
-                if (in_array($ext, ['xml', 'rels', 'vml'])) {
-                    $zipFile = 'zip://' . $file . '#' . $innerFile;
-                    $dom = new \DOMDocument;
-                    $dom->load($zipFile);
-                    $errors = \libxml_get_errors();
-                    if ($errors) {
+                if (in_array(strtolower(pathinfo($innerFile, PATHINFO_EXTENSION)), ['xml', 'rels', 'vml'], true)) {
+                    try {
+                        if (!$xmlReader->openZip($innerFile)) {
+                            $result = false;
+                        }
+                        else {
+                            while ($xmlReader->read()) {
+                                // Walk every XML part, including parts not used for reading cells.
+                            }
+                        }
+                    }
+                    finally {
+                        $xmlReader->close();
+                    }
+                    if (libxml_get_errors()) {
                         $result = false;
+                        $errors = array_merge($errors, libxml_get_errors());
+                        libxml_clear_errors();
                     }
                 }
             }
-        }
 
-        return $result;
+            return $result;
+        }
+        finally {
+            try {
+                $xmlReader->close();
+            }
+            finally {
+                libxml_clear_errors();
+                libxml_use_internal_errors($previous);
+            }
+        }
     }
 
     /**
@@ -1111,13 +1177,7 @@ class Excel extends AbstractBook
     /**
      * Get the document properties of the workbook
      *
-     * Reads the core properties (docProps/core.xml) and the extended,
-     * application properties (docProps/app.xml) into a single associative array
-     * with normalised keys - 'creator', 'lastModifiedBy', 'created', 'modified',
-     * 'title', 'subject', 'description', 'keywords', 'category', 'revision',
-     * 'application', 'company', 'manager', ... Only the properties present in the
-     * file are returned; a workbook without a docProps part returns an empty
-     * array. The result is read on demand and cached.
+     * Reads the core properties (docProps/core.xml) and the extended, application properties (docProps/app.xml) into a single associative array with normalised keys - 'creator', 'lastModifiedBy', 'created', 'modified', 'title', 'subject', 'description', 'keywords', 'category', 'revision', 'application', 'company', 'manager', ... Only the properties present in the file are returned; a workbook without a docProps part returns an empty array. The result is read on demand and cached.
      *
      * @return array<string, string>
      */

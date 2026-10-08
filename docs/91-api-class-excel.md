@@ -10,12 +10,15 @@
 * [isXls()](#isxls) – TRUE if the file starts with the OLE2 compound file signature
 * [isXlsx()](#isxlsx) – TRUE if the file starts with the ZIP local file header signature
 * [open()](#open) – Open a spreadsheet, choosing the reader by the file signature
-* [openCsv()](#opencsv) – Open CSV file
+* [openCsv()](#opencsv) – Open CSV as the low-level CsvReader (4.x contract)
+* [openCsvBook()](#opencsvbook) – Open CSV as a single-sheet workbook without format detection
+* [openCsvReader()](#opencsvreader) – Open the low-level CSV reader without a workbook wrapper
 * [openStream()](#openstream) – Open a spreadsheet from an open stream resource
 * [openString()](#openstring) – Open a spreadsheet held in a string, choosing the reader by its signature
 * [openXls()](#openxls) – Open an XLS (Excel 97-2003, BIFF8) file
+* [openXlsx()](#openxlsx) – Open an XLSX workbook without format detection
 * [setTempDir()](#settempdir) – Set directory for temporary files
-* [validate()](#validate) – Validate XLSX file
+* [validate()](#validate) – Check required XLSX package parts and XML well-formedness
 * [countExtraImages()](#countextraimages) – Count "extra" images (images that are in the media folder but not in the drawings)
 * [countImages()](#countimages) – Returns the total count of images in the workbook
 * [countSheets()](#countsheets) – Returns the number of sheets in the workbook
@@ -191,7 +194,7 @@ public static function open(string $file, $options): AbstractBook
 ```
 _Open a spreadsheet, choosing the reader by the file signature_
 
-_The OLE2 magic number is a legacy XLS workbook, a ZIP container is XLSX,and anything else is treated as delimited text (CSV). The file extensionis not consulted, because it is often wrong on files arriving from othersystems. Pass $options\['format'] = 'csv' to force the CSV reader, and anyCsvOptions keys (delimiter, enclosure, encoding, ...) to configure it._
+_The OLE2 magic number is a legacy XLS workbook, a ZIP container is XLSX, and anything else is treated as delimited text (CSV). The file extension is not consulted, because it is often wrong on files arriving from other systems. Pass $options\['format'] = 'csv' to force the CSV reader, and any CsvOptions keys (delimiter, enclosure, encoding, ...) to configure it._
 
 ### Parameters
 
@@ -207,7 +210,45 @@ _The OLE2 magic number is a legacy XLS workbook, a ZIP container is XLSX,and any
 ```php
 public static function openCsv(string $file, $options): Csv\CsvReader
 ```
-_Open CSV file_
+_Open CSV as the low-level CsvReader (4.x contract)_
+
+_In 5.0, openCsv() is planned to return CsvBook. Use openCsvReader() for stable low-level access, or openCsvBook() for the common book/sheet API._
+
+### Parameters
+
+* `string $file`
+* `CsvOptions|array|null $options`
+
+---
+
+## openCsvBook()
+
+---
+
+```php
+public static function openCsvBook(string $file, $options): Csv\CsvBook
+```
+_Open CSV as a single-sheet workbook without format detection_
+
+_Unlike open(), this factory also accepts an empty CSV file._
+
+### Parameters
+
+* `string $file`
+* `CsvOptions|array|null $options`
+
+---
+
+## openCsvReader()
+
+---
+
+```php
+public static function openCsvReader(string $file, $options): Csv\CsvReader
+```
+_Open the low-level CSV reader without a workbook wrapper_
+
+_Use this name to keep the CsvReader contract across the planned 5.0 change to openCsv(). For the common book/sheet API, use openCsvBook() instead._
 
 ### Parameters
 
@@ -229,8 +270,8 @@ _The stream is copied (from its current position, without seeking, so non-rewind
 
 ### Parameters
 
-* `resource $stream`
-* `CsvOptions|array|null $options`
+* `resource $stream` – An open, readable stream resource
+* `CsvOptions|array|null $options` – Same options as open()
 
 ---
 
@@ -247,8 +288,8 @@ _The content is written to a temporary file and then opened exactly like open() 
 
 ### Parameters
 
-* `string $content`
-* `CsvOptions|array|null $options`
+* `string $content` – Raw bytes of the workbook
+* `CsvOptions|array|null $options` – Same options as open()
 
 ---
 
@@ -260,6 +301,21 @@ _The content is written to a temporary file and then opened exactly like open() 
 public static function openXls(string $file): Xls\XlsBook
 ```
 _Open an XLS (Excel 97-2003, BIFF8) file_
+
+### Parameters
+
+* `string $file`
+
+---
+
+## openXlsx()
+
+---
+
+```php
+public static function openXlsx(string $file): self
+```
+_Open an XLSX workbook without format detection_
 
 ### Parameters
 
@@ -289,7 +345,9 @@ _Set directory for temporary files_
 ```php
 public static function validate(string $file, ?array &$errors = []): bool
 ```
-_Validate XLSX file_
+_Check required XLSX package parts and XML well-formedness_
+
+_This is not OOXML schema validation. The libxml error mode is restored; its diagnostic buffer is cleared before and after validation. XML errors are returned in $errors; missing package parts return false without XML errors._
 
 ### Parameters
 
