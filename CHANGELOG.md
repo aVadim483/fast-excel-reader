@@ -10,7 +10,7 @@ All notable changes to this project are documented in this file.
 This file starts at version 3.2.0; for earlier history see the
 [releases page](https://github.com/aVadim483/fast-excel-reader/releases).
 
-## 4.5.0 (Unreleased)
+## 4.5.0
 
 ### Added
 
