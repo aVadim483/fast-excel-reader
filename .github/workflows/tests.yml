@@ -33,7 +33,7 @@ jobs:
         uses: shivammathur/setup-php@v2
         with:
           php-version: ${{ matrix.php }}
-          extensions: zip, mbstring, ctype, xmlreader, dom
+          extensions: zip, mbstring, ctype, xmlreader, dom, intl
           coverage: none
 
       - name: Validate composer.json
