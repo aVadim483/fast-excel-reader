@@ -268,11 +268,11 @@ class OdsSheet extends AbstractSheet
             $end = min($run['row'] + $run['repeat'] - 1, $readArea['row_max']);
             for ($row = $start; $row <= $end; $row++) {
                 $this->excel->assertOpen();
+                $yielded++;
+                yield $row => ['cells' => $run['cells'], 'attrs' => $rowMode ? ['r' => (string)$row] : []];
                 if ($rowLimit > 0 && $yielded >= $rowLimit) {
                     return;
                 }
-                $yielded++;
-                yield $row => ['cells' => $run['cells'], 'attrs' => $rowMode ? ['r' => (string)$row] : []];
             }
         }
     }

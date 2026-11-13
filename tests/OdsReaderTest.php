@@ -96,6 +96,30 @@ final class OdsReaderTest extends TemporaryFilesTestCase
         $book->close();
     }
 
+    public function testRowLimitStopsBeforeConvertingNextRun(): void
+    {
+        foreach ([1, 3] as $repeat) {
+            $file = $this->ods($this->table('<table:table-row table:number-rows-repeated="' . $repeat . '">'
+                . '<table:table-cell office:value-type="float" office:value="1"/></table:table-row>'
+                . '<table:table-row><table:table-cell office:value-type="float" office:value="invalid"/></table:table-row>'));
+            $book = Excel::open($file);
+            try {
+                foreach (array_unique([1, 2, $repeat]) as $limit) {
+                    if ($limit > $repeat) {
+                        continue;
+                    }
+                    self::assertSame(
+                        array_fill(1, $limit, ['A' => 1]),
+                        iterator_to_array($book->sheet()->nextRow([], 0, null, $limit))
+                    );
+                }
+            }
+            finally {
+                $book->close();
+            }
+        }
+    }
+
     public function testTypedValuesTextAndDateContract(): void
     {
         $file = $this->ods($this->table('<table:table-row>'
