@@ -2,7 +2,7 @@
 
 [Русский](UPGRADE.ru.md)
 
-5.0 is under development. PHP >=7.4 remains supported.
+5.0.0 was released on 2026-11-13. PHP >=7.4 remains supported.
 
 ## Workbook classes and extension points
 
