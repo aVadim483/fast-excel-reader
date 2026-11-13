@@ -209,7 +209,10 @@ class Reader extends \XMLReader implements InterfaceXmlReader
                 $options = $options | LIBXML_COMPACT;
             }
         }
-        $result = (!$this->alterMode) && $this->openXmlWrapper($innerFile, $encoding, $options);
+        // libxml may accept an ambiguous zip:// URI at open(), then fail only
+        // during read(). Use the archive stream directly for URI metacharacters.
+        $ambiguousPath = strpbrk($this->xlsxFile, '#%?') !== false;
+        $result = (!$this->alterMode && !$ambiguousPath) && $this->openXmlWrapper($innerFile, $encoding, $options);
         if (!$result) {
             $result = $this->openXmlStream($innerFile, $encoding, $options);
             $this->alterMode = $result;

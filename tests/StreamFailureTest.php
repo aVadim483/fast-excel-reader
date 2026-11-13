@@ -214,4 +214,31 @@ final class StreamFailureTest extends TemporaryFilesTestCase
             $reader->close();
         }
     }
+
+    /** @dataProvider ambiguousArchiveNames */
+    public function testUriMetacharactersUseArchiveStreamWithoutTryingWrapper(string $name): void
+    {
+        $file = $this->directory . '/' . $name;
+        copy(__DIR__ . '/test_files/standard-file.xlsx', $file);
+        $reader = new class($file) extends Reader {
+            protected function openXmlWrapper(string $innerFile, ?string $encoding = null, ?int $options = 0): bool
+            {
+                throw new \LogicException('Ambiguous archive paths must not use zip://');
+            }
+        };
+        try {
+            self::assertTrue($reader->openZip('xl/workbook.xml'));
+            self::assertTrue($reader->seekOpenTag('workbook'));
+        }
+        finally {
+            $reader->close();
+        }
+        self::assertSame([], glob($this->directory . '/xlsx_reader_*'));
+        self::assertTrue(Excel::validate($file));
+    }
+
+    public static function ambiguousArchiveNames(): array
+    {
+        return [['book#name.xlsx'], ['book%25name.xlsx']];
+    }
 }
