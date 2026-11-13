@@ -22,6 +22,20 @@ This file starts at version 3.2.0; for earlier history see the
 * Workbook close()/isClosed(), owned temporary-file cleanup and a reproducible
   heap/temp-disk benchmark in tools/benchmark-reader.php.
 
+### Fixed
+
+* ZIP-backed XML readers use the archive-stream fallback for paths containing
+  `#`, `%` or `?`, avoiding ambiguous `zip://` URIs that can fail during reading.
+* ODS row limits stop the iterator before converting the next row run. Invalid
+  values beyond the limit no longer cause an otherwise completed read to fail;
+  repeated rows obey the same limit.
+
+### Migration verification
+
+* An isolated Composer consumer was migrated from 4.5.0 to development snapshot
+  `561abac` on Windows/PHP 8.4.19. All 51 recorded scenario results matched strictly;
+  another 27 ODS/resource-ownership checks passed. See UPGRADE.md for coverage and limits.
+
 ### Breaking changes
 
 * Excel is now an opening facade; XML workbooks are Xlsx\XlsxBook. Migrate new Excel(),

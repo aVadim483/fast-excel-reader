@@ -20,6 +20,42 @@ Calling the generic `Excel::open()` does not instantiate a custom subclass.
 `Excel` retains the reading constants, `INDEXED_COLORS`, `colNum()`, `colLetter()`
 and `setTempDir()` as convenience APIs.
 
+For example, an XLSX-only importer using the 4.x constructor and type:
+
+```php
+use avadim\FastExcelReader\Excel;
+
+function importRows(Excel $book): array
+{
+    return $book->readRows();
+}
+
+$rows = importRows(new Excel($file));
+```
+
+becomes:
+
+```php
+use avadim\FastExcelReader\AbstractBook;
+use avadim\FastExcelReader\Excel;
+
+function importRows(AbstractBook $book): array
+{
+    return $book->readRows();
+}
+
+$book = Excel::openXlsx($file);
+try {
+    $rows = importRows($book);
+} finally {
+    $book->close();
+}
+```
+
+Use `XlsxBook` instead of `AbstractBook` when the importer needs XLSX-specific
+methods. For a custom workbook, change `extends Excel` to `extends XlsxBook` and
+instantiate the subclass directly to retain its factory overrides.
+
 ## CSV
 
 `Excel::openCsv()` now returns `CsvBook`, with Excel column letters by default.
@@ -80,3 +116,30 @@ See [ODS reading](docs/22-ods.md). Dates without a timezone use UTC, explicit
 offsets are honored, and `dateFormatter(null/false)` returns original ISO date text.
 Time/duration values remain ISO duration strings, including values beyond 24 hours.
 Full styles, images and translated formula text are not part of the initial ODS reader.
+
+## Migration verification
+
+A separate Composer consumer project was tested on Windows with PHP 8.4.19,
+upgrading from the `v4.5.0` tag to the 5.0 development snapshot `561abac`.
+Both library versions were installed as copies through local Composer path repositories;
+`avadim/fast-excel-helper` remained at 1.4.0. The local version label
+`5.0.0-rc.1` used for this check does not indicate a published release.
+
+The consumer changed its constructor, type hints, `instanceof` check, subclass
+base and low-level CSV factory as described above, and added `close()` calls.
+Before these changes, the old consumer failed at `new Excel()` because the
+constructor is private in 5.0. After migration, all 51 recorded scenario results
+matched the 4.5.0 baseline using strict PHP comparison, including value types and keys.
+
+The scenarios covered XLSX, XLS and CSV (UTF-8 and UTF-16), sheet names, rows,
+cells, iterators, areas, numeric keys, headers, dates, cached formula results,
+merged cells, a second sheet, typed import functions, subclass customization,
+low-level CSV access and opening strings/streams.
+Another 27 checks passed for ODS detection, saved formula results, booleans and
+merges, and for resource ownership across XLSX, XLS, CSV and ODS: repeated close,
+temporary-file cleanup, preservation of source files and caller streams, and
+rejection of suspended iterators after closing. Composer platform requirements passed.
+
+This verifies the selected fixtures on PHP 8.4.19. Before upgrading an application,
+compare its own import results on the same files before and after migration,
+including values, PHP types, sheet selection and row/column keys.
