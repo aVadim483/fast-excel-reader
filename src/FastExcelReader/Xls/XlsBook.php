@@ -19,6 +19,10 @@ use avadim\FastExcelReader\Exception;
  */
 class XlsBook extends AbstractBook
 {
+    protected function releaseResources(): void
+    {
+        $this->blips = $this->fontRecords = $this->xfRecords = $this->xfFormatIndex = $this->numberFormats = $this->palette = [];
+    }
     protected OleReader $ole;
 
     /** Number format strings by format index, from FORMAT records */
@@ -74,6 +78,7 @@ class XlsBook extends AbstractBook
      */
     public function newBiffReader(): BiffReader
     {
+        $this->assertOpen();
         return new BiffReader($this->ole->openStream('Workbook'));
     }
 
@@ -87,6 +92,7 @@ class XlsBook extends AbstractBook
     protected function _prepare(string $file): void
     {
         $this->ole = new OleReader($file);
+        $this->ownReader($this->ole);
 
         if (!$this->ole->streamExists('Workbook')) {
             if ($this->ole->streamExists('Book')) {

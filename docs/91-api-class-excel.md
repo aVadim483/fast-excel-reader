@@ -2,87 +2,24 @@
 
 ---
 
-* [__construct()](#__construct) – Excel constructor
-* [colLetter()](#colletter) – Convert column number to letter
-* [colNum()](#colnum) – Converts an alphabetic column index to a numeric
+* [colLetter()](#colletter)
+* [colNum()](#colnum)
 * [createReader()](#createreader) – Create XML reader object
 * [createSheet()](#createsheet) – Create sheet object
+* [isOds()](#isods)
 * [isXls()](#isxls) – TRUE if the file starts with the OLE2 compound file signature
-* [isXlsx()](#isxlsx) – TRUE if the file starts with the ZIP local file header signature
+* [isXlsx()](#isxlsx) – TRUE for the supported XML workbook family, including macro books and templates.
 * [open()](#open) – Open a spreadsheet, choosing the reader by the file signature
-* [openCsv()](#opencsv) – Open CSV as the low-level CsvReader (4.x contract)
+* [openCsv()](#opencsv) – Open CSV through the common workbook API
 * [openCsvBook()](#opencsvbook) – Open CSV as a single-sheet workbook without format detection
 * [openCsvReader()](#opencsvreader) – Open the low-level CSV reader without a workbook wrapper
+* [openOds()](#openods)
 * [openStream()](#openstream) – Open a spreadsheet from an open stream resource
 * [openString()](#openstring) – Open a spreadsheet held in a string, choosing the reader by its signature
 * [openXls()](#openxls) – Open an XLS (Excel 97-2003, BIFF8) file
 * [openXlsx()](#openxlsx) – Open an XLSX workbook without format detection
-* [setTempDir()](#settempdir) – Set directory for temporary files
-* [validate()](#validate) – Check required XLSX package parts and XML well-formedness
-* [countExtraImages()](#countextraimages) – Count "extra" images (images that are in the media folder but not in the drawings)
-* [countImages()](#countimages) – Returns the total count of images in the workbook
-* [countSheets()](#countsheets) – Returns the number of sheets in the workbook
-* [dateFormatter()](#dateformatter) – Set custom date formatter
-* [formatDate()](#formatdate) – Format date value
-* [from()](#from) – Set top left of read area
-* [getCompleteStyleByIdx()](#getcompletestylebyidx) – Get complete style by style index
-* [getDateFormat()](#getdateformat) – Get current date format
-* [getDateFormatPattern()](#getdateformatpattern) – Get PHP date format pattern by style index
-* [getDateFormatter()](#getdateformatter) – Get date formatter
-* [getDefinedNames()](#getdefinednames) – Get defined names of workbook
-* [getFirstSheet()](#getfirstsheet) – Returns the first sheet as default
-* [getFormatPattern()](#getformatpattern) – Get format pattern by style index
-* [getImageList()](#getimagelist) – Get the list of images from the workbook
-* [getProperties()](#getproperties) – Get the document properties of the workbook
-* [getSheet()](#getsheet) – Get sheet object by name and optionally set read area and options
-* [getSheetById()](#getsheetbyid) – Returns a sheet by ID
-* [getSheetNames()](#getsheetnames) – Get names array of all sheets
-* [hasDrawings()](#hasdrawings) – Returns TRUE if the workbook contains an any draw objects (not images only)
-* [hasExtraImages()](#hasextraimages) – Returns TRUE if there are any "extra" images
-* [hasImages()](#hasimages) – Returns TRUE if any sheet contains an image object
-* [hiddenSheets()](#hiddensheets) – Array of hidden sheets only
-* [innerFileList()](#innerfilelist) – Get list of inner files in XLSX
-* [mediaImageFiles()](#mediaimagefiles) – Get list of media image files in the workbook
-* [metadataImage()](#metadataimage) – Get image file name from metadata by index
-* [readCallback()](#readcallback) – Reads cell values and passes them to a callback function
-* [readCells()](#readcells) – Returns the values of all cells as array
-* [readCellStyles()](#readcellstyles) – Returns the styles of all cells as array
-* [readCellsWithStyles()](#readcellswithstyles) – Returns the values and styles of all cells as array
-* [readColumns()](#readcolumns) – Returns cell values as a two-dimensional array from default sheet [col][row]
-* [readColumnsWithStyles()](#readcolumnswithstyles) – Returns cell values and styles as a two-dimensional array from default sheet [col][row]
-* [readRows()](#readrows) – Returns cell values as a two-dimensional array from default sheet [row][col]
-* [readRowsWithStyles()](#readrowswithstyles) – Returns cell values and styles as a two-dimensional array from default sheet [row][col]
-* [readStyles()](#readstyles) – Read all workbook styles
-* [selectFirstSheet()](#selectfirstsheet) – Selects the first sheet as default
-* [selectSheet()](#selectsheet) – Selects default sheet by name
-* [selectSheetById()](#selectsheetbyid) – Selects default sheet by ID
-* [setDateFormat()](#setdateformat) – Set date format for reading
-* [setReadArea()](#setreadarea) – Set top left and right bottom of read area
-* [sharedString()](#sharedstring) – Get string by index
-* [sheet()](#sheet) – Get current or specified sheet
-* [sheetExists()](#sheetexists) – Returns TRUE if a sheet with the given name exists
-* [sheets()](#sheets) – Array of all sheets
-* [stat()](#stat) – Returns statistics of the workbook: per-sheet breakdown and totals
-* [styleByIdx()](#stylebyidx) – Get style array by style index
-* [timestamp()](#timestamp) – Convert date to timestamp
-* [useLocaleFormats()](#uselocaleformats) – Opt in to locale-dependent patterns for the built-in date codes (numFmtId 14-22).
-* [visibleSheets()](#visiblesheets) – Array of visible sheets only
-
----
-
-## __construct()
-
----
-
-```php
-public function __construct(?string $file = null, ?string $tempDir = '')
-```
-_Excel constructor_
-
-### Parameters
-
-* `string|null $file`
-* `string|null $tempDir`
+* [setTempDir()](#settempdir)
+* [validate()](#validate) – Check required XML workbook/ODS package parts and XML well-formedness
 
 ---
 
@@ -91,13 +28,13 @@ _Excel constructor_
 ---
 
 ```php
-public static function colLetter(int $colNumber): string
+public static function colLetter(int $column): string
 ```
-_Convert column number to letter_
+
 
 ### Parameters
 
-* `int $colNumber` – ONE based
+* `$column`
 
 ---
 
@@ -106,13 +43,13 @@ _Convert column number to letter_
 ---
 
 ```php
-public static function colNum(string $colLetter): int
+public static function colNum(string $column): int
 ```
-_Converts an alphabetic column index to a numeric_
+
 
 ### Parameters
 
-* `string $colLetter`
+* `$column`
 
 ---
 
@@ -121,7 +58,7 @@ _Converts an alphabetic column index to a numeric_
 ---
 
 ```php
-public static function createReader(string $file, 
+public static function createReader(string $file,
                                     ?array $parserProperties = []): Interfaces\InterfaceXmlReader
 ```
 _Create XML reader object_
@@ -138,7 +75,7 @@ _Create XML reader object_
 ---
 
 ```php
-public static function createSheet(string $sheetName, $sheetId, $file, $path, 
+public static function createSheet(string $sheetName, $sheetId, $file, $path,
                                    $excel): Interfaces\InterfaceSheetReader
 ```
 _Create sheet object_
@@ -149,7 +86,22 @@ _Create sheet object_
 * `int|string $sheetId`
 * `string $file`
 * `string $path`
-* `Excel $excel`
+* `XlsxBook $excel`
+
+---
+
+## isOds()
+
+---
+
+```php
+public static function isOds(string $file): bool
+```
+
+
+### Parameters
+
+* `$file`
 
 ---
 
@@ -175,13 +127,11 @@ _TRUE if the file starts with the OLE2 compound file signature_
 ```php
 public static function isXlsx(string $file): bool
 ```
-_TRUE if the file starts with the ZIP local file header signature_
-
-_An XLSX package is a ZIP archive, so it begins with "PK\x03\x04". This iswhat lets open() tell a real XLSX apart from plain text, which is thenread as CSV._
+_TRUE for the supported XML workbook family, including macro books and templates._
 
 ### Parameters
 
-* `string $file`
+* `$file`
 
 ---
 
@@ -192,9 +142,7 @@ _An XLSX package is a ZIP archive, so it begins with "PK\x03\x04". This iswhat l
 ```php
 public static function open(string $file, $options): AbstractBook
 ```
-_Open a spreadsheet, choosing the reader by the file signature_
-
-_The OLE2 magic number is a legacy XLS workbook, a ZIP container is XLSX, and anything else is treated as delimited text (CSV). The file extension is not consulted, because it is often wrong on files arriving from other systems. Pass $options\['format'] = 'csv' to force the CSV reader, and any CsvOptions keys (delimiter, enclosure, encoding, ...) to configure it._
+_Open a spreadsheet, choosing the reader by the file signatureThe OLE2 magic number is a legacy XLS workbook, a supported ZIP container is an XML workbook or ODS, and anything else is treated as delimited text (CSV). The file extension is not consulted, because it is often wrong on files arriving from other systems. Pass $options\['format'] = 'csv' to force the CSV reader, and any CsvOptions keys (delimiter, enclosure, encoding, ...) to configure it._
 
 ### Parameters
 
@@ -208,11 +156,9 @@ _The OLE2 magic number is a legacy XLS workbook, a ZIP container is XLSX, and an
 ---
 
 ```php
-public static function openCsv(string $file, $options): Csv\CsvReader
+public static function openCsv(string $file, $options): Csv\CsvBook
 ```
-_Open CSV as the low-level CsvReader (4.x contract)_
-
-_In 5.0, openCsv() is planned to return CsvBook. Use openCsvReader() for stable low-level access, or openCsvBook() for the common book/sheet API._
+_Open CSV through the common workbook APIReturns CsvBook in 5.0. Use openCsvReader() for getCsvLine(), fromRow() and numeric CSV column keys._
 
 ### Parameters
 
@@ -228,9 +174,7 @@ _In 5.0, openCsv() is planned to return CsvBook. Use openCsvReader() for stable 
 ```php
 public static function openCsvBook(string $file, $options): Csv\CsvBook
 ```
-_Open CSV as a single-sheet workbook without format detection_
-
-_Unlike open(), this factory also accepts an empty CSV file._
+_Open CSV as a single-sheet workbook without format detectionUnlike open(), this factory also accepts an empty CSV file._
 
 ### Parameters
 
@@ -246,14 +190,27 @@ _Unlike open(), this factory also accepts an empty CSV file._
 ```php
 public static function openCsvReader(string $file, $options): Csv\CsvReader
 ```
-_Open the low-level CSV reader without a workbook wrapper_
-
-_Use this name to keep the CsvReader contract across the planned 5.0 change to openCsv(). For the common book/sheet API, use openCsvBook() instead._
+_Open the low-level CSV reader without a workbook wrapperUse this factory for low-level CSV access. openCsv() and openCsvBook() return a workbook._
 
 ### Parameters
 
 * `string $file`
 * `CsvOptions|array|null $options`
+
+---
+
+## openOds()
+
+---
+
+```php
+public static function openOds(string $file): Ods\OdsBook
+```
+
+
+### Parameters
+
+* `$file`
 
 ---
 
@@ -264,9 +221,7 @@ _Use this name to keep the CsvReader contract across the planned 5.0 change to o
 ```php
 public static function openStream($stream, $options): AbstractBook
 ```
-_Open a spreadsheet from an open stream resource_
-
-_The stream is copied (from its current position, without seeking, so non-rewindable streams such as HTTP wrappers work) into a temporary file and then opened like open(). This is the entry point for URLs (fopen('https://...')), php://memory and Flysystem/S3 read streams. The caller keeps ownership of the stream; it is not closed here. The temporary file is removed on script shutdown._
+_Open a spreadsheet from an open stream resourceThe stream is copied (from its current position, without seeking, so non-rewindable streams such as HTTP wrappers work) into a temporary file and then opened like open(). This is the entry point for URLs (fopen('https://...')), php://memory and Flysystem/S3 read streams. The caller keeps ownership of the stream; it is not closed here. The temporary file is owned by the returned workbook and removed on close(), with shutdown cleanup as a fallback._
 
 ### Parameters
 
@@ -282,9 +237,7 @@ _The stream is copied (from its current position, without seeking, so non-rewind
 ```php
 public static function openString(string $content, $options): AbstractBook
 ```
-_Open a spreadsheet held in a string, choosing the reader by its signature_
-
-_The content is written to a temporary file and then opened exactly like open() - format is detected from the bytes, not from any file name, so an XLSX/XLS/CSV payload each read back the same as its on-disk counterpart. The temporary file is removed on script shutdown. Handy for content coming from a database blob, an HTTP response body or an S3/Flysystem read._
+_Open a spreadsheet held in a string, choosing the reader by its signatureThe content is written to a temporary file and then opened exactly like open() - format is detected from the bytes, not from any file name, so an XLSX/XLS/CSV payload each read back the same as its on-disk counterpart. The temporary file is owned by the returned workbook and removed on close(), with shutdown cleanup as a fallback. Handy for content coming from a database blob, an HTTP response body or an S3/Flysystem read._
 
 ### Parameters
 
@@ -313,7 +266,7 @@ _Open an XLS (Excel 97-2003, BIFF8) file_
 ---
 
 ```php
-public static function openXlsx(string $file): self
+public static function openXlsx(string $file): Xlsx\XlsxBook
 ```
 _Open an XLSX workbook without format detection_
 
@@ -328,13 +281,13 @@ _Open an XLSX workbook without format detection_
 ---
 
 ```php
-public static function setTempDir($tempDir)
+public static function setTempDir($directory)
 ```
-_Set directory for temporary files_
+
 
 ### Parameters
 
-* `string $tempDir`
+* `$directory`
 
 ---
 
@@ -345,9 +298,7 @@ _Set directory for temporary files_
 ```php
 public static function validate(string $file, ?array &$errors = []): bool
 ```
-_Check required XLSX package parts and XML well-formedness_
-
-_This is not OOXML schema validation. The libxml error mode is restored; its diagnostic buffer is cleared before and after validation. XML errors are returned in $errors; missing package parts return false without XML errors._
+_Check required XML workbook/ODS package parts and XML well-formednessThis is not OOXML schema validation. The libxml error mode is restored; its diagnostic buffer is cleared before and after validation. XML errors are returned in $errors; missing package parts return false without XML errors._
 
 ### Parameters
 
@@ -355,769 +306,3 @@ _This is not OOXML schema validation. The libxml error mode is restored; its dia
 * `array|null $errors`
 
 ---
-
-## countExtraImages()
-
----
-
-```php
-public function countExtraImages(): int
-```
-_Count "extra" images (images that are in the media folder but not in the drawings)_
-
-### Parameters
-
-_None_
-
----
-
-## countImages()
-
----
-
-```php
-public function countImages(): int
-```
-_Returns the total count of images in the workbook_
-
-### Parameters
-
-_None_
-
----
-
-## countSheets()
-
----
-
-```php
-public function countSheets(): int
-```
-_Returns the number of sheets in the workbook_
-
-### Parameters
-
-_None_
-
----
-
-## dateFormatter()
-
----
-
-```php
-public function dateFormatter($formatter): AbstractBook
-```
-_Set custom date formatter_
-
-### Parameters
-
-* `\Closure|callable|string|bool|null $formatter`
-
----
-
-## formatDate()
-
----
-
-```php
-public function formatDate($value, $format, $styleIdx): false|mixed|string
-```
-_Format date value_
-
-### Parameters
-
-* `mixed $value`
-* `string|null $format`
-* `int|null $styleIdx`
-
----
-
-## from()
-
----
-
-```php
-public function from(string $topLeftCell, 
-                     ?bool $firstRowKeys = false): AbstractSheet
-```
-_Set top left of read area_
-
-### Parameters
-
-* `string $topLeftCell`
-* `bool|null $firstRowKeys`
-
----
-
-## getCompleteStyleByIdx()
-
----
-
-```php
-public function getCompleteStyleByIdx(int $styleIdx, 
-                                      ?bool $flat = false): array
-```
-_Get complete style by style index_
-
-### Parameters
-
-* `int $styleIdx`
-* `bool|null $flat`
-
----
-
-## getDateFormat()
-
----
-
-```php
-public function getDateFormat(): ?string
-```
-_Get current date format_
-
-### Parameters
-
-_None_
-
----
-
-## getDateFormatPattern()
-
----
-
-```php
-public function getDateFormatPattern(int $styleIdx): ?string
-```
-_Get PHP date format pattern by style index_
-
-### Parameters
-
-* `int $styleIdx`
-
----
-
-## getDateFormatter()
-
----
-
-```php
-public function getDateFormatter(): callable|\Closure|bool|null
-```
-_Get date formatter_
-
-### Parameters
-
-_None_
-
----
-
-## getDefinedNames()
-
----
-
-```php
-public function getDefinedNames(): array
-```
-_Get defined names of workbook_
-
-### Parameters
-
-_None_
-
----
-
-## getFirstSheet()
-
----
-
-```php
-public function getFirstSheet(?string $areaRange = null, 
-                              ?bool $firstRowKeys = false): AbstractSheet
-```
-_Returns the first sheet as default_
-
-### Parameters
-
-* `string|null $areaRange`
-* `bool|null $firstRowKeys`
-
----
-
-## getFormatPattern()
-
----
-
-```php
-public function getFormatPattern(int $styleIdx): mixed|string
-```
-_Get format pattern by style index_
-
-### Parameters
-
-* `int $styleIdx`
-
----
-
-## getImageList()
-
----
-
-```php
-public function getImageList(): array
-```
-_Get the list of images from the workbook_
-
-### Parameters
-
-_None_
-
----
-
-## getProperties()
-
----
-
-```php
-public function getProperties(): array
-```
-_Get the document properties of the workbook_
-
-_Reads the core properties (docProps/core.xml) and the extended, application properties (docProps/app.xml) into a single associative array with normalised keys - 'creator', 'lastModifiedBy', 'created', 'modified', 'title', 'subject', 'description', 'keywords', 'category', 'revision', 'application', 'company', 'manager', ... Only the properties present in the file are returned; a workbook without a docProps part returns an empty array. The result is read on demand and cached._
-
-### Parameters
-
-_None_
-
----
-
-## getSheet()
-
----
-
-```php
-public function getSheet(?string $name = null, ?string $areaRange = null, 
-                         ?bool $firstRowKeys = false): AbstractSheet
-```
-_Get sheet object by name and optionally set read area and options_
-
-### Parameters
-
-* `string|null $name`
-* `string|null $areaRange`
-* `bool|null $firstRowKeys`
-
----
-
-## getSheetById()
-
----
-
-```php
-public function getSheetById(int $sheetId, ?string $areaRange = null, 
-                             ?bool $firstRowKeys = false): AbstractSheet
-```
-_Returns a sheet by ID_
-
-### Parameters
-
-* `int $sheetId`
-* `string|null $areaRange`
-* `bool|null $firstRowKeys`
-
----
-
-## getSheetNames()
-
----
-
-```php
-public function getSheetNames(): array
-```
-_Get names array of all sheets_
-
-### Parameters
-
-_None_
-
----
-
-## hasDrawings()
-
----
-
-```php
-public function hasDrawings(): bool
-```
-_Returns TRUE if the workbook contains an any draw objects (not images only)_
-
-### Parameters
-
-_None_
-
----
-
-## hasExtraImages()
-
----
-
-```php
-public function hasExtraImages(): bool
-```
-_Returns TRUE if there are any "extra" images_
-
-### Parameters
-
-_None_
-
----
-
-## hasImages()
-
----
-
-```php
-public function hasImages(): bool
-```
-_Returns TRUE if any sheet contains an image object_
-
-### Parameters
-
-_None_
-
----
-
-## hiddenSheets()
-
----
-
-```php
-public function hiddenSheets(): array
-```
-_Array of hidden sheets only_
-
-### Parameters
-
-_None_
-
----
-
-## innerFileList()
-
----
-
-```php
-public function innerFileList(): array
-```
-_Get list of inner files in XLSX_
-
-### Parameters
-
-_None_
-
----
-
-## mediaImageFiles()
-
----
-
-```php
-public function mediaImageFiles(): array
-```
-_Get list of media image files in the workbook_
-
-### Parameters
-
-_None_
-
----
-
-## metadataImage()
-
----
-
-```php
-public function metadataImage(int $vmIndex): ?string
-```
-_Get image file name from metadata by index_
-
-### Parameters
-
-* `int $vmIndex`
-
----
-
-## readCallback()
-
----
-
-```php
-public function readCallback(callable $callback, ?int $resultMode = null, 
-                             ?bool $styleIdxInclude = null)
-```
-_Reads cell values and passes them to a callback function_
-
-### Parameters
-
-* `callback $callback`
-* `int|null $resultMode`
-* `bool|null $styleIdxInclude`
-
----
-
-## readCells()
-
----
-
-```php
-public function readCells(): array
-```
-_Returns the values of all cells as array_
-
-### Parameters
-
-_None_
-
----
-
-## readCellStyles()
-
----
-
-```php
-public function readCellStyles(?bool $flat = false): array
-```
-_Returns the styles of all cells as array_
-
-### Parameters
-
-* `bool|null $flat`
-
----
-
-## readCellsWithStyles()
-
----
-
-```php
-public function readCellsWithStyles(): array
-```
-_Returns the values and styles of all cells as array_
-
-### Parameters
-
-_None_
-
----
-
-## readColumns()
-
----
-
-```php
-public function readColumns($columnKeys, ?int $resultMode = null): array
-```
-_Returns cell values as a two-dimensional array from default sheet \[col]\[row]_
-
-### Parameters
-
-* `array|bool|int|null $columnKeys`
-* `int|null $resultMode`
-
----
-
-## readColumnsWithStyles()
-
----
-
-```php
-public function readColumnsWithStyles($columnKeys, 
-                                      ?int $resultMode = null): array
-```
-_Returns cell values and styles as a two-dimensional array from default sheet \[col]\[row]_
-
-### Parameters
-
-* `array|bool|int|null $columnKeys`
-* `int|null $resultMode`
-
----
-
-## readRows()
-
----
-
-```php
-public function readRows($columnKeys, ?int $resultMode = null, 
-                         ?bool $styleIdxInclude = null): array
-```
-_Returns cell values as a two-dimensional array from default sheet \[row]\[col]_
-
-_readRows()readRows(true)readRows(false, Excel::KEYS_ZERO_BASED)readRows(Excel::KEYS_ZERO_BASED | Excel::KEYS_RELATIVE)_
-
-### Parameters
-
-* `array|bool|int|null $columnKeys`
-* `int|null $resultMode`
-* `bool|null $styleIdxInclude`
-
----
-
-## readRowsWithStyles()
-
----
-
-```php
-public function readRowsWithStyles($columnKeys, 
-                                   ?int $resultMode = null): array
-```
-_Returns cell values and styles as a two-dimensional array from default sheet \[row]\[col]_
-
-### Parameters
-
-* `array|bool|int|null $columnKeys`
-* `int|null $resultMode`
-
----
-
-## readStyles()
-
----
-
-```php
-public function readStyles(): array
-```
-_Read all workbook styles_
-
-### Parameters
-
-_None_
-
----
-
-## selectFirstSheet()
-
----
-
-```php
-public function selectFirstSheet(?string $areaRange = null, 
-                                 ?bool $firstRowKeys = false): AbstractSheet
-```
-_Selects the first sheet as default_
-
-### Parameters
-
-* `string|null $areaRange`
-* `bool|null $firstRowKeys`
-
----
-
-## selectSheet()
-
----
-
-```php
-public function selectSheet(string $name, ?string $areaRange = null, 
-                            ?bool $firstRowKeys = false): AbstractSheet
-```
-_Selects default sheet by name_
-
-### Parameters
-
-* `string $name`
-* `string|null $areaRange`
-* `bool|null $firstRowKeys`
-
----
-
-## selectSheetById()
-
----
-
-```php
-public function selectSheetById(int $sheetId, ?string $areaRange = null, 
-                                ?bool $firstRowKeys = false): AbstractSheet
-```
-_Selects default sheet by ID_
-
-### Parameters
-
-* `int $sheetId`
-* `string|null $areaRange`
-* `bool|null $firstRowKeys`
-
----
-
-## setDateFormat()
-
----
-
-```php
-public function setDateFormat(string $dateFormat): AbstractBook
-```
-_Set date format for reading_
-
-### Parameters
-
-* `string $dateFormat`
-
----
-
-## setReadArea()
-
----
-
-```php
-public function setReadArea(string $areaRange, 
-                            ?bool $firstRowKeys = false): AbstractSheet
-```
-_Set top left and right bottom of read area_
-
-### Parameters
-
-* `string $areaRange`
-* `bool|null $firstRowKeys`
-
----
-
-## sharedString()
-
----
-
-```php
-public function sharedString($stringId): ?string
-```
-_Get string by index_
-
-### Parameters
-
-* `int $stringId`
-
----
-
-## sheet()
-
----
-
-```php
-public function sheet(?string $name = null): ?AbstractSheet
-```
-_Get current or specified sheet_
-
-### Parameters
-
-* `string|null $name`
-
----
-
-## sheetExists()
-
----
-
-```php
-public function sheetExists(string $name): bool
-```
-_Returns TRUE if a sheet with the given name exists_
-
-### Parameters
-
-* `string $name`
-
----
-
-## sheets()
-
----
-
-```php
-public function sheets(): array
-```
-_Array of all sheets_
-
-### Parameters
-
-_None_
-
----
-
-## stat()
-
----
-
-```php
-public function stat(): array
-```
-_Returns statistics of the workbook: per-sheet breakdown and totals_
-
-_\['sheets' => \['<sheetName>' => \['rows' => \[...], 'cols' => \[...], 'cells' => \['total' => int, 'filled' => int]],...],'total' => \['sheets'  => int,   // number of sheets'visible' => int,   // number of visible sheets'hidden'  => int,   // number of hidden sheets'rows'    => int,   // sum of actual rows over all sheets'cells'   => \['total' => int, 'filled' => int],],]_
-
-_Note: scans every sheet fully (see Sheet::stat()); expensive on large workbooks._
-
-### Parameters
-
-_None_
-
----
-
-## styleByIdx()
-
----
-
-```php
-public function styleByIdx($styleIdx): array
-```
-_Get style array by style index_
-
-### Parameters
-
-* `int $styleIdx`
-
----
-
-## timestamp()
-
----
-
-```php
-public function timestamp($excelDateTime): int
-```
-_Convert date to timestamp_
-
-### Parameters
-
-* `$excelDateTime`
-
----
-
-## useLocaleFormats()
-
----
-
-```php
-public function useLocaleFormats(?string $locale = null): AbstractBook
-```
-_Opt in to locale-dependent patterns for the built-in date codes (numFmtId 14-22)._
-
-_By default these codes resolve to fixed, deterministic patterns, so the same file yields the same output on any server. Call this to render them with ICU locale patterns instead (the pre-4.x behaviour, but now explicit and with a chosen locale). Requires ext-intl._
-
-### Parameters
-
-* `string|null $locale` – ICU locale name (e.g. 'ru_RU'); NULL uses the process default locale
-
----
-
-## visibleSheets()
-
----
-
-```php
-public function visibleSheets(): array
-```
-_Array of visible sheets only_
-
-### Parameters
-
-_None_
-
----
-

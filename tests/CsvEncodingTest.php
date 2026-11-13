@@ -35,7 +35,7 @@ final class CsvEncodingTest extends TestCase
 
         try {
             if ($auto) {
-                $csv = \avadim\FastExcelReader\Excel::openCsv($this->csvFile);
+                $csv = \avadim\FastExcelReader\Excel::openCsvReader($this->csvFile);
                 $rows = [];
                 while (($row = $csv->getCsvLine()) !== false) {
                     $rows[] = $row;
@@ -43,7 +43,7 @@ final class CsvEncodingTest extends TestCase
                 self::assertSame($expectedRows, $rows, "Encoding: {$encoding}");
             }
 
-            $csv = \avadim\FastExcelReader\Excel::openCsv($this->csvFile, ['encoding' => $encoding]);
+            $csv = \avadim\FastExcelReader\Excel::openCsvReader($this->csvFile, ['encoding' => $encoding]);
             $rows = [];
             while (($row = $csv->getCsvLine()) !== false) {
                 $rows[] = $row;

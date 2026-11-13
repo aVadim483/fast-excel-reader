@@ -19,6 +19,12 @@ use avadim\FastExcelReader\Interfaces\InterfaceSheetReader;
  */
 abstract class AbstractSheet implements InterfaceSheetReader
 {
+    /** @internal Release the internally retained iterator on workbook close. */
+    public function releaseGenerator(): void
+    {
+        $this->generator = null;
+        $this->images = [];
+    }
     public InterfaceBookReader $excel;
 
     protected string $sheetId;
@@ -1011,6 +1017,7 @@ abstract class AbstractSheet implements InterfaceSheetReader
      */
     public function nextRow($columnKeys = [], ?int $resultMode = null, ?bool $styleIdxInclude = null, ?int $rowLimit = 0): ?\Generator
     {
+        $this->excel->assertOpen();
         // <dimension ref="A1:C1"/>
         // sometimes sheets doesn't contain this tag
         $this->dimension();
@@ -1161,6 +1168,7 @@ abstract class AbstractSheet implements InterfaceSheetReader
             }
 
             yield ($rowNum - $rowOffset) => $rowData;
+            $this->excel->assertOpen();
         }
 
         return null;

@@ -150,7 +150,7 @@ final class HeaderNamesTest extends GuardTestCase
      */
     public function testCsv(): void
     {
-        $rows = Excel::openCsv(self::TEST_FILES_DIR . 'test.csv')->withHeader(['a', 'b'])->readRows();
+        $rows = Excel::openCsvReader(self::TEST_FILES_DIR . 'test.csv')->withHeader(['a', 'b'])->readRows();
 
         $first = reset($rows);
 

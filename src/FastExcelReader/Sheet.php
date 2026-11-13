@@ -444,11 +444,13 @@ class Sheet extends AbstractSheet
      */
     protected function getReader(?string $file = null): InterfaceXmlReader
     {
+        $this->excel->assertOpen();
         if (empty($this->xmlReader)) {
             if (!$file) {
                 $file = $this->zipFilename;
             }
-            $this->xmlReader = Excel::createReader($file);
+            $this->xmlReader = $this->excel::createReader($file);
+            $this->excel->ownReader($this->xmlReader);
         }
 
         return $this->xmlReader;

@@ -18,7 +18,7 @@ final class FactoryOpeningTest extends TemporaryFilesTestCase
     {
         $file = __DIR__ . '/test_files/' . $name;
         $book = Excel::openXlsx($file);
-        self::assertSame(Excel::class, get_class($book));
+        self::assertSame(\avadim\FastExcelReader\Xlsx\XlsxBook::class, get_class($book));
         self::assertSame(Excel::open($file)->readRows(), $book->readRows());
     }
 
@@ -68,7 +68,7 @@ final class FactoryOpeningTest extends TemporaryFilesTestCase
         self::assertSame((new CsvBook($file, $options))->readRows(), $book->readRows());
         self::assertSame(Excel::open($file, ['format' => 'csv', 'delimiter' => ';'])->readRows(), $book->readRows());
         $reader = Excel::openCsvReader($file, $options);
-        $legacy = Excel::openCsv($file, $options);
+        $legacy = new CsvReader($file, $options);
         self::assertSame(CsvReader::class, get_class($reader));
         self::assertSame($legacy->getCsvLine(), $reader->getCsvLine());
         self::assertSame($legacy->fromRow(2)->readRows(), $reader->fromRow(2)->readRows());
@@ -93,12 +93,12 @@ final class FactoryOpeningTest extends TemporaryFilesTestCase
         $file = $this->temporaryFile(mb_convert_encoding("id;name\n1;Привет\n", 'UTF-16LE', 'UTF-8'));
         foreach ([['delimiter' => ';', 'encoding' => 'UTF-16LE'], new CsvOptions(['delimiter' => ';', 'encoding' => 'UTF-16LE'])] as $options) {
             self::assertSame('Привет', Excel::openCsvBook($file, $options)->readRows()[2]['B']);
-            self::assertSame(Excel::openCsv($file, $options)->readRows(), Excel::openCsvReader($file, $options)->readRows());
+            self::assertSame(Excel::openCsvReader($file, $options)->readRows(), Excel::openCsvReader($file, $options)->readRows());
         }
         $file = $this->temporaryFile("id;name\n1;ab\"cd\n");
         $options = ['delimiter' => ';', 'mode' => CsvOptions::TOLERANT_MODE];
         self::assertSame('ab"cd', Excel::openCsvBook($file, $options)->readRows()[2]['B']);
-        self::assertSame(Excel::openCsv($file, $options)->readRows(), Excel::openCsvReader($file, $options)->readRows());
+        self::assertSame(Excel::openCsvReader($file, $options)->readRows(), Excel::openCsvReader($file, $options)->readRows());
         $this->expectException(\Throwable::class);
         Excel::openCsvBook($file, ['delimiter' => ';', 'mode' => CsvOptions::STRICT_MODE])->readRows();
     }

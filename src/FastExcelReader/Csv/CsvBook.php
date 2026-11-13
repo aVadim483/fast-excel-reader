@@ -40,6 +40,7 @@ class CsvBook extends AbstractBook
     protected function _prepare(string $file): void
     {
         $this->reader = new CsvReader($file, $this->csvOptions);
+        $this->ownReader($this->reader);
         $sheet = new CsvSheet('CSV', '1', $this->reader, $file, $this);
         $this->sheets = [1 => $sheet];
         $this->defaultSheetId = 1;
@@ -80,6 +81,7 @@ class CsvBook extends AbstractBook
      */
     public function getReader(): CsvReader
     {
+        $this->assertOpen();
         return $this->reader;
     }
 }

@@ -4,28 +4,31 @@
 
 ## Choosing an opening method
 
-Since 4.5, use an explicit factory when the format or API level is known:
+In 5.0, Excel is an opening facade; XML books use XlsxBook. See [migration](../UPGRADE.md).
 
 | Method | Returns | Use |
 |---|---|---|
-| `Excel::open($file, $options)` | `AbstractBook` | Detect XLSX/XLS/CSV by content |
-| `Excel::openXlsx($file)` | `Excel` | Require XLSX, without falling back to CSV |
-| `Excel::openXls($file)` | `XlsBook` | Require legacy BIFF8 XLS |
-| `Excel::openCsvBook($file, $options)` | `CsvBook` | CSV through the common book/sheet API |
-| `Excel::openCsvReader($file, $options)` | `CsvReader` | Low-level CSV engine |
+| Excel::open($file, $options) | AbstractBook | Detect XLSX-family/XLS/ODS/CSV by content |
+| Excel::openXlsx($file) | XlsxBook | Require XLSX, XLSM, XLTX or XLTM |
+| Excel::openXls($file) | XlsBook | Require BIFF8 XLS |
+| Excel::openOds($file) | OdsBook | Require ODS |
+| Excel::openCsv($file, $options) / openCsvBook() | CsvBook | Common book/sheet API |
+| Excel::openCsvReader($file, $options) | CsvReader | Low-level CSV engine |
 
-CSV options accept an array, `CsvOptions`, or null. Explicit CSV factories accept an
-empty CSV; the generic `open()` rejects empty input. `open()` only supports forcing
-`['format' => 'csv']`; use `openXlsx()` or `openXls()` to require those formats.
+CSV options accept an array, CsvOptions or null. Explicit CSV factories accept
+empty files; generic open() rejects empty input. Only ['format' => 'csv'] forces
+the format in open(). For low-level getCsvLine()/fromRow(), use openCsvReader()
+or the existing CSV book's getReader().
 
-**Preparing for 5.0:** `openCsv()` still returns `CsvReader` in 4.x, but is planned to
-return `CsvBook` in 5.0. Replace low-level calls with `openCsvReader()` to retain
-methods such as `getCsvLine()` and `fromRow()`. Choose `openCsvBook()` for book/sheet
-code; `getReader()` on that book also provides the low-level engine.
+isXlsx() checks supported XML workbook package parts and content types; a ZIP
+signature alone is insufficient. isOds() checks the ODS MIME entry; isXls() checks
+the OLE2 signature. validate() checks required XML-book/ODS parts and XML
+well-formedness, not schemas or formula calculations. Macros are never executed.
+Templates are read as saved documents.
 
-`isXlsx()` checks a ZIP signature and `isXls()` an OLE2 signature; neither proves that
-an arbitrary container is a supported workbook. `validate()` checks required XLSX
-parts and XML well-formedness, not full OOXML schemas or formula correctness.
+Call $book->close() in finally to release handles and owned temporary files.
+Closing is irreversible and idempotent; new reads and resuming a suspended row
+iterator throw an exception. Caller-owned input streams remain open.
 
 ## Simple example
 ![demo file](../demo/files/img1.jpg)

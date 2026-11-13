@@ -22,8 +22,7 @@
 
 This library is designed to be lightweight, super-fast and requires minimal memory usage.
 
-**FastExcelReader** can read Excel compatible spreadsheets in XLSX format (Office 2007+), legacy XLS
-format (Office 97-2003) and CSV-files. It only reads data, but it does it very quickly and with minimal
+**FastExcelReader** reads XLSX, XLSM, XLTX, XLTM, legacy XLS (BIFF8), ODS and CSV. It only reads data, but it does it very quickly and with minimal
 memory usage.
 
 ## Features
@@ -43,9 +42,14 @@ memory usage.
 * The format is chosen by the file signature, not by the extension
 * Streaming row iteration; workbook metadata, shared strings and images still consume memory
 
+### ODS format support
+
+* Streaming values, areas, headers, merged ranges and cached formula results.
+* [ODS capabilities and limitations](docs/22-ods.md).
+
 ### CSV format support
 
-* Openable via `Excel::open()` as a normal one-sheet workbook with the same reading API as XLSX/XLS, or via `Excel::openCsv()` for the low-level engine
+* Openable via `Excel::open()` as a normal one-sheet workbook with the same reading API as XLSX/XLS, or via `Excel::openCsvReader()` for the low-level engine
 * Delimiter Detection: Automatic detection or manual specification of column delimiters.
 * Wide Encoding Support: Any encoding supported by your PHP environment
 * Supports fields with or without quotes, and escaped quotes (doubled quotes).
@@ -82,49 +86,55 @@ See more in the [Getting Started](docs/10-getting-started.md) guide.
 
 ## Choosing an opening method
 
-Since 4.5, use an explicit factory when the format or API level is known:
+In 5.0, Excel is an opening facade; XML books use XlsxBook. See [migration](UPGRADE.md).
 
 | Method | Returns | Use |
 |---|---|---|
-| `Excel::open($file, $options)` | `AbstractBook` | Detect XLSX/XLS/CSV by content |
-| `Excel::openXlsx($file)` | `Excel` | Require XLSX, without falling back to CSV |
-| `Excel::openXls($file)` | `XlsBook` | Require legacy BIFF8 XLS |
-| `Excel::openCsvBook($file, $options)` | `CsvBook` | CSV through the common book/sheet API |
-| `Excel::openCsvReader($file, $options)` | `CsvReader` | Low-level CSV engine |
+| Excel::open($file, $options) | AbstractBook | Detect XLSX-family/XLS/ODS/CSV by content |
+| Excel::openXlsx($file) | XlsxBook | Require XLSX, XLSM, XLTX or XLTM |
+| Excel::openXls($file) | XlsBook | Require BIFF8 XLS |
+| Excel::openOds($file) | OdsBook | Require ODS |
+| Excel::openCsv($file, $options) / openCsvBook() | CsvBook | Common book/sheet API |
+| Excel::openCsvReader($file, $options) | CsvReader | Low-level CSV engine |
 
-CSV options accept an array, `CsvOptions`, or null. Explicit CSV factories accept an
-empty CSV; the generic `open()` rejects empty input. `open()` only supports forcing
-`['format' => 'csv']`; use `openXlsx()` or `openXls()` to require those formats.
+CSV options accept an array, CsvOptions or null. Explicit CSV factories accept
+empty files; generic open() rejects empty input. Only ['format' => 'csv'] forces
+the format in open(). For low-level getCsvLine()/fromRow(), use openCsvReader()
+or the existing CSV book's getReader().
 
-**Preparing for 5.0:** `openCsv()` still returns `CsvReader` in 4.x, but is planned to
-return `CsvBook` in 5.0. Replace low-level calls with `openCsvReader()` to retain
-methods such as `getCsvLine()` and `fromRow()`. Choose `openCsvBook()` for book/sheet
-code; `getReader()` on that book also provides the low-level engine.
+isXlsx() checks supported XML workbook package parts and content types; a ZIP
+signature alone is insufficient. isOds() checks the ODS MIME entry; isXls() checks
+the OLE2 signature. validate() checks required XML-book/ODS parts and XML
+well-formedness, not schemas or formula calculations. Macros are never executed.
+Templates are read as saved documents.
 
-`isXlsx()` checks a ZIP signature and `isXls()` an OLE2 signature; neither proves that
-an arbitrary container is a supported workbook. `validate()` checks required XLSX
-parts and XML well-formedness, not full OOXML schemas or formula correctness.
+Call $book->close() in finally to release handles and owned temporary files.
+Closing is irreversible and idempotent; new reads and resuming a suspended row
+iterator throw an exception. Caller-owned input streams remain open.
 
 ## Format capabilities and resource limits
 
-| Capability | XLSX | XLS (BIFF8) | CSV |
-|---|---|---|---|
-| Common book/sheet API and row generators | Yes | Yes | Yes, one sheet |
-| Styles and embedded images | Yes | Yes, format limitations apply | No |
-| Formula text / cached results | Read, not calculated | Read, supported formula subset | Plain text |
-| Cell hyperlinks / document properties | Yes | Not exposed by these APIs | No |
-| Input encoding | XML encoding | BIFF strings/codepage | Auto or explicit CsvOptions |
+| Capability | XLSX family | XLS (BIFF8) | ODS | CSV |
+|---|---|---|---|---|
+| Common API and row generators | Yes | Yes | Yes | Yes, one sheet |
+| Styles / images | Yes | Format limitations | Not in initial reader | No |
+| Formula text / cached results | Read / read | Supported subset / read | No / read | Plain text |
+| Hyperlinks / document properties | Yes | Not exposed | Not exposed | No |
+| Encoding | XML | BIFF/codepage | XML | Automatic or explicit |
 
 `readRows()` collects the result in memory; use `nextRow()` for large imports.
 Shared strings are loaded into memory for XLSX and XLS, and XLS also loads its global
 image store. Streaming rows therefore does not imply constant memory for the whole workbook.
-`openString()` and `openStream()` copy input to disk. Their successful temporary files
-live until process shutdown, including in long-running workers; destroying a book does
-not remove them immediately. A book-level `close()` is not available in 4.5.
+openString() and openStream() copy input to disk. Call close() to remove their owned temporary files promptly; shutdown cleanup remains a fallback.
 
 ## Documentation
 
 ### Guides
+
+* [Reader resource measurements](docs/23-benchmarks.md)
+
+* [ODS](docs/22-ods.md)
+* [Upgrading to 5.0](UPGRADE.md)
 
 * [Getting Started](docs/10-getting-started.md) — read cells, rows and columns
 * [Reading Data](docs/11-reading-data.md) — row by row, array keys, empty cells & rows

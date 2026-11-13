@@ -83,6 +83,11 @@ class OleReader
 
     public function __destruct()
     {
+        $this->close();
+    }
+
+    public function close(): void
+    {
         if (is_resource($this->handle)) {
             fclose($this->handle);
         }

@@ -47,10 +47,7 @@ engine with `getCsvLine()`/`fromRow()`. Both accept an array, `CsvOptions`, or n
 and allow empty CSV. The generic `Excel::open()` detects by content and rejects an
 empty file; `['format' => 'csv']` forces CSV.
 
-In 4.x, the old `Excel::openCsv()` retains its `CsvReader` return type. In 5.0 it is
-planned to return `CsvBook`: replace its name with `openCsvReader()` to keep the
-low-level contract. For the common book API, use `openCsvBook()` now. An existing
-CSV book also exposes the engine through `$book->getReader()`.
+In 5.0, Excel::openCsv() returns CsvBook. For the low-level engine and its numeric column keys, use openCsvReader(). The book/sheet API is also available through openCsvBook(); getReader() exposes the engine of an existing CSV book.
 
 ```php
 $book = Excel::openCsvBook('data.csv', ['delimiter' => ';']);

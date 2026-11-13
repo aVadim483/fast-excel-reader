@@ -12,805 +12,66 @@ use avadim\FastExcelReader\Xls\XlsBook;
 use avadim\FastExcelReader\Interfaces\InterfaceSheetReader;
 use avadim\FastExcelReader\Interfaces\InterfaceXmlReader;
 
-/**
- * XLSX workbook reader, and the entry point of the library
- *
- * Implements the format-specific half of AbstractBook: reading the OOXML
- * package - workbook.xml, shared strings, themes, styles and metadata images -
- * and creating XLSX sheet readers.
- *
- * @package avadim\FastExcelReader
- */
-class Excel extends AbstractBook
+use avadim\FastExcelReader\Xlsx\XlsxBook;
+use avadim\FastExcelReader\Ods\OdsBook;
+use avadim\FastExcelReader\Internal\SpreadsheetPackage;
+/** Format-independent spreadsheet opening facade. */
+class Excel
 {
-    /** @var array Standard Excel indexed colors */
-    public const INDEXED_COLORS = [
-        0  => 'FF000000', // Black
-        1  => 'FFFFFFFF', // White
-        2  => 'FFFF0000', // Red
-        3  => 'FF00FF00', // Green
-        4  => 'FF0000FF', // Blue
-        5  => 'FFFFFF00', // Yellow
-        6  => 'FFFF00FF', // Magenta
-        7  => 'FF00FFFF', // Cyan
-
-        8  => 'FF000000', // Black
-        9  => 'FFFFFFFF', // White
-        10 => 'FFFF0000', // Red
-        11 => 'FF00FF00', // Green
-        12 => 'FF0000FF', // Blue
-        13 => 'FFFFFF00', // Yellow
-        14 => 'FFFF00FF', // Magenta
-        15 => 'FF00FFFF', // Cyan
-
-        16 => 'FF800000', // Dark Red
-        17 => 'FF008000', // Dark Green
-        18 => 'FF000080', // Dark Blue
-        19 => 'FF808000', // Olive
-        20 => 'FF800080', // Purple
-        21 => 'FF008080', // Teal
-        22 => 'FFC0C0C0', // Silver
-        23 => 'FF808080', // Gray
-
-        24 => 'FF9999FF', // Light Blue
-        25 => 'FF993366', // Plum
-        26 => 'FFFFFFCC', // Light Yellow
-        27 => 'FFCCFFFF', // Light Cyan
-        28 => 'FF660066', // Dark Purple
-        29 => 'FFFF8080', // Coral
-        30 => 'FF0066CC', // Ocean Blue
-        31 => 'FFCCCCFF', // Ice Blue
-
-        32 => 'FF000080', // Navy
-        33 => 'FFFF00FF', // Pink
-        34 => 'FFFFFF00', // Yellow
-        35 => 'FF00FFFF', // Cyan
-        36 => 'FF800080', // Purple
-        37 => 'FF800000', // Brown
-        38 => 'FF008080', // Teal
-        39 => 'FF0000FF', // Blue
-
-        40 => 'FF00CCFF', // Light Blue
-        41 => 'FFCCFFFF', // Aqua
-        42 => 'FFCCFFCC', // Light Green
-        43 => 'FFFFFF99', // Light Yellow
-        44 => 'FF99CCFF', // Sky Blue
-        45 => 'FFFF99CC', // Rose
-        46 => 'FFCC99FF', // Lavender
-        47 => 'FFFFCC99', // Tan
-
-        48 => 'FF3366FF', // Bright Blue
-        49 => 'FF33CCCC', // Turquoise
-        50 => 'FF99CC00', // Lime
-        51 => 'FFFFCC00', // Gold
-        52 => 'FFFF9900', // Orange
-        53 => 'FFFF6600', // Orange Red
-        54 => 'FF666699', // Blue Gray
-        55 => 'FF969696', // Gray 40%
-
-        56 => 'FF003366', // Dark Teal
-        57 => 'FF339966', // Sea Green
-        58 => 'FF003300', // Dark Green
-        59 => 'FF333300', // Dark Olive
-        60 => 'FF993300', // Brown
-        61 => 'FF993366', // Burgundy
-        62 => 'FF333399', // Indigo
-        63 => 'FF333333', // Gray 80%
-    ];
-
-
-    /** @var Reader */
-    protected Reader $xmlReader;
-
-    protected array $fileList = [];
-
-    protected array $relations = [];
-
-    protected array $valueMetadataImages = [];
-
-    protected ?array $themeColors = null;
-
-    protected int $countImages = -1; // -1 - unknown
-
-    protected ?array $properties = null;
-
-    /** docProps/core.xml element localName => normalised property key */
-    protected const CORE_PROPS_MAP = [
-        'creator' => 'creator',
-        'lastModifiedBy' => 'lastModifiedBy',
-        'created' => 'created',
-        'modified' => 'modified',
-        'title' => 'title',
-        'subject' => 'subject',
-        'description' => 'description',
-        'keywords' => 'keywords',
-        'category' => 'category',
-        'contentStatus' => 'contentStatus',
-        'revision' => 'revision',
-        'language' => 'language',
-        'identifier' => 'identifier',
-        'version' => 'version',
-    ];
-
-    /** docProps/app.xml element localName => normalised property key */
-    protected const APP_PROPS_MAP = [
-        'Application' => 'application',
-        'AppVersion' => 'appVersion',
-        'Company' => 'company',
-        'Manager' => 'manager',
-        'Template' => 'template',
-        'HyperlinkBase' => 'hyperlinkBase',
-    ];
-
-
-
-    /**
-     * Set directory for temporary files
-     *
-     * @param string $tempDir
-     */
-    public static function setTempDir($tempDir)
+    /** TRUE for the supported XML workbook family, including macro books and templates. */
+    public static function isXlsx(string $file): bool
     {
-        Reader::setTempDir($tempDir);
+        return SpreadsheetPackage::isXlsx($file);
     }
 
-
-    /**
-     * @param string $file
-     */
-    protected function _prepare(string $file): void
+    public static function isOds(string $file): bool
     {
-        $this->xmlReader = static::createReader($file);
-        try {
-            $this->fileList = $this->xmlReader->fileList();
-
-            // A ZIP that carries no xl/workbook.xml is not an XLSX: report that
-            // plainly instead of failing later on a missing inner part. open() routes
-            // every ZIP here by signature, so this is where a DOCX/PPTX or a plain
-            // archive is caught.
-            if (!$this->checkInnerFile('xl/workbook.xml')) {
-                $hint = '';
-                if ($this->checkInnerFile('word/document.xml')) {
-                    $hint = ' (it looks like a DOCX file)';
-                }
-                elseif ($this->checkInnerFile('ppt/presentation.xml')) {
-                    $hint = ' (it looks like a PPTX file)';
-                }
-                throw new Exception('Not an XLSX workbook: the ZIP archive has no xl/workbook.xml' . $hint);
-            }
-
-            foreach ($this->fileList as $fileName) {
-                if (strpos($fileName, 'xl/drawings/drawing') === 0) {
-                    $this->relations['drawings'][] = $fileName;
-                }
-                elseif (strpos($fileName, 'xl/media/') === 0) {
-                    $this->relations['media'][] = $fileName;
-                }
-            }
-
-            $innerFile = 'xl/_rels/workbook.xml.rels';
-            $this->xmlReader->openZip($innerFile);
-            while ($this->xmlReader->read()) {
-                if ($this->xmlReader->nodeType === \XMLReader::ELEMENT && $this->xmlReader->name === 'Relationship') {
-                    if (strcasecmp((string)$this->xmlReader->getAttribute('TargetMode'), 'External') === 0) {
-                        continue;
-                    }
-                    $type = basename($this->xmlReader->getAttribute('Type'));
-                    if ($type) {
-                        $this->relations[$type][$this->xmlReader->getAttribute('Id')] = PackagePath::resolve('xl/workbook.xml', (string)$this->xmlReader->getAttribute('Target'));
-                    }
-                }
-            }
-            $this->xmlReader->close();
-
-            if (isset($this->relations['worksheet'])) {
-                $this->_loadSheets();
-            }
-
-            if (isset($this->relations['sharedStrings'])) {
-                $innerFile = $this->checkInnerFile(reset($this->relations['sharedStrings']));
-                if ($innerFile) {
-                    $this->_loadSharedStrings($innerFile);
-                }
-            }
-
-            if (isset($this->relations['theme'])) {
-                $innerFile = $this->checkInnerFile(reset($this->relations['theme']));
-                if ($innerFile) {
-                    $this->_loadThemes($innerFile);
-                }
-            }
-
-            if (isset($this->relations['styles'])) {
-                $innerFile = $this->checkInnerFile(reset($this->relations['styles']));
-                if ($innerFile) {
-                    $this->_loadStyles($innerFile);
-                }
-            }
-
-            if (isset($this->relations['sheetMetadata'], $this->relations['richValueRel'])) {
-                $metadataFile = $this->checkInnerFile(reset($this->relations['sheetMetadata']));
-                $richValueRelFile = $this->checkInnerFile(reset($this->relations['richValueRel']));
-                $this->_loadMetadataImages($metadataFile, $richValueRelFile);
-            }
-
-            if ($this->sheets) {
-                // set current sheet
-                $this->selectFirstSheet();
-            }
-        }
-        finally {
-            $this->xmlReader->close();
-        }
+        return SpreadsheetPackage::isOds($file);
     }
 
-    /**
-     * @param string $innerFile
-     *
-     * @return null|string
-     */
-    protected function checkInnerFile(string $innerFile): ?string
+    public static function openOds(string $file): OdsBook
     {
-        foreach ($this->fileList as $filename) {
-            if (strcasecmp($innerFile, $filename) === 0) {
-                return $filename;
-            }
-        }
-        return null;
+        return new OdsBook($file);
+    }
+    public const EXCEL_2007_MAX_ROW = AbstractBook::EXCEL_2007_MAX_ROW;
+    public const EXCEL_2007_MAX_COL = AbstractBook::EXCEL_2007_MAX_COL;
+    public const KEYS_ORIGINAL = AbstractBook::KEYS_ORIGINAL;
+    public const KEYS_FIRST_ROW = AbstractBook::KEYS_FIRST_ROW;
+    public const KEYS_ROW_ZERO_BASED = AbstractBook::KEYS_ROW_ZERO_BASED;
+    public const KEYS_COL_ZERO_BASED = AbstractBook::KEYS_COL_ZERO_BASED;
+    public const KEYS_ZERO_BASED = AbstractBook::KEYS_ZERO_BASED;
+    public const KEYS_ROW_ONE_BASED = AbstractBook::KEYS_ROW_ONE_BASED;
+    public const KEYS_COL_ONE_BASED = AbstractBook::KEYS_COL_ONE_BASED;
+    public const KEYS_ONE_BASED = AbstractBook::KEYS_ONE_BASED;
+    public const KEYS_RELATIVE = AbstractBook::KEYS_RELATIVE;
+    public const KEYS_SWAP = AbstractBook::KEYS_SWAP;
+    public const RESULT_MODE_ROW = AbstractBook::RESULT_MODE_ROW;
+    public const TRIM_STRINGS = AbstractBook::TRIM_STRINGS;
+    public const TREAT_EMPTY_STRING_AS_EMPTY_CELL = AbstractBook::TREAT_EMPTY_STRING_AS_EMPTY_CELL;
+    public const INDEXED_COLORS = XlsxBook::INDEXED_COLORS;
+
+    private function __construct()
+    {
     }
 
-    protected function _loadSheets(): void
+    public static function colNum(string $column): int
     {
-        $innerFile = $this->checkInnerFile('xl/workbook.xml');
-        $this->xmlReader->openZip($innerFile);
-
-        while ($this->xmlReader->read()) {
-            if ($this->xmlReader->nodeType === \XMLReader::ELEMENT) {
-                $xmlReaderName = $this->xmlReader->name;
-                if ($xmlReaderName === 'workbookPr') {
-                    $date1904 = (string)$this->xmlReader->getAttribute('date1904');
-                    if ($date1904 === '1' || $date1904 === 'true') {
-                        $this->date1904 = true;
-                    }
-                }
-                elseif ($xmlReaderName === 'sheet' || $xmlReaderName === 'x:sheet') {
-                    $rId = $this->xmlReader->getAttribute('r:id');
-                    $sheetId = $this->xmlReader->getAttribute('sheetId');
-                    $path = $this->relations['worksheet'][$rId] ?? null;
-                    // ignoring non-existent sheets
-                    if ($path) {
-                        $sheetName = $this->xmlReader->getAttribute('name');
-                        $this->sheets[$sheetId] = static::createSheet($sheetName, $sheetId, $this->file, $this->relations['worksheet'][$rId], $this);
-                        //$this->sheets[$sheetId]->excel = $this;
-                        if ($this->sheets[$sheetId]->isActive()) {
-                            $this->defaultSheetId = $sheetId;
-                        }
-                        if ($state = $this->xmlReader->getAttribute('state')) {
-                            $this->sheets[$sheetId]->setState($state);
-                        }
-                    }
-                }
-                elseif ($xmlReaderName === 'definedName') {
-                    $name = $this->xmlReader->getAttribute('name');
-                    $address = $this->xmlReader->readString();
-                    $this->names[$name] = $address;
-                }
-            }
-        }
-        $this->xmlReader->close();
+        return AbstractBook::colNum($column);
     }
 
-    /**
-     * @param string $innerFile
-     */
-    protected function _loadSharedStrings(string $innerFile)
+    public static function colLetter(int $column): string
     {
-        $this->xmlReader->openZip($innerFile);
-        while ($this->xmlReader->read()) {
-            if ($this->xmlReader->nodeType === \XMLReader::ELEMENT && $this->xmlReader->name === 'si' && $node = $this->xmlReader->expand()) {
-                $this->sharedStrings[] = $node->textContent;
-            }
-        }
-        $this->xmlReader->close();
+        return AbstractBook::colLetter($column);
     }
 
-    /**
-     * @param string|null $innerFile
-     *
-     * @return void
-     */
-    protected function _loadThemes(?string $innerFile = null)
+    public static function setTempDir($directory)
     {
-        $innerFile = $this->checkInnerFile($innerFile ?: 'xl/theme/theme1.xml');
-        $this->xmlReader->openZip($innerFile);
-        while ($this->xmlReader->read()) {
-            if ($this->xmlReader->nodeType === \XMLReader::ELEMENT && $this->xmlReader->localName === 'clrScheme') {
-                break;
-            }
-        }
-        while ($this->xmlReader->read()) {
-            if ($this->xmlReader->nodeType === \XMLReader::END_ELEMENT && $this->xmlReader->localName === 'clrScheme') {
-                break;
-            }
-            if ($this->xmlReader->nodeType === \XMLReader::ELEMENT && $this->xmlReader->localName === 'srgbClr') {
-                $this->themeColors[] = '#' . $this->xmlReader->getAttribute('val');
-            }
-            elseif ($this->xmlReader->nodeType === \XMLReader::ELEMENT && $this->xmlReader->localName === 'sysClr') {
-                if ($this->xmlReader->getAttribute('val') === 'windowText') {
-                    $this->themeColors[] = '#ffffff';
-                }
-                elseif ($this->xmlReader->getAttribute('val') === 'window') {
-                    $this->themeColors[] = '#202020';
-                }
-                elseif ($lastClr = $this->xmlReader->getAttribute('lastClr')) {
-                    $this->themeColors[] = '#' . $lastClr;
-                }
-                else {
-                    $this->themeColors[] = '';
-                }
-            }
-        }
+        Reader::setTempDir($directory);
     }
-
-    /**
-     * @param string|null $innerFile
-     */
-    protected function _loadStyles(?string $innerFile = null)
-    {
-        $innerFile = $this->checkInnerFile($innerFile ?: 'xl/styles.xml');
-        $this->xmlReader->openZip($innerFile);
-        $styleType = '';
-        while ($this->xmlReader->read()) {
-            if ($this->xmlReader->nodeType === \XMLReader::ELEMENT) {
-                $nodeName = $this->xmlReader->name;
-                if ($nodeName === 'cellStyleXfs' || $nodeName === 'cellXfs') {
-                    $styleType = $nodeName;
-                    continue;
-                }
-                if ($nodeName === 'numFmt') {
-                    $numFmtId = (int)$this->xmlReader->getAttribute('numFmtId');
-                    $formatCode = $this->xmlReader->getAttribute('formatCode');
-                    $numFmts[$numFmtId] = $formatCode;
-                }
-                elseif ($nodeName === 'xf') {
-                    $numFmtId = (int)$this->xmlReader->getAttribute('numFmtId');
-                    $formatCode = $numFmts[$numFmtId] ?? '';
-                    // A number only stands for a builtin format for as long as the file has not
-                    // redefined it. Custom ids start at 164 by the standard, but converters - a
-                    // workbook that came from XLS in particular - do declare a numFmt for a lower
-                    // id, and some of those ids are reserved for builtin (localized) dates. So
-                    // when the file brings a format code of its own, that code decides.
-                    if ($this->_isDatePattern($formatCode === '' ? $numFmtId : null, $formatCode)) {
-                        $this->styles[$styleType][] = ['format' => $formatCode, 'formatType' => 'd'];
-                    }
-                    elseif ($formatCode) {
-                        if ($this->_isNumberPattern($numFmtId, $formatCode)) {
-                            $this->styles[$styleType][] = ['format' => $formatCode, 'formatType' => 'n'];
-                        }
-                        else {
-                            $this->styles[$styleType][] = ['format' => $formatCode];
-                        }
-                    }
-                    elseif ($numFmtId > 0 && isset($this->builtinFormats[$numFmtId]['category'])) {
-                        $this->styles[$styleType][] = ['formatType' => $this->builtinFormats[$numFmtId]['category']];
-                    }
-                    else {
-                        $this->styles[$styleType][] = null;
-                    }
-                }
-            }
-        }
-        $this->xmlReader->close();
-    }
-
-    /**
-     * @param string|null $metadataFile
-     */
-    protected function _loadMetadataImages(string $metadataFile, string $richValueRelFile)
-    {
-        $this->xmlReader->openZip($metadataFile);
-        $metadataTypesCount = 0;
-        $metadataTypes = [];
-        while ($this->xmlReader->read()) {
-            if ($this->xmlReader->name === 'metadataType') {
-                if ($this->xmlReader->nodeType === \XMLReader::ELEMENT) {
-                    $metadataTypesCount++;
-                    if ((string)$this->xmlReader->getAttribute('name') === 'XLRICHVALUE') {
-                        // we need only <metadataType name="XLRICHVALUE" ...>
-                        $metadataTypes[$metadataTypesCount] = 'XLRICHVALUE';
-                    }
-                }
-                else {
-                    break;
-                }
-            }
-        }
-        $futureMetadata = [];
-        while ($this->xmlReader->read()) {
-            if ($this->xmlReader->name === 'futureMetadata') {
-                if ($this->xmlReader->nodeType === \XMLReader::ELEMENT && (string)$this->xmlReader->getAttribute('name') === 'XLRICHVALUE') {
-                    while ($this->xmlReader->read()) {
-                        if ($this->xmlReader->name === 'xlrd:rvb') {
-                            $futureMetadata[] = (int)$this->xmlReader->getAttribute('i');
-                        }
-                        elseif ($this->xmlReader->name === 'futureMetadata' && $this->xmlReader->nodeType === \XMLReader::END_ELEMENT) {
-                            break 2;
-                        }
-                    }
-                }
-                elseif ($this->xmlReader->nodeType === \XMLReader::END_ELEMENT) {
-                    break;
-                }
-            }
-        }
-
-        while ($this->xmlReader->read()) {
-            if ($this->xmlReader->name === 'rc') {
-                $type = (int)$this->xmlReader->getAttribute('t');
-                $value = (int)$this->xmlReader->getAttribute('v');
-                if (isset($metadataTypes[$type])) { // metadataType name="XLRICHVALUE"
-                    if (isset($futureMetadata[$value])) {
-                        $this->valueMetadataImages[] = ['i' => $futureMetadata[$value]];
-                    }
-                }
-            }
-        }
-        $this->xmlReader->close();
-
-        $this->xmlReader->openZip($richValueRelFile);
-        $count = 0;
-        while ($this->xmlReader->read()) {
-            if ($this->xmlReader->name === 'rel' && ($rId = $this->xmlReader->getAttribute('r:id'))) {
-                $this->valueMetadataImages[$count++]['r_id'] = $rId;
-            }
-        }
-        $this->xmlReader->close();
-
-        $images = [];
-        $xmlRels = 'xl/richData/_rels/richValueRel.xml.rels';
-        $this->xmlReader->openZip($xmlRels);
-        while ($this->xmlReader->read()) {
-            if ($this->xmlReader->name === 'Relationship' && $this->xmlReader->nodeType === \XMLReader::ELEMENT && ($Id = (string)$this->xmlReader->getAttribute('Id'))) {
-                if (substr((string)$this->xmlReader->getAttribute('Type'), -6) === '/image') {
-                    $images[$Id] = (string)$this->xmlReader->getAttribute('Target');
-                }
-            }
-        }
-        $this->xmlReader->close();
-
-        foreach ($this->valueMetadataImages as $index => $metadataImage) {
-            $rId = $this->valueMetadataImages[$index]['r_id'];
-            if (isset($images[$rId])) {
-                $this->valueMetadataImages[$index]['file_name'] = str_replace('../media/', 'xl/media/', $images[$rId]);
-            }
-        }
-    }
-
-    /**
-     * Get image file name from metadata by index
-     *
-     * @param int $vmIndex
-     *
-     * @return string|null
-     */
-    public function metadataImage(int $vmIndex): ?string
-    {
-        return $this->valueMetadataImages[$vmIndex - 1]['file_name'] ?? null;
-    }
-
-
-
-    /**
-     * Element children of a node, without the text nodes between the tags
-     *
-     * styles.xml is often pretty-printed, and then childNodes also holds the
-     * whitespace between the tags. Those are not styles: they answer no
-     * getAttribute(), and counting them would shift the position that every
-     * fontId/fillId/borderId/xfId reference relies on.
-     *
-     * @param \DOMNode $node
-     *
-     * @return \DOMElement[]
-     */
-    protected static function _elementChildren($node): array
-    {
-        $elements = [];
-        foreach ($node->childNodes as $child) {
-            if ($child->nodeType === XML_ELEMENT_NODE) {
-                $elements[] = $child;
-            }
-        }
-
-        return $elements;
-    }
-
-    /**
-     * @param $root
-     * @param $tagName
-     *
-     * @return void
-     */
-    protected function _loadStyleNumFmts($root, $tagName)
-    {
-        foreach ($this->builtinFormats as $key => $val) {
-            $this->styles['_'][$tagName][$key] = [
-                'format-num-id' => $key,
-                'format-pattern' => $val['pattern'],
-                'format-category' => $val['category'],
-            ];
-        }
-        if ($root) {
-            foreach (self::_elementChildren($root) as $child) {
-                $numFmtId = $child->getAttribute('numFmtId');
-                $formatCode = $child->getAttribute('formatCode');
-                if ($numFmtId !== '' && $formatCode !== '') {
-                    $node = [
-                        'format-num-id' => (int)$numFmtId,
-                        'format-pattern' => $formatCode,
-                        // the declared format code decides, not the id it was declared under
-                        'format-category' => $this->_isDatePattern(null, $formatCode) ? 'date' : '',
-                    ];
-                    $this->styles['_'][$tagName][$node['format-num-id']] = $node;
-                }
-            }
-        }
-    }
-
-    /**
-     * @param $root
-     * @param $tagName
-     *
-     * @return void
-     */
-    protected function _loadStyleFonts($root, $tagName)
-    {
-        foreach (self::_elementChildren($root) as $font) {
-            $node = [];
-            foreach (self::_elementChildren($font) as $fontStyle) {
-                if ($fontStyle->nodeName === 'b') {
-                    $node['font-style-bold'] = 1;
-                }
-                elseif ($fontStyle->nodeName === 'u') {
-                    $node['font-style-underline'] = ($fontStyle->getAttribute('formatCode') === 'double' ? 2 : 1);
-                }
-                elseif ($fontStyle->nodeName === 'i') {
-                    $node['font-style-italic'] = 1;
-                }
-                elseif ($fontStyle->nodeName === 'strike') {
-                    $node['font-style-strike'] = 1;
-                }
-                elseif ($fontStyle->nodeName === 'color') {
-                    $color = $this->_extractColor($fontStyle);
-                    if ($color) {
-                        $node['font-color'] = $color;
-                    }
-                }
-                elseif (($v = $fontStyle->getAttribute('val')) !== '') {
-                    if ($fontStyle->nodeName === 'sz') {
-                        $name = 'font-size';
-                    }
-                    else {
-                        $name = 'font-' . $fontStyle->nodeName;
-                    }
-                    $node[$name] = $v;
-                }
-            }
-            $this->styles['_'][$tagName][] = $node;
-        }
-    }
-
-    /**
-     * @param $root
-     * @param $tagName
-     *
-     * @return void
-     */
-    protected function _loadStyleFills($root, $tagName)
-    {
-        foreach (self::_elementChildren($root) as $fill) {
-            $node = [];
-            foreach (self::_elementChildren($fill) as $patternFill) {
-                if (($v = $patternFill->getAttribute('patternType')) !== '') {
-                    $node['fill-pattern'] = $v;
-                }
-                foreach ($patternFill->childNodes as $child) {
-                    if ($child->nodeName === 'fgColor') {
-                        $color = $this->_extractColor($child);
-                        if ($color) {
-                            $node['fill-color'] = $color;
-                        }
-                    }
-                }
-            }
-            $this->styles['_'][$tagName][] = $node;
-        }
-    }
-
-    /**
-     * @param $node
-     *
-     * @return string
-     */
-    protected function _extractColor($node): string
-    {
-        if ($rgb = $node->getAttribute('rgb')) {
-            return '#' . substr($rgb, 2);
-        }
-        $theme = $node->getAttribute('theme');
-        if ($theme !== null && $theme !== '') {
-            $color = $this->themeColors[(int)$theme] ?? '';
-            if ($color) {
-                $tint = (float)$node->getAttribute('tint');
-/*
-                if (!empty($tint)) {
-                    $color0 = Helper::correctColor($color, $tint);
-                }
-*/
-                if ($tint !== 0.0) {
-                    if ($tint === 1.0) {
-                        $color = '#FFFFFF';
-                    }
-                    elseif ($tint === -1.0) {
-                        $color = '#000000';
-                    }
-                    else {
-                        $r = hexdec(substr($color, 1, 2));
-                        $g = hexdec(substr($color, 3, 2));
-                        $b = hexdec(substr($color, 5, 2));
-                        if ($tint > 0) {
-                            $r = round($r + (255 - $r) * $tint);
-                            $g = round($g + (255 - $g) * $tint);
-                            $b = round($b + (255 - $b) * $tint);
-                        }
-                        else {
-                            $r = round($r * (1 + $tint));
-                            $g = round($g * (1 + $tint));
-                            $b = round($b * (1 + $tint));
-                        }
-                        $color = '#'
-                            . strtoupper(str_pad(dechex($r), 2, '0', STR_PAD_LEFT))
-                            . strtoupper(str_pad(dechex($g), 2, '0', STR_PAD_LEFT))
-                            . strtoupper(str_pad(dechex($b), 2, '0', STR_PAD_LEFT));
-                    }
-                }
-            }
-            return $color;
-        }
-
-        if ($indexed = $node->getAttribute('indexed')) {
-            if ($indexed === '64') {
-                return '#000000';
-            }
-            if (isset(self::INDEXED_COLORS[$indexed])) {
-                return '#' . substr(self::INDEXED_COLORS[$indexed], 2);
-            }
-        }
-
-        return '';
-    }
-
-    /**
-     * @param $root
-     * @param $tagName
-     *
-     * @return void
-     */
-    protected function _loadStyleBorders($root, $tagName)
-    {
-        foreach (self::_elementChildren($root) as $border) {
-            $node = [];
-            foreach (self::_elementChildren($border) as $side) {
-                if (($v = $side->getAttribute('style')) !== '') {
-                    $node['border-' . $side->nodeName . '-style'] = $v;
-                }
-                else {
-                    $node['border-' . $side->nodeName . '-style'] = null;
-                }
-                foreach ($side->childNodes as $child) {
-                    if ($child->nodeName === 'color') {
-                        $node['border-' . $side->nodeName . '-color'] = $this->_extractColor($child);
-                        /*
-                        if ($attr = $child->getAttribute('rgb')) {
-                            $node['border-' . $side->nodeName . '-color'] = '#' . substr($attr, 2);
-                        }
-                        elseif ($attr = $child->getAttribute('indexed')) {
-                            $node['border-' . $side->nodeName . '-color'] = '#' . substr($attr, 2);
-                        }
-                        else {
-                            $node['border-' . $side->nodeName . '-color'] = null;
-                        }
-                        */
-                    }
-                }
-            }
-            $this->styles['_'][$tagName][] = $node;
-        }
-    }
-
-    /**
-     * @param $root
-     * @param $tagName
-     *
-     * @return void
-     */
-    protected function _loadStyleCellXfs($root, $tagName)
-    {
-        $attributes = ['numFmtId', 'fontId', 'fillId', 'borderId', 'xfId'];
-        foreach (self::_elementChildren($root) as $xf) {
-            $node = [];
-            foreach ($attributes as $attribute) {
-                if (($v = $xf->getAttribute($attribute)) !== '') {
-                    if (substr($attribute, -2) === 'Id') {
-                        $node[$attribute] = (int)$v;
-                    }
-                    else {
-                        $node[$attribute] = $v;
-                    }
-                }
-            }
-            foreach ($xf->childNodes as $child) {
-                if ($child->nodeName === 'alignment') {
-                    if ($v = $child->getAttribute('horizontal')) {
-                        $node['format']['format-align-horizontal'] = $v;
-                    }
-                    if ($v = $child->getAttribute('vertical')) {
-                        $node['format']['format-align-vertical'] = $v;
-                    }
-                    if (in_array($child->getAttribute('wrapText'), ['1', 'true'], true)) {
-                        $node['format']['format-wrap-text'] = 1;
-                    }
-                }
-            }
-            $this->styles['_'][$tagName][] = $node;
-        }
-    }
-
-    /**
-     * @param string|null $innerFile
-     */
-    protected function _loadCompleteStyles(?string $innerFile = null)
-    {
-        if (!$innerFile) {
-            $innerFile = 'xl/styles.xml';
-        }
-        $this->xmlReader->openZip($innerFile);
-
-        while ($this->xmlReader->read()) {
-            if ($this->xmlReader->nodeType === \XMLReader::ELEMENT) {
-                switch ($this->xmlReader->name) {
-                    case 'numFmts':
-                        $this->_loadStyleNumFmts($this->xmlReader->expand(), 'numFmts');
-                        break;
-                    case 'fonts':
-                        $this->_loadStyleFonts($this->xmlReader->expand(), 'fonts');
-                        break;
-                    case 'fills':
-                        $this->_loadStyleFills($this->xmlReader->expand(), 'fills');
-                        break;
-                    case 'borders':
-                        $this->_loadStyleBorders($this->xmlReader->expand(), 'borders');
-                        break;
-                    case 'cellStyleXfs':
-                        $this->_loadStyleCellXfs($this->xmlReader->expand(), 'cellStyleXfs');
-                        break;
-                    case 'cellXfs':
-                        $this->_loadStyleCellXfs($this->xmlReader->expand(), 'cellXfs');
-                        break;
-                    default:
-                        //
-                }
-            }
-        }
-        if (empty($this->styles['_']['numFmts'])) {
-            $this->_loadStyleNumFmts(null, 'numFmts');
-        }
-        $this->xmlReader->close();
-    }
-
     /**
      * Open a spreadsheet, choosing the reader by the file signature
      *
-     * The OLE2 magic number is a legacy XLS workbook, a ZIP container is XLSX, and anything else is treated as delimited text (CSV). The file extension is not consulted, because it is often wrong on files arriving from other systems. Pass $options['format'] = 'csv' to force the CSV reader, and any CsvOptions keys (delimiter, enclosure, encoding, ...) to configure it.
+     * The OLE2 magic number is a legacy XLS workbook, a supported ZIP container is an XML workbook or ODS, and anything else is treated as delimited text (CSV). The file extension is not consulted, because it is often wrong on files arriving from other systems. Pass $options['format'] = 'csv' to force the CSV reader, and any CsvOptions keys (delimiter, enclosure, encoding, ...) to configure it.
      *
      * @param string $file
      * @param CsvOptions|array|null $options
@@ -832,8 +93,12 @@ class Excel extends AbstractBook
         if (self::isXls($file)) {
             return XlsBook::open($file);
         }
-        if (self::isXlsx($file)) {
-            return new self($file);
+        if (self::isZip($file)) {
+            if (self::isOds($file)) {
+                return new OdsBook($file);
+            }
+            SpreadsheetPackage::requireXlsx($file);
+            return new XlsxBook($file);
         }
 
         // Neither OLE2 (XLS) nor ZIP (XLSX): treat as delimited text
@@ -843,7 +108,7 @@ class Excel extends AbstractBook
     /**
      * Open a spreadsheet held in a string, choosing the reader by its signature
      *
-     * The content is written to a temporary file and then opened exactly like open() - format is detected from the bytes, not from any file name, so an XLSX/XLS/CSV payload each read back the same as its on-disk counterpart. The temporary file is removed on script shutdown. Handy for content coming from a database blob, an HTTP response body or an S3/Flysystem read.
+     * The content is written to a temporary file and then opened exactly like open() - format is detected from the bytes, not from any file name, so an XLSX/XLS/CSV payload each read back the same as its on-disk counterpart. The temporary file is owned by the returned workbook and removed on close(), with shutdown cleanup as a fallback. Handy for content coming from a database blob, an HTTP response body or an S3/Flysystem read.
      *
      * @param string $content Raw bytes of the workbook
      * @param CsvOptions|array|null $options Same options as open()
@@ -870,7 +135,7 @@ class Excel extends AbstractBook
     /**
      * Open a spreadsheet from an open stream resource
      *
-     * The stream is copied (from its current position, without seeking, so non-rewindable streams such as HTTP wrappers work) into a temporary file and then opened like open(). This is the entry point for URLs (fopen('https://...')), php://memory and Flysystem/S3 read streams. The caller keeps ownership of the stream; it is not closed here. The temporary file is removed on script shutdown.
+     * The stream is copied (from its current position, without seeking, so non-rewindable streams such as HTTP wrappers work) into a temporary file and then opened like open(). This is the entry point for URLs (fopen('https://...')), php://memory and Flysystem/S3 read streams. The caller keeps ownership of the stream; it is not closed here. The temporary file is owned by the returned workbook and removed on close(), with shutdown cleanup as a fallback.
      *
      * @param resource $stream An open, readable stream resource
      * @param CsvOptions|array|null $options Same options as open()
@@ -897,8 +162,8 @@ class Excel extends AbstractBook
     }
 
     /**
-     * Open a temporary file produced by openString()/openStream() and schedule
-     * its removal
+     * Open a temporary file produced by openString()/openStream() and transfer
+     * ownership to the workbook
      *
      * @param string $tempFile
      * @param CsvOptions|array|null $options
@@ -917,7 +182,9 @@ class Excel extends AbstractBook
         });
 
         try {
-            return self::open($tempFile, $options);
+            $book = self::open($tempFile, $options);
+            $book->ownTemporaryFile($tempFile);
+            return $book;
         }
         catch (\Throwable $e) {
             @unlink($tempFile);
@@ -929,11 +196,12 @@ class Excel extends AbstractBook
      * Open an XLSX workbook without format detection
      *
      * @param string $file
-     * @return self
+     * @return XlsxBook
      */
-    public static function openXlsx(string $file): self
+    public static function openXlsx(string $file): XlsxBook
     {
-        return new self($file);
+        SpreadsheetPackage::requireXlsx($file);
+        return new XlsxBook($file);
     }
 
     /**
@@ -953,7 +221,7 @@ class Excel extends AbstractBook
     /**
      * Open the low-level CSV reader without a workbook wrapper
      *
-     * Use this name to keep the CsvReader contract across the planned 5.0 change to openCsv(). For the common book/sheet API, use openCsvBook() instead.
+     * Use this factory for low-level CSV access. openCsv() and openCsvBook() return a workbook.
      *
      * @param string $file
      * @param CsvOptions|array|null $options
@@ -1009,7 +277,7 @@ class Excel extends AbstractBook
      *
      * @return bool
      */
-    public static function isXlsx(string $file): bool
+    private static function isZip(string $file): bool
     {
         if (!is_readable($file) || is_dir($file)) {
             return false;
@@ -1021,26 +289,26 @@ class Excel extends AbstractBook
         $signature = (string)fread($handle, 4);
         fclose($handle);
 
-        return $signature === "PK\x03\x04";
+        return in_array($signature, ["PK\x03\x04", "PK\x05\x06", "PK\x07\x08"], true);
     }
 
     /**
-     * Open CSV as the low-level CsvReader (4.x contract)
+     * Open CSV through the common workbook API
      *
-     * In 5.0, openCsv() is planned to return CsvBook. Use openCsvReader() for stable low-level access, or openCsvBook() for the common book/sheet API.
+     * Returns CsvBook in 5.0. Use openCsvReader() for getCsvLine(), fromRow() and numeric CSV column keys.
      *
      * @param string $file
      * @param CsvOptions|array|null $options
      *
-     * @return CsvReader
+     * @return CsvBook
      */
-    public static function openCsv(string $file, $options = []): CsvReader
+    public static function openCsv(string $file, $options = []): CsvBook
     {
-        return new CsvReader($file, $options);
+        return new CsvBook($file, $options);
     }
 
     /**
-     * Check required XLSX package parts and XML well-formedness
+     * Check required XML workbook/ODS package parts and XML well-formedness
      *
      * This is not OOXML schema validation. The libxml error mode is restored; its diagnostic buffer is cleared before and after validation. XML errors are returned in $errors; missing package parts return false without XML errors.
      *
@@ -1052,13 +320,20 @@ class Excel extends AbstractBook
     public static function validate(string $file, ?array &$errors = []): bool
     {
         $errors = [];
+        if (!is_file($file) || !is_readable($file)) {
+            throw new Exception('Cannot read workbook: ' . $file);
+        }
         $xmlReader = self::createReader($file);
         $previous = libxml_use_internal_errors(true);
         libxml_clear_errors();
         try {
+            if (!self::isXlsx($file) && !self::isOds($file)) {
+                $errors = libxml_get_errors();
+                return false;
+            }
             $fileList = $xmlReader->fileList();
             // Structural check only; this method does not validate OOXML schemas.
-            foreach (['[Content_Types].xml', '_rels/.rels', 'xl/workbook.xml', 'xl/_rels/workbook.xml.rels'] as $required) {
+            foreach (self::isOds($file) ? ['mimetype', 'content.xml', 'META-INF/manifest.xml'] : ['[Content_Types].xml', '_rels/.rels', 'xl/workbook.xml', 'xl/_rels/workbook.xml.rels'] as $required) {
                 if (!in_array($required, $fileList, true)) {
                     return false;
                 }
@@ -1107,7 +382,7 @@ class Excel extends AbstractBook
      * @param int|string $sheetId
      * @param string $file
      * @param string $path
-     * @param Excel $excel
+     * @param XlsxBook $excel
      *
      * @return InterfaceSheetReader
      */
@@ -1128,224 +403,4 @@ class Excel extends AbstractBook
     {
         return new Reader($file, $parserProperties);
     }
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-    /**
-     * Get list of inner files in XLSX
-     *
-     * @return array
-     */
-    public function innerFileList(): array
-    {
-        return $this->fileList;
-    }
-
-    /**
-     * Get the document properties of the workbook
-     *
-     * Reads the core properties (docProps/core.xml) and the extended, application properties (docProps/app.xml) into a single associative array with normalised keys - 'creator', 'lastModifiedBy', 'created', 'modified', 'title', 'subject', 'description', 'keywords', 'category', 'revision', 'application', 'company', 'manager', ... Only the properties present in the file are returned; a workbook without a docProps part returns an empty array. The result is read on demand and cached.
-     *
-     * @return array<string, string>
-     */
-    public function getProperties(): array
-    {
-        if ($this->properties === null) {
-            $this->properties = array_merge(
-                $this->_readDocProps('docProps/core.xml', self::CORE_PROPS_MAP),
-                $this->_readDocProps('docProps/app.xml', self::APP_PROPS_MAP)
-            );
-        }
-
-        return $this->properties;
-    }
-
-    /**
-     * Read one docProps part, keeping only the elements named in $map
-     *
-     * Matching is by local name, so the namespace prefix (cp:, dc:, dcterms:)
-     * does not matter. Elements outside the map - including the vt: vectors that
-     * app.xml wraps HeadingPairs/TitlesOfParts in - are skipped.
-     *
-     * @param string $innerFile
-     * @param array<string, string> $map local element name => result key
-     *
-     * @return array<string, string>
-     */
-    protected function _readDocProps(string $innerFile, array $map): array
-    {
-        $result = [];
-        $path = $this->checkInnerFile($innerFile);
-        if (!$path) {
-            return $result;
-        }
-
-        $this->xmlReader->openZip($path);
-        while ($this->xmlReader->read()) {
-            if ($this->xmlReader->nodeType === \XMLReader::ELEMENT) {
-                $local = $this->xmlReader->localName;
-                if (isset($map[$local])) {
-                    $result[$map[$local]] = $this->xmlReader->isEmptyElement ? '' : $this->xmlReader->readString();
-                }
-            }
-        }
-        $this->xmlReader->close();
-
-        return $result;
-    }
-
-    /**
-     * Returns TRUE if the workbook contains an any draw objects (not images only)
-     *
-     * @return bool
-     */
-    public function hasDrawings(): bool
-    {
-        return !empty($this->relations['drawings']);
-    }
-
-    /**
-     * Returns TRUE if any sheet contains an image object
-     *
-     * @return bool
-     */
-    public function hasImages(): bool
-    {
-        if ($this->hasDrawings()) {
-            foreach ($this->sheets as $sheet) {
-                if ($sheet->countImages()) {
-                    return true;
-                }
-            }
-        }
-
-        return false;
-    }
-
-    /**
-     * Get list of media image files in the workbook
-     *
-     * @return array
-     */
-    public function mediaImageFiles(): array
-    {
-        $result = [];
-        if (!empty($this->relations['media'])) {
-            foreach ($this->relations['media'] as $mediaFile) {
-                $extension = strtolower(pathinfo($mediaFile, PATHINFO_EXTENSION));
-                if (in_array($extension, ['jpg', 'jpeg', 'png', 'bmp', 'ico', 'webp', 'tif', 'tiff', 'gif'])) {
-                    $result[] = basename($mediaFile);
-                }
-            }
-        }
-
-        return $result;
-    }
-
-    /**
-     * Returns the total count of images in the workbook
-     *
-     * @return int
-     */
-    public function countImages(): int
-    {
-        if ($this->countImages === -1) {
-            $this->countImages = 0;
-            if ($this->hasDrawings() || $this->mediaImageFiles()) {
-                foreach ($this->sheets as $sheet) {
-                    $this->countImages += $sheet->countImages();
-                }
-            }
-        }
-
-        return $this->countImages;
-    }
-
-    /**
-     * Get the list of images from the workbook
-     *
-     * @return array
-     */
-    public function getImageList(): array
-    {
-        $result = [];
-        if ($this->countImages()) {
-            foreach ($this->sheets as $sheet) {
-                $result[$sheet->name()] = $sheet->getImageList();
-            }
-        }
-
-        return $result;
-    }
-
-    /**
-     * Count "extra" images (images that are in the media folder but not in the drawings)
-     *
-     * @return int
-     */
-    public function countExtraImages(): int
-    {
-        $drawingImageFiles = [];
-        if ($this->hasDrawings()) {
-            foreach ($this->sheets as $sheet) {
-                $imageFiles = $sheet->_getDrawingsImageFiles();
-                if ($imageFiles) {
-                    $drawingImageFiles += $imageFiles;
-                }
-            }
-        }
-        $imageFiles = $this->mediaImageFiles();
-
-        return (count($imageFiles) - count($drawingImageFiles));
-    }
-
-    /**
-     * Returns TRUE if there are any "extra" images
-     *
-     * @return bool
-     */
-    public function hasExtraImages(): bool
-    {
-        return $this->countExtraImages() > 0;
-    }
-
-
-
-
-
 }
-
-// EOF

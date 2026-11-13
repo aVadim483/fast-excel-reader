@@ -1,11 +1,13 @@
 {
     "name": "avadim/fast-excel-reader",
-    "description": "Lightweight and very fast XLSX Excel Spreadsheet and CSV Reader in PHP",
+    "description": "Lightweight streaming XLSX, XLSM, XLS, ODS and CSV spreadsheet reader for PHP",
     "keywords": [
         "php",
         "library",
         "xls",
         "xlsx",
+        "xlsm",
+        "ods",
         "csv",
         "excel",
         "phpexcel",

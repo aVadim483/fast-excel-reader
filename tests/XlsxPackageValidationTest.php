@@ -130,6 +130,21 @@ final class XlsxPackageValidationTest extends TemporaryFilesTestCase
         self::assertSame([], $errors);
     }
 
+    public function testMalformedContentTypesDoNotLeakLibxmlDiagnostics(): void
+    {
+        $previous = libxml_use_internal_errors(false);
+        try {
+            self::assertFalse(Excel::validate($this->workbook(['[Content_Types].xml' => '<Types>']), $errors));
+            self::assertNotEmpty($errors);
+            self::assertFalse(libxml_use_internal_errors());
+            self::assertSame([], libxml_get_errors());
+        }
+        finally {
+            libxml_clear_errors();
+            libxml_use_internal_errors($previous);
+        }
+    }
+
     public function testValidationSupportsSpecialFilename(): void
     {
         self::assertTrue(Excel::validate(__DIR__ . '/test_files/spec#name%sym _.xlsx', $errors));

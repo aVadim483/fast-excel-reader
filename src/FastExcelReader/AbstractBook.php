@@ -17,6 +17,86 @@ use avadim\FastExcelReader\Interfaces\InterfaceBookReader;
  */
 abstract class AbstractBook implements InterfaceBookReader
 {
+    protected bool $closed = false;
+
+    /** @var object[] Readers whose handles are owned by this workbook. */
+    private array $ownedReaders = [];
+
+    /** @var string[] Files created by string/stream factories. */
+    private array $ownedTemporaryFiles = [];
+
+    public function assertOpen(): void
+    {
+        if ($this->closed) {
+            throw new Exception('The workbook is closed');
+        }
+    }
+
+    public function isClosed(): bool
+    {
+        return $this->closed;
+    }
+
+    /** @internal */
+    public function ownReader($reader): void
+    {
+        $this->assertOpen();
+        $this->ownedReaders[spl_object_id($reader)] = $reader;
+    }
+
+    /** @internal Forget an iterator-local reader once it has been closed. */
+    public function releaseReader($reader): void
+    {
+        unset($this->ownedReaders[spl_object_id($reader)]);
+    }
+
+    /** @internal */
+    public function ownTemporaryFile(string $file): void
+    {
+        $this->assertOpen();
+        $this->ownedTemporaryFiles[] = $file;
+    }
+
+    /** Close owned handles and files. Repeated calls are harmless. */
+    public function close(): void
+    {
+        if ($this->closed) {
+            return;
+        }
+        $this->closed = true;
+        try {
+            foreach ($this->sheets as $sheet) {
+                $sheet->releaseGenerator();
+            }
+            foreach ($this->ownedReaders as $reader) {
+                $reader->close();
+            }
+        }
+        finally {
+            $this->ownedReaders = [];
+            foreach ($this->ownedTemporaryFiles as $file) {
+                if (is_file($file)) {
+                    @unlink($file);
+                }
+            }
+            $this->ownedTemporaryFiles = [];
+            $this->sharedStrings = [];
+            $this->styles = [];
+            $this->names = [];
+            $this->sheets = [];
+            $this->releaseResources();
+        }
+    }
+
+    /** Format-specific in-memory caches to discard on close. */
+    protected function releaseResources(): void
+    {
+    }
+
+    public function __destruct()
+    {
+        $this->close();
+    }
     /** @var int Maximum number of rows in Excel 2007+ */
     public const EXCEL_2007_MAX_ROW = 1048576;
     /** @var int Maximum number of columns in Excel 2007+ */
@@ -487,6 +567,7 @@ abstract class AbstractBook implements InterfaceBookReader
      */
     public function sheet(?string $name = null): ?AbstractSheet
     {
+        $this->assertOpen();
         $resultId = null;
         if (!$name) {
             $resultId = $this->defaultSheetId;
@@ -551,6 +632,7 @@ abstract class AbstractBook implements InterfaceBookReader
      */
     public function getSheetById(int $sheetId, ?string $areaRange = null, ?bool $firstRowKeys = false): AbstractSheet
     {
+        $this->assertOpen();
         if (!isset($this->sheets[$sheetId])) {
             throw new Exception('Sheet ID "' . $sheetId . '" not found');
         }
@@ -571,6 +653,7 @@ abstract class AbstractBook implements InterfaceBookReader
      */
     public function getFirstSheet(?string $areaRange = null, ?bool $firstRowKeys = false): AbstractSheet
     {
+        $this->assertOpen();
         $sheetId = array_key_first($this->sheets);
         $sheet = $this->sheets[$sheetId];
         if ($areaRange) {

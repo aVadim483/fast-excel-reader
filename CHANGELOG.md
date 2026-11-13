@@ -10,6 +10,28 @@ All notable changes to this project are documented in this file.
 This file starts at version 3.2.0; for earlier history see the
 [releases page](https://github.com/aVadim483/fast-excel-reader/releases).
 
+## 5.0.0 — Unreleased
+
+### Added
+
+* Streaming ODS books/sheets with shared reading APIs, repeated rows/cells, merged
+  ranges, typed values and cached formula results. Dates without a timezone use UTC;
+  raw dates and durations retain ISO text. Full ODS styles/images/formula text are deferred.
+* Verified reading of Excel-saved XLSM, XLTX and XLTM through the XLSX reader, including
+  VBA-bearing fixtures. Macros are never executed and formulas are not calculated.
+* Workbook close()/isClosed(), owned temporary-file cleanup and a reproducible
+  heap/temp-disk benchmark in tools/benchmark-reader.php.
+
+### Breaking changes
+
+* Excel is now an opening facade; XML workbooks are Xlsx\XlsxBook. Migrate new Excel(),
+  Excel type hints and subclasses as described in UPGRADE.md.
+* openCsv() returns CsvBook. Use openCsvReader() to retain the low-level engine.
+* isXlsx() checks supported XML workbook parts/content types instead of any ZIP signature.
+  ODS uses isOds()/openOds(); XLSB is rejected explicitly.
+* Closing a book is irreversible; new reads and resuming suspended iterators throw.
+  PHP >=7.4 remains supported.
+
 ## 4.5.0
 
 ### Added
